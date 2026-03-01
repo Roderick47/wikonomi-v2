@@ -1,0 +1,5 @@
+Django>=5.0
+psycopg2-binary
+django-taggit
+h3
+django-allauth[socialaccount]
