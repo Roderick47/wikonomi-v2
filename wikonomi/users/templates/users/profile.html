@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6">
+                <div class="flex items-center space-x-4 mb-4 sm:mb-0">
+                    <img src="{{ profile.profile_picture.url }}" alt="{{ user.username }}'s profile picture" class="h-20 w-20 rounded-full object-cover border-4 border-gray-200">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">Welcome, {{ user.first_name }}!</h1>
+                        <p class="text-sm text-gray-500">@{{ user.username }}</p>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                    <a href="{% url 'edit_profile' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-center sm:text-left">
+                        Edit Profile
+                    </a>
+                    <a href="{% url 'change_password' %}" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-center sm:text-left">
+                        Change Password
+                    </a>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 rounded-lg p-6">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">Profile Information</h2>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Username</p>
+                        <p class="text-sm text-gray-900">{{ user.username }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Email</p>
+                        <p class="text-sm text-gray-900">{{ user.email }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Full Name</p>
+                        <p class="text-sm text-gray-900">{{ user.get_full_name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Date Joined</p>
+                        <p class="text-sm text-gray-900">{{ user.date_joined|date:"F d, Y" }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end">
+                <a href="{% url 'logout' %}" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded">
+                    Log Out
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

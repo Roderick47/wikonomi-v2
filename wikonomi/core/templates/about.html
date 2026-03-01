@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+    
+    <div class="text-center mb-16">
+        <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight sm:text-5xl border-b-4 border-blue-600 inline-block pb-3">What is Wikonomi?</h1>
+        <p class="mt-6 text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            Wikonomi is Papua New Guinea’s first community-driven price tracking platform. We empower everyday consumers by making the cost of living transparent, accessible, and easily comparable across different businesses and locations.
+        </p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-16">
+        <div class="p-8 sm:p-10">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                <svg class="h-8 w-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                How It Works
+            </h2>
+            <div class="prose prose-blue prose-lg text-gray-600">
+                <p>
+                    Prices in stores are constantly changing, and it’s hard for one person to track where the actual best deals are. <b>Wikonomi solves this through the power of crowdsourcing.</b> 
+                </p>
+                <p class="mt-4">
+                    Whenever you see a product on a shelf—whether it’s cheaper than normal or outrageously expensive—you can instantly snap a photo and record the price on Wikonomi. Instantly, thousands of other users across your city can see it and compare it to their nearby stores!
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-16">
+        <h2 class="text-3xl font-bold text-gray-900 mb-8 text-center">Core Features & Tools</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Feature 1 -->
+            <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-900 mb-3 flex items-center">
+                    <svg class="h-6 w-6 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Live GPS Mapping
+                </h3>
+                <p class="text-gray-600">Every price report allows you to tag the exact GPS location of the business. You can check the map to find the cheapest bread, rice, or electronics within walking or driving distance of your exact current location.</p>
+            </div>
+
+            <!-- Feature 2 -->
+            <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-900 mb-3 flex items-center">
+                    <svg class="h-6 w-6 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    Smart Shopping Center
+                </h3>
+                <p class="text-gray-600">See a good deal on the feed? Click "Add to List". Your personalized shopping cart actively tracks what you need to buy and actually <b>estimates your checkout total</b> before you even reach the counter based on the most recent community prices.</p>
+            </div>
+
+            <!-- Feature 3 -->
+            <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-500 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-900 mb-3 flex items-center">
+                    <svg class="h-6 w-6 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                    Price Watch & Alerts
+                </h3>
+                <p class="text-gray-600">Want to buy a TV but waiting for a drop? Hit the "Watch" button on any product. Whenever another user reports that product at a new price, you'll immediately receive a notification alert in your dashboard keeping you in the loop!</p>
+            </div>
+
+            <!-- Feature 4 -->
+            <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-purple-500 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-900 mb-3 flex items-center">
+                    <svg class="h-6 w-6 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    Photo Verification
+                </h3>
+                <p class="text-gray-600">To maintain trust and accuracy, users can snap and upload photos of price tags. Our system compresses images locally on your phone to save your data plan, and stores them for anyone who wants visual proof of a deal.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-blue-600 rounded-2xl shadow-xl p-8 sm:p-12 text-center text-white">
+        <h2 class="text-3xl font-extrabold mb-4">Start Saving Today.</h2>
+        <p class="text-xl mb-8 opacity-90">Join the movement. Every price you report helps another family save money.</p>
+        <a href="{% url 'add_price' %}" class="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-lg text-blue-600 bg-white hover:bg-gray-50 focus:outline-none shadow text-center transition">
+            Add a New Price Now
+        </a>
+    </div>
+</div>
+{% endblock %}

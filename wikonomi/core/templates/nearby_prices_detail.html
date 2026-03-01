@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<style>
+    #map {
+        height: 500px;
+        z-index: 10;
+    }
+    .price-card {
+        transition: all 0.3s ease;
+    }
+    .price-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .price-badge {
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    .reference-marker {
+        background-color: #3B82F6;
+        border-color: #2563EB;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
+    <div class="mb-6">
+        <a href="{% url 'price_detail' reference_report.pk %}" class="text-blue-600 hover:text-blue-800 flex items-center font-medium">
+            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Back to price details
+        </a>
+    </div>
+
+    <!-- Header -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+        <div class="px-4 py-5 sm:px-6">
+            <h1 class="text-3xl leading-6 font-bold text-gray-900">
+                Nearby Prices for {{ reference_report.product.name }}
+            </h1>
+            <p class="mt-2 max-w-2xl text-sm text-gray-500">
+                All reported prices in the vicinity of your location
+            </p>
+            <div class="mt-4 flex items-center space-x-6">
+                <div class="flex items-center">
+                    <svg class="h-5 w-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    <span class="text-sm text-gray-600">
+                        <strong>{{ total_nearby }}</strong> nearby prices
+                    </span>
+                </div>
+                <div class="flex items-center">
+                    <svg class="h-5 w-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span class="text-sm text-gray-600">
+                        <strong>{{ reports_with_location_count }}</strong> with location data
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Reference Price Info -->
+            <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-medium text-blue-900">Your Reference Price</h3>
+                        <p class="text-lg font-bold text-blue-800">{{ reference_report.currency }} {{ reference_report.price }}</p>
+                        <p class="text-sm text-blue-700">
+                            {% if reference_report.business %}at {{ reference_report.business.name }}{% else %}at pinned location{% endif %}
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-blue-700">
+                            Reported {{ reference_report.observed_at|timesince }} ago
+                        </p>
+                        <p class="text-sm text-blue-700">
+                            by {{ reference_report.user.username }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map Section -->
+    {% if reports_with_location %}
+    <div class="bg-white shadow rounded-lg mb-8">
+        <div class="px-4 py-5 sm:p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Nearby Price Locations</h2>
+            <div id="map" class="rounded-lg border border-gray-300"></div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Nearby Prices Section -->
+    {% if nearby_prices %}
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-6">All Nearby Prices</h2>
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {% for price in nearby_prices %}
+                <a href="{% url 'price_detail' price.pk %}" class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 flex flex-col hover:shadow-md transition-shadow cursor-pointer block">
+                    <div class="px-4 py-4 flex-grow">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if price.price < reference_report.price %}bg-green-100 text-green-800{% elif price.price > reference_report.price %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ price.currency }} {{ price.price }}
+                            </span>
+                            <span class="text-xs text-gray-500">{{ price.observed_at|timesince }} ago</span>
+                        </div>
+                        {% if price.business %}
+                        <p class="text-sm font-medium text-gray-900 text-left">{{ price.business.name }}</p>
+                        {% else %}
+                        <p class="text-sm font-medium text-gray-500 text-left italic">Location pinned</p>
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="text-center py-12">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No nearby prices found</h3>
+                <p class="mt-1 text-sm text-gray-500">No other prices for this product have been reported in this vicinity yet.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if reports_with_location or reference_report.latitude and reference_report.longitude %}
+<!-- Initialize Leaflet Map -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            // Initialize map
+            const map = L.map('map').setView([0, 0], 2);
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            // Add markers for reference report and nearby prices
+            const markers = [];
+            const bounds = [];
+            
+            // Reference report marker (blue)
+            {% if reference_report.latitude and reference_report.longitude %}
+                const refLat = {{ reference_report.latitude }};
+                const refLng = {{ reference_report.longitude }};
+                
+                const refMarker = L.marker([refLat, refLng], {
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    })
+                }).addTo(map)
+                    .bindPopup('<div class="p-2"><h4 class="font-semibold text-blue-600">Your Reference Price</h4><p class="text-green-600 font-medium">{{ reference_report.currency }} {{ reference_report.price }}</p><p class="text-xs text-gray-500">{{ reference_report.observed_at|date:"M d, Y" }}</p><p class="text-xs text-gray-500">By {{ reference_report.user.username|escapejs }}</p><a href="{% url "price_detail" reference_report.pk %}" class="text-blue-600 text-xs hover:underline">View details →</a></div>');
+                
+                markers.push(refMarker);
+                bounds.push([refLat, refLng]);
+            {% endif %}
+            
+            // Nearby price markers (colored based on price comparison)
+            {% for price in reports_with_location %}
+                const lat{{ forloop.counter }} = {{ price.latitude }};
+                const lng{{ forloop.counter }} = {{ price.longitude }};
+                
+                {% if price.price < reference_report.price %}
+                    var iconColor{{ forloop.counter }} = 'green';
+                {% elif price.price > reference_report.price %}
+                    var iconColor{{ forloop.counter }} = 'red';
+                {% else %}
+                    var iconColor{{ forloop.counter }} = 'grey';
+                {% endif %}
+                
+                const marker{{ forloop.counter }} = L.marker([lat{{ forloop.counter }}, lng{{ forloop.counter }}], {
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-' + iconColor{{ forloop.counter }} + '.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    })
+                }).addTo(map)
+                    .bindPopup('<div class="p-2"><h4 class="font-semibold">{{ price.product.name|escapejs }}</h4><p class="font-medium">{{ price.currency }} {{ price.price }}</p>{% if price.business %}<p class="text-xs text-gray-500">{{ price.business.name|escapejs }}</p>{% endif %}<p class="text-xs text-gray-500">{{ price.observed_at|date:"M d, Y" }}</p><p class="text-xs text-gray-500">By {{ price.user.username|escapejs }}</p><a href="{% url "price_detail" price.pk %}" class="text-blue-600 text-xs hover:underline">View details →</a></div>');
+                
+                markers.push(marker{{ forloop.counter }});
+                bounds.push([lat{{ forloop.counter }}, lng{{ forloop.counter }}]);
+            {% endfor %}
+            
+            // Fit map to show all markers
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+            
+        } catch (error) {
+            console.error('Map initialization error:', error);
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

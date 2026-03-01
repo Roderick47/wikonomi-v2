@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
+    <div class="mb-6 flex justify-between items-end">
+        <h2 class="text-2xl font-bold text-gray-900">Your Notifications</h2>
+    </div>
+
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        {% if notifications %}
+            <ul class="divide-y divide-gray-200">
+                {% for n in notifications %}
+                <li>
+                    <a href="{% url 'price_detail' n.price_report.id %}" class="block p-4 sm:p-6 hover:bg-gray-50 transition-colors {% if not n.is_read %}bg-blue-50 border-l-4 border-blue-600{% endif %}">
+                        <div class="flex flex-col gap-1.5">
+                            <div class="text-sm sm:text-base font-semibold text-gray-900 leading-tight">
+                                {{ n.message }}
+                            </div>
+                            <div class="flex items-center text-xs text-gray-400">
+                                <svg class="h-3.5 w-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                {{ n.created_at|timesince }} ago
+                            </div>
+                        </div>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="p-6 text-center text-gray-500">
+                You have no notifications yet. Try watching some products!
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

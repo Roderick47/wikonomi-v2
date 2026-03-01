@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
+    <div class="mb-6 flex justify-between items-end">
+        <h2 class="text-2xl font-bold text-gray-900">{{ active_list.name|default:"My Shopping List" }}</h2>
+    </div>
+
+    <!-- Add Item Form -->
+    <div class="bg-white shadow sm:rounded-lg mb-6 p-3 sm:p-5">
+        <form id="add-item-form" class="flex items-center gap-2 sm:gap-4">
+            <div class="flex-grow min-w-0">
+                <input type="text" id="new-item-name" 
+                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm sm:text-base p-2.5 sm:p-3 border truncate" 
+                       placeholder="Add custom item..." required>
+            </div>
+            <button type="submit" 
+                    class="shrink-0 inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 sm:py-3 sm:px-6 text-sm font-bold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                Add Item
+            </button>
+        </form>
+    </div>
+
+    <!-- Items List -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        {% if items %}
+            <ul class="divide-y divide-gray-200" id="shopping-list-items">
+                {% for item in items %}
+                <li class="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors" id="item-{{ item.id }}">
+                    <div class="flex items-center gap-4 flex-1">
+                        <input type="checkbox" 
+                               class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer toggle-item" 
+                               data-item-id="{{ item.id }}"
+                               {% if item.is_checked %}checked{% endif %}>
+                        
+                        <div class="flex-1 {% if item.is_checked %}line-through text-gray-400{% else %}text-gray-900{% endif %}">
+                            <span class="font-medium">
+                                {% if item.product %}
+                                    <a href="{% url 'home' %}?q={{ item.product.name }}" class="hover:underline">{{ item.product.name }}</a>
+                                {% else %}
+                                    {{ item.item_name }}
+                                {% endif %}
+                            </span>
+                            {% if item.quantity > 1 %}
+                                <span class="text-sm bg-gray-100 text-gray-600 px-2 py-0.5 rounded ml-2">Qty: {{ item.quantity }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-4">
+                        {% if item.estimated_price and not item.is_checked %}
+                            <div class="text-sm text-green-600 font-medium">
+                                Est: {{ item.currency }} {{ item.estimated_price }}
+                            </div>
+                        {% endif %}
+                        
+                        <button class="text-red-500 hover:text-red-700 delete-item tooltip" data-item-id="{{ item.id }}" title="Delete item">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            
+            <div class="bg-gray-50 px-4 py-4 sm:px-6 border-t border-gray-200">
+                <div class="flex justify-between items-center text-lg">
+                    <span class="font-medium text-gray-500">Estimated Total (unchecked items)</span>
+                    <span class="font-bold text-gray-900">{{ currency }} {{ estimated_total|floatformat:2 }}</span>
+                </div>
+            </div>
+        {% else %}
+            <div class="p-8 text-center text-gray-500">
+                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                <p class="text-lg font-medium">Your shopping list is empty.</p>
+                <p class="mt-1">Add items above, or add products directly from their detail pages.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const csrfToken = '{{ csrf_token }}';
+
+        // Toggle Item
+        document.querySelectorAll('.toggle-item').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const itemId = this.getAttribute('data-item-id');
+                fetch(`/shopping-list/toggle/${itemId}/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken }
+                }).then(() => window.location.reload());
+            });
+        });
+
+        // Delete Item
+        document.querySelectorAll('.delete-item').forEach(button => {
+            button.addEventListener('click', function() {
+                if (confirm('Are you sure you want to remove this item?')) {
+                    const itemId = this.getAttribute('data-item-id');
+                    fetch(`/shopping-list/delete/${itemId}/`, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrfToken }
+                    }).then(() => {
+                        document.getElementById(`item-${itemId}`).remove();
+                        window.location.reload(); // Reload to update totals
+                    });
+                }
+            });
+        });
+
+        // Add Custom Item
+        const form = document.getElementById('add-item-form');
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const input = document.getElementById('new-item-name');
+            const name = input.value.trim();
+            
+            if (name) {
+                fetch('/shopping-list/add/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ item_name: name })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'added') {
+                        window.location.reload();
+                    }
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

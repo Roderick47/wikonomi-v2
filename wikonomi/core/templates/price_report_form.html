@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<style>
+    /* Ensure the map is 400px high */
+    #map {
+        height: 400px;
+        z-index: 10;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto mt-8">
+    <div class="bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">
+                Add a New Price
+            </h3>
+            <div class="mt-2 text-sm text-gray-500">
+                <p>Help the community by sharing the price you found.</p>
+            </div>
+            <form method="POST" class="mt-5 space-y-6" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                {% if form.errors %}
+                <div class="bg-red-50 border border-red-200 text-red-600 rounded-md p-4 mb-4">
+                    <p class="font-medium">Please correct the errors below.</p>
+                    <ul class="list-disc pl-5 mt-2">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                    <div class="sm:col-span-6">
+                        <label for="product_search" class="block text-sm font-medium text-gray-700">Product</label>
+                        <div class="mt-1 flex rounded-md shadow-sm">
+                            <input type="text" name="product_name" id="product_search" list="product_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300" placeholder="Type a product name...">
+                            <datalist id="product_list">
+                                {% for product in products %}
+                                    <option value="{{ product.name }}"></option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <p class="mt-2 text-sm text-gray-500">Select an existing product or type a new name to add it.</p>
+                    </div>
+
+                    <div class="sm:col-span-6">
+                        <label for="business_search" class="block text-sm font-medium text-gray-700">Business (Optional)</label>
+                        <div class="mt-1 flex rounded-md shadow-sm">
+                            <input type="text" name="business_name" id="business_search" list="business_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300" placeholder="Type a business name...">
+                            <datalist id="business_list">
+                                {% for business in businesses %}
+                                    <option value="{{ business.name }}"></option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <p class="mt-2 text-sm text-gray-500">Select an existing business where you found this price or type a new name to add it.</p>
+                    </div>
+
+                    <div class="sm:col-span-3">
+                        <label for="{{ form.price.id_for_label }}" class="block text-sm font-medium text-gray-700">Price</label>
+                        <div class="mt-1">
+                            {{ form.price }}
+                        </div>
+                    </div>
+
+                    <div class="sm:col-span-3">
+                        <label for="{{ form.currency.id_for_label }}" class="block text-sm font-medium text-gray-700">Currency</label>
+                        <div class="mt-1">
+                            {{ form.currency }}
+                        </div>
+                    </div>
+
+                    <div class="sm:col-span-6">
+                        <label for="tags" class="block text-sm font-medium text-gray-700">Tags (Optional)</label>
+                        <div class="mt-1">
+                            <input type="text" name="tags" id="tags" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="e.g. sale, supermarket, wholesale (comma separated)">
+                        </div>
+                        <p class="mt-2 text-sm text-gray-500">Add some tags to help categorize this price.</p>
+                    </div>
+
+                    <div class="sm:col-span-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                        <p class="text-sm text-gray-500 mb-2">Click on the map to set the exact location where you saw this price.</p>
+                        
+                        <div class="mb-3 flex items-start">
+                            <div class="flex items-center h-5">
+                                <input id="use_my_location" name="use_my_location" type="checkbox" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+                            </div>
+                            <div class="ml-3 text-sm">
+                                <label for="use_my_location" class="font-medium text-gray-700">Use my current location</label>
+                                <p class="text-gray-500 text-xs mt-1" id="location_status">Browser will ask for permission.</p>
+                            </div>
+                        </div>
+
+                        <div id="map" class="rounded-lg border border-gray-300"></div>
+                        
+                        <!-- Hidden inputs for latitude and longitude populated by Leaflet -->
+                        {{ form.latitude }}
+                        {{ form.longitude }}
+                        
+                        {% if form.latitude.errors %}<p class="mt-1 text-red-500 text-xs italic">{{ form.latitude.errors.0 }}</p>{% endif %}
+                        {% if form.longitude.errors %}<p class="mt-1 text-red-500 text-xs italic">{{ form.longitude.errors.0 }}</p>{% endif %}
+                    </div>
+                    
+                    <div class="sm:col-span-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Upload Photo (Optional)</label>
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md relative cursor-pointer hover:bg-gray-50" onclick="document.getElementById('id_image').click()" id="image-drop-zone">
+                            <div class="space-y-1 text-center" id="image-upload-content">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <div class="flex text-sm text-gray-600 justify-center">
+                                    <span class="relative rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                        <span>Upload a file</span>
+                                        {{ form.image }}
+                                    </span>
+                                    <p class="pl-1">or drag and drop</p>
+                                </div>
+                                <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                            </div>
+                            <img id="image-preview" class="hidden absolute inset-0 w-full h-full object-contain rounded-md" />
+                        </div>
+                    </div>
+                    
+                    <div class="sm:col-span-6">
+                        <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700">Notes (Optional)</label>
+                        <div class="mt-1">
+                            {{ form.notes }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-5 flex justify-end">
+                    <a href="{% url 'home' %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Cancel
+                    </a>
+                    <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Initialize Leaflet -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize map centered on Port Moresby
+        const map = L.map('map').setView([-9.4438, 147.1803], 13);
+        
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        let marker = null;
+        
+        const latInput = document.getElementById('{{ form.latitude.id_for_label }}');
+        const lngInput = document.getElementById('{{ form.longitude.id_for_label }}');
+
+        // If there's already a value (e.g. form validation failed), load the marker
+        if (latInput.value && lngInput.value) {
+            const lat = parseFloat(latInput.value);
+            const lng = parseFloat(lngInput.value);
+            marker = L.marker([lat, lng]).addTo(map);
+            map.setView([lat, lng], 15);
+        }
+
+        // On map click, place marker and update hidden inputs
+        map.on('click', function(e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            
+            if (marker) {
+                marker.setLatLng(e.latlng);
+            } else {
+                marker = L.marker(e.latlng).addTo(map);
+            }
+            
+            // Update hidden inputs
+            latInput.value = lat.toFixed(6);
+            lngInput.value = lng.toFixed(6);
+            
+            // Uncheck "use my location" if user manually clicks map
+            document.getElementById('use_my_location').checked = false;
+        });
+
+        // Handle geolocation
+        const locationCheckbox = document.getElementById('use_my_location');
+        const locationStatus = document.getElementById('location_status');
+
+        locationCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                
+                if (isMobile) {
+                    locationStatus.innerText = "Requesting exact GPS location permission...";
+                } else {
+                    locationStatus.innerText = "Requesting approximate location permission...";
+                }
+                locationStatus.className = "text-blue-500 text-xs mt-1";
+                
+                if (navigator.geolocation) {
+                    const geoOptions = {
+                        enableHighAccuracy: isMobile,
+                        timeout: 10000,
+                        maximumAge: 0
+                    };
+
+                    const successCallback = function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        // Update map and marker
+                        const latlng = [lat, lng];
+                        if (marker) {
+                            marker.setLatLng(latlng);
+                        } else {
+                            marker = L.marker(latlng).addTo(map);
+                        }
+                        map.setView(latlng, 15);
+                        
+                        // Update hidden inputs
+                        latInput.value = lat.toFixed(6);
+                        lngInput.value = lng.toFixed(6);
+                        
+                        locationStatus.innerText = "Location found successfully.";
+                        locationStatus.className = "text-green-500 text-xs mt-1";
+                    };
+
+                    const errorCallback = function(error) {
+                        if (isMobile && geoOptions.enableHighAccuracy && error.code !== error.PERMISSION_DENIED) {
+                            // Fallback to approximate location if exact fails on mobile
+                            locationStatus.innerText = "Exact location failed, trying approximate...";
+                            geoOptions.enableHighAccuracy = false;
+                            navigator.geolocation.getCurrentPosition(successCallback, finalErrorCallback, geoOptions);
+                        } else {
+                            finalErrorCallback(error);
+                        }
+                    };
+
+                    const finalErrorCallback = function(error) {
+                        let msg = "Error getting location.";
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                msg = "User denied the request for Geolocation.";
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                msg = "Location information is unavailable.";
+                                break;
+                            case error.TIMEOUT:
+                                msg = "The request to get user location timed out.";
+                                break;
+                        }
+                        locationStatus.innerText = msg;
+                        locationStatus.className = "text-red-500 text-xs mt-1";
+                        locationCheckbox.checked = false; // Uncheck on error
+                    };
+
+                    navigator.geolocation.getCurrentPosition(successCallback, errorCallback, geoOptions);
+                } else {
+                    locationStatus.innerText = "Geolocation is not supported by this browser.";
+                    locationStatus.className = "text-red-500 text-xs mt-1";
+                    this.checked = false;
+                }
+            } else {
+                locationStatus.innerText = "Browser will ask for permission.";
+                locationStatus.className = "text-gray-500 text-xs mt-1";
+            }
+        });
+    });
+
+    // Image preview logic
+    const imageInput = document.getElementById('id_image');
+    if (imageInput) {
+        async function compressImage(file, maxWidth, maxHeight, quality) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = event => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        let w = img.width;
+                        let h = img.height;
+                        if (w > maxWidth || h > maxHeight) {
+                            const ratio = Math.min(maxWidth / w, maxHeight / h);
+                            w *= ratio;
+                            h *= ratio;
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        canvas.toBlob(blob => {
+                            if (!blob) return resolve(file);
+                            const compressedFile = new File([blob], file.name, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            });
+                            resolve(compressedFile.size < file.size ? compressedFile : file);
+                        }, 'image/jpeg', quality);
+                    };
+                    img.onerror = () => resolve(file);
+                };
+                reader.onerror = () => resolve(file);
+            });
+        }
+
+        imageInput.addEventListener('change', async function(event) {
+            if (event.target.files && event.target.files[0]) {
+                let file = event.target.files[0];
+                if (file.type.startsWith('image/')) {
+                    const compressedFile = await compressImage(file, 1920, 1920, 0.8);
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(compressedFile);
+                    imageInput.files = dataTransfer.files;
+
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('image-upload-content').classList.add('opacity-0');
+                        const preview = document.getElementById('image-preview');
+                        preview.src = e.target.result;
+                        preview.classList.remove('hidden');
+                    }
+                    reader.readAsDataURL(compressedFile);
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
