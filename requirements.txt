@@ -4,3 +4,4 @@ django-taggit
 h3
 django-allauth[socialaccount]
 gunicorn
+Pillow
