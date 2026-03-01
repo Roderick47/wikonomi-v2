@@ -24,13 +24,8 @@ if 'DATABASE_URL' in os.environ:
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = '/static/'
 
-# Media files configuration  
+# Media files configuration
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-MEDIA_URL = '/media/'
-
-# Serve media files in production (for Render)
-MEDIAFILES_LOCATION = 'media'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafiles')
 MEDIA_URL = '/media/'
 
 # Security settings
