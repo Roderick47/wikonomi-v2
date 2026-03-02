@@ -13,4 +13,6 @@ chmod 755 /var/data/media/profile_pics
 chmod 755 /var/data/media/product_images
 chmod 755 /var/data/media/business_images
 chmod 755 /var/data/media/price_report_images
+# List directories to verify
+ls -la /var/data/media/
 gunicorn wikonomi.wsgi:application --bind 0.0.0.0:10000
