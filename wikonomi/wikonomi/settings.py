@@ -167,6 +167,7 @@ MEDIA_URL = '/media/'
 if os.environ.get('USE_CLOUDFLARE_R2', 'False') == 'True':
     try:
         # Cloudflare R2 configuration
+        import storages.backends.r2
         DEFAULT_FILE_STORAGE = 'storages.backends.r2.R2Storage'
         CLOUDFLARE_ACCOUNT_ID = os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')
         CLOUDFLARE_R2_ACCESS_KEY_ID = os.environ.get('CLOUDFLARE_R2_ACCESS_KEY_ID', '')
@@ -179,6 +180,9 @@ if os.environ.get('USE_CLOUDFLARE_R2', 'False') == 'True':
         # Fallback to local disk storage
         MEDIA_ROOT = '/var/data/media'
         print("Falling back to local disk storage")
+else:
+    # Local disk storage (fallback)
+    MEDIA_ROOT = '/var/data/media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
