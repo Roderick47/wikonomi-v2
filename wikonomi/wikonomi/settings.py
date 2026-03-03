@@ -165,16 +165,20 @@ CSRF_TRUSTED_ORIGINS = ['https://www.wikonomi.com']
 # Media files (for profile pictures) - Using Cloudflare R2
 MEDIA_URL = '/media/'
 if os.environ.get('USE_CLOUDFLARE_R2', 'False') == 'True':
-    # Cloudflare R2 configuration
-    DEFAULT_FILE_STORAGE = 'storages.backends.r2.R2Storage'
-    CLOUDFLARE_ACCOUNT_ID = os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')
-    CLOUDFLARE_R2_ACCESS_KEY_ID = os.environ.get('CLOUDFLARE_R2_ACCESS_KEY_ID', '')
-    CLOUDFLARE_R2_SECRET_ACCESS_KEY = os.environ.get('CLOUDFLARE_R2_SECRET_ACCESS_KEY', '')
-    CLOUDFLARE_R2_BUCKET = os.environ.get('CLOUDFLARE_R2_BUCKET', '')
-    MEDIA_ROOT = f'r2://{CLOUDFLARE_ACCOUNT_ID}:{CLOUDFLARE_R2_ACCESS_KEY_ID}@{CLOUDFLARE_R2_BUCKET}'
-else:
-    # Local disk storage (fallback)
-    MEDIA_ROOT = '/var/data/media'
+    try:
+        # Cloudflare R2 configuration
+        DEFAULT_FILE_STORAGE = 'storages.backends.r2.R2Storage'
+        CLOUDFLARE_ACCOUNT_ID = os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')
+        CLOUDFLARE_R2_ACCESS_KEY_ID = os.environ.get('CLOUDFLARE_R2_ACCESS_KEY_ID', '')
+        CLOUDFLARE_R2_SECRET_ACCESS_KEY = os.environ.get('CLOUDFLARE_R2_SECRET_ACCESS_KEY', '')
+        CLOUDFLARE_R2_BUCKET = os.environ.get('CLOUDFLARE_R2_BUCKET', '')
+        MEDIA_ROOT = f'r2://{CLOUDFLARE_ACCOUNT_ID}:{CLOUDFLARE_R2_ACCESS_KEY_ID}@{CLOUDFLARE_R2_BUCKET}'
+        print(f"R2 Storage enabled with bucket: {CLOUDFLARE_R2_BUCKET}")
+    except Exception as e:
+        print(f"R2 Storage configuration error: {e}")
+        # Fallback to local disk storage
+        MEDIA_ROOT = '/var/data/media'
+        print("Falling back to local disk storage")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
