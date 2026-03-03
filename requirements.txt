@@ -6,5 +6,4 @@ django-allauth[socialaccount]
 gunicorn
 Pillow
 dj-database-url
-cloudflare
-storages[django-cloudflare]
+django-cloudflare-storage
