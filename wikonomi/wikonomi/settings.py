@@ -162,21 +162,20 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # Add this for Render deployment
 CSRF_TRUSTED_ORIGINS = ['https://www.wikonomi.com']
 
-# Media files (for profile pictures) - Using Cloudflare R2
+# Media files (for profile pictures) - Using Cloudflare R2 (S3-compatible)
 MEDIA_URL = '/media/'
 if os.environ.get('USE_CLOUDFLARE_R2', 'False') == 'True':
     try:
-        # Cloudflare R2 configuration
-        import storages.backends.r2
-        DEFAULT_FILE_STORAGE = 'storages.backends.r2.R2Storage'
-        CLOUDFLARE_ACCOUNT_ID = os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')
-        CLOUDFLARE_R2_ACCESS_KEY_ID = os.environ.get('CLOUDFLARE_R2_ACCESS_KEY_ID', '')
-        CLOUDFLARE_R2_SECRET_ACCESS_KEY = os.environ.get('CLOUDFLARE_R2_SECRET_ACCESS_KEY', '')
-        CLOUDFLARE_R2_BUCKET = os.environ.get('CLOUDFLARE_R2_BUCKET', '')
-        MEDIA_ROOT = f'r2://{CLOUDFLARE_ACCOUNT_ID}:{CLOUDFLARE_R2_ACCESS_KEY_ID}@{CLOUDFLARE_R2_BUCKET}'
-        print(f"R2 Storage enabled with bucket: {CLOUDFLARE_R2_BUCKET}")
+        # Cloudflare R2 configuration (S3-compatible)
+        import storages.backends.s3
+        DEFAULT_FILE_STORAGE = 'storages.backends.s3.S3Storage'
+        AWS_ACCESS_KEY_ID = os.environ.get('CLOUDFLARE_R2_ACCESS_KEY_ID', '')
+        AWS_SECRET_ACCESS_KEY = os.environ.get('CLOUDFLARE_R2_SECRET_ACCESS_KEY', '')
+        AWS_STORAGE_BUCKET_NAME = os.environ.get('CLOUDFLARE_R2_BUCKET', '')
+        MEDIA_ROOT = f's3://{AWS_ACCESS_KEY_ID}:{AWS_SECRET_ACCESS_KEY}@{AWS_STORAGE_BUCKET_NAME}'
+        print(f"S3 Storage enabled with bucket: {AWS_STORAGE_BUCKET_NAME}")
     except Exception as e:
-        print(f"R2 Storage configuration error: {e}")
+        print(f"S3 Storage configuration error: {e}")
         # Fallback to local disk storage
         MEDIA_ROOT = '/var/data/media'
         print("Falling back to local disk storage")
