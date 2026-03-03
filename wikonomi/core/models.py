@@ -4,6 +4,7 @@ from taggit.managers import TaggableManager
 import h3
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
+from django_resized import ResizedImageField
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -16,7 +17,7 @@ class Product(models.Model):
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(unique=True)
     description = models.TextField(blank=True)
-    image = models.ImageField(upload_to='product_images/', null=True, blank=True)
+    image = ResizedImageField(upload_to='product_images/', null=True, blank=True, size=[1000, 1000], quality=75, force_format='JPEG')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
     tags = TaggableManager()
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
@@ -25,44 +26,14 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        if self.image and hasattr(self.image, 'path'):
-            import os
-            from PIL import Image
-            if os.path.exists(self.image.path):
-                try:
-                    img = Image.open(self.image.path)
-                    if img.mode != 'RGB':
-                        img = img.convert('RGB')
-                    img.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
-                    img.save(self.image.path, 'JPEG', quality=80, optimize=True)
-                except Exception:
-                    pass
-
 class Business(models.Model):
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(unique=True)
-    image = models.ImageField(upload_to='business_images/', null=True, blank=True)
+    image = ResizedImageField(upload_to='business_images/', null=True, blank=True, size=[1000, 1000], quality=75, force_format='JPEG')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        if self.image and hasattr(self.image, 'path'):
-            import os
-            from PIL import Image
-            if os.path.exists(self.image.path):
-                try:
-                    img = Image.open(self.image.path)
-                    if img.mode != 'RGB':
-                        img = img.convert('RGB')
-                    img.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
-                    img.save(self.image.path, 'JPEG', quality=80, optimize=True)
-                except Exception:
-                    pass
 
 class PriceReport(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='price_reports')
@@ -73,7 +44,7 @@ class PriceReport(models.Model):
     price = models.DecimalField(max_digits=12, decimal_places=2)
     currency = models.CharField(max_length=3, default='PGK')
     
-    image = models.ImageField(upload_to='price_report_images/', null=True, blank=True)
+    image = ResizedImageField(upload_to='price_report_images/', null=True, blank=True, size=[1000, 1000], quality=75, force_format='JPEG')
     
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
@@ -91,21 +62,6 @@ class PriceReport(models.Model):
 
     def __str__(self):
         return f"{self.price} {self.currency} — {self.product}"
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        if self.image and hasattr(self.image, 'path'):
-            import os
-            from PIL import Image
-            if os.path.exists(self.image.path):
-                try:
-                    img = Image.open(self.image.path)
-                    if img.mode != 'RGB':
-                        img = img.convert('RGB')
-                    img.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
-                    img.save(self.image.path, 'JPEG', quality=80, optimize=True)
-                except Exception:
-                    pass
 
     def get_lat_lng(self):
         return (self.latitude, self.longitude) if self.latitude and self.longitude else None

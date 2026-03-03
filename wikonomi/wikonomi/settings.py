@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'storages',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
@@ -167,13 +168,24 @@ MEDIA_URL = '/media/'
 if os.environ.get('USE_CLOUDFLARE_R2', 'False') == 'True':
     try:
         # Cloudflare R2 configuration (S3-compatible)
-        import storages.backends.s3
-        DEFAULT_FILE_STORAGE = 'storages.backends.s3.S3Storage'
-        AWS_ACCESS_KEY_ID = os.environ.get('CLOUDFLARE_R2_ACCESS_KEY_ID', '')
-        AWS_SECRET_ACCESS_KEY = os.environ.get('CLOUDFLARE_R2_SECRET_ACCESS_KEY', '')
-        AWS_STORAGE_BUCKET_NAME = os.environ.get('CLOUDFLARE_R2_BUCKET', '')
-        MEDIA_ROOT = f's3://{AWS_ACCESS_KEY_ID}:{AWS_SECRET_ACCESS_KEY}@{AWS_STORAGE_BUCKET_NAME}'
+        import storages.backends.s3boto3
+        DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+        
+        # AWS S3 settings (R2 compatible)
+        AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', '')
+        AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
+        AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME', '')
+        AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL', '')
+        AWS_S3_REGION_NAME = 'auto'
+        AWS_S3_SIGNATURE_VERSION = 's3v4'
+        AWS_QUERYSTRING_AUTH = False
+        
+        # Set MEDIA_URL to R2 endpoint
+        if AWS_S3_ENDPOINT_URL and AWS_STORAGE_BUCKET_NAME:
+            MEDIA_URL = f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/'
+        
         print(f"S3 Storage enabled with bucket: {AWS_STORAGE_BUCKET_NAME}")
+        print(f"S3 Endpoint: {AWS_S3_ENDPOINT_URL}")
     except Exception as e:
         print(f"S3 Storage configuration error: {e}")
         # Fallback to local disk storage
