@@ -180,8 +180,8 @@ if os.environ.get('USE_CLOUDFLARE_R2', 'False') == 'True':
     
     # Set MEDIA_URL to R2 endpoint
     if AWS_S3_ENDPOINT_URL and AWS_STORAGE_BUCKET_NAME:
-        # Use r2.dev for public access (temporary fix)
-        MEDIA_URL = f'https://wikonomi-media.r2.dev/'
+        # Use actual public development URL from Cloudflare
+        MEDIA_URL = 'https://pub-b55dfe64f6c44b7e8be447f5ab5fafea.r2.dev/'
     
     print(f"S3 Storage enabled with bucket: {AWS_STORAGE_BUCKET_NAME}")
     print(f"S3 Endpoint: {AWS_S3_ENDPOINT_URL}")
