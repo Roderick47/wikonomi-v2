@@ -178,14 +178,14 @@ if os.environ.get('AWS_ACCESS_KEY_ID') and os.environ.get('AWS_SECRET_ACCESS_KEY
                 "signature_version": os.environ.get('AWS_S3_SIGNATURE_VERSION', 's3v4'),
                 "querystring_auth": False,
                 "default_acl": None,
-                "custom_domain": "pub-b55dfe64f6c44b7e8be447f5ab5fafea.r2.dev",
+                "custom_domain": "media.wikonomi.com",
             },
         },
         "staticfiles": {  # leave this for your CSS/JS
             "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
         },
     }
-    MEDIA_URL = 'https://pub-b55dfe64f6c44b7e8be447f5ab5fafea.r2.dev/'
+    MEDIA_URL = 'https://media.wikonomi.com/'
 else:
     # Fallback to local storage if R2 not configured
     STORAGES = {
