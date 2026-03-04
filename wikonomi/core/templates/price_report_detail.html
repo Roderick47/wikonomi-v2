@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block extra_head %}
 <style>
@@ -72,7 +73,7 @@
                     </a>
                     {% endif %}
                     <div class="bg-green-100 px-4 py-2 rounded-lg border border-green-200 shadow-sm whitespace-nowrap">
-                        <span class="text-green-800 font-bold text-xl sm:text-2xl">{{ report.currency }} {{ report.price }}</span>
+                        <span class="text-green-800 font-bold text-xl sm:text-2xl">{{ report.currency }} {{ report.price|intcomma }}</span>
                     </div>
                 </div>
             </div>
@@ -156,7 +157,7 @@
                     <div class="px-4 py-4 flex-grow">
                         <div class="flex justify-between items-center mb-2">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if nearby.price < report.price %}bg-green-100 text-green-800{% elif nearby.price > report.price %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
-                                {{ nearby.currency }} {{ nearby.price }}
+                                {{ nearby.currency }} {{ nearby.price|intcomma }}
                             </span>
                             <span class="text-xs text-gray-500">{{ nearby.observed_at|timesince }} ago</span>
                         </div>
@@ -198,10 +199,10 @@
                         </div>
                         <div class="text-sm font-medium">
                             {% if history.old_price %}
-                                <span class="text-gray-500">{{ history.old_price }} {{ history.old_currency }}</span>
+                                <span class="text-gray-500">{{ history.old_price|intcomma }} {{ history.old_currency }}</span>
                                 <span class="mx-2">→</span>
                             {% endif %}
-                            <span class="text-green-600">{{ history.new_price }} {{ history.new_currency }}</span>
+                            <span class="text-green-600">{{ history.new_price|intcomma }} {{ history.new_currency }}</span>
                         </div>
                     </div>
                     {% if history.notes %}

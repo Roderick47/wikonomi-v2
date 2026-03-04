@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block extra_head %}
 <style>
@@ -67,7 +68,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h3 class="text-sm font-medium text-blue-900">Your Reference Price</h3>
-                        <p class="text-lg font-bold text-blue-800">{{ reference_report.currency }} {{ reference_report.price }}</p>
+                        <p class="text-lg font-bold text-blue-800">{{ reference_report.currency }} {{ reference_report.price|intcomma }}</p>
                         <p class="text-sm text-blue-700">
                             {% if reference_report.business %}at {{ reference_report.business.name }}{% else %}at pinned location{% endif %}
                         </p>
@@ -106,7 +107,7 @@
                     <div class="px-4 py-4 flex-grow">
                         <div class="flex justify-between items-center mb-2">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if price.price < reference_report.price %}bg-green-100 text-green-800{% elif price.price > reference_report.price %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
-                                {{ price.currency }} {{ price.price }}
+                                {{ price.currency }} {{ price.price|intcomma }}
                             </span>
                             <span class="text-xs text-gray-500">{{ price.observed_at|timesince }} ago</span>
                         </div>
@@ -169,7 +170,7 @@
                         shadowSize: [41, 41]
                     })
                 }).addTo(map)
-                    .bindPopup('<div class="p-2"><h4 class="font-semibold text-blue-600">Your Reference Price</h4><p class="text-green-600 font-medium">{{ reference_report.currency }} {{ reference_report.price }}</p><p class="text-xs text-gray-500">{{ reference_report.observed_at|date:"M d, Y" }}</p><p class="text-xs text-gray-500">By {{ reference_report.user.username|escapejs }}</p><a href="{% url "price_detail" reference_report.pk %}" class="text-blue-600 text-xs hover:underline">View details →</a></div>');
+                    .bindPopup('<div class="p-2"><h4 class="font-semibold text-blue-600">Your Reference Price</h4><p class="text-green-600 font-medium">{{ reference_report.currency }} {{ reference_report.price|intcomma }}</p><p class="text-xs text-gray-500">{{ reference_report.observed_at|date:"M d, Y" }}</p><p class="text-xs text-gray-500">By {{ reference_report.user.username|escapejs }}</p><a href="{% url "price_detail" reference_report.pk %}" class="text-blue-600 text-xs hover:underline">View details →</a></div>');
                 
                 markers.push(refMarker);
                 bounds.push([refLat, refLng]);
@@ -198,7 +199,7 @@
                         shadowSize: [41, 41]
                     })
                 }).addTo(map)
-                    .bindPopup('<div class="p-2"><h4 class="font-semibold">{{ price.product.name|escapejs }}</h4><p class="font-medium">{{ price.currency }} {{ price.price }}</p>{% if price.business %}<p class="text-xs text-gray-500">{{ price.business.name|escapejs }}</p>{% endif %}<p class="text-xs text-gray-500">{{ price.observed_at|date:"M d, Y" }}</p><p class="text-xs text-gray-500">By {{ price.user.username|escapejs }}</p><a href="{% url "price_detail" price.pk %}" class="text-blue-600 text-xs hover:underline">View details →</a></div>');
+                    .bindPopup('<div class="p-2"><h4 class="font-semibold">{{ price.product.name|escapejs }}</h4><p class="font-medium">{{ price.currency }} {{ price.price|intcomma }}</p>{% if price.business %}<p class="text-xs text-gray-500">{{ price.business.name|escapejs }}</p>{% endif %}<p class="text-xs text-gray-500">{{ price.observed_at|date:"M d, Y" }}</p><p class="text-xs text-gray-500">By {{ price.user.username|escapejs }}</p><a href="{% url "price_detail" price.pk %}" class="text-blue-600 text-xs hover:underline">View details →</a></div>');
                 
                 markers.push(marker{{ forloop.counter }});
                 bounds.push([lat{{ forloop.counter }}, lng{{ forloop.counter }}]);

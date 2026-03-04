@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block extra_head %}
 <style>
@@ -107,7 +108,7 @@
                                     <div class="mb-4">
                                         <div class="flex items-center justify-between">
                                             <span class="price-badge inline-flex items-center px-3 py-1 rounded-full text-green-800 bg-green-100">
-                                                {{ latest_price.currency }} {{ latest_price.price }}
+                                                {{ latest_price.currency }} {{ latest_price.price|intcomma }}
                                             </span>
                                             <span class="text-xs text-gray-500">
                                                 {{ latest_price.observed_at|timesince }} ago
@@ -159,7 +160,7 @@
                             <div class="flex items-center space-x-3">
                                 <h4 class="font-medium text-gray-900">{{ report.product.name }}</h4>
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    {{ report.currency }} {{ report.price }}
+                                    {{ report.currency }} {{ report.price|intcomma }}
                                 </span>
                                 {% if report.product.tags.all %}
                                     {% for tag in report.product.tags.all %}
@@ -224,7 +225,7 @@
                 const lng{{ forloop.counter }} = {{ report.longitude }};
                 
                 const marker{{ forloop.counter }} = L.marker([lat{{ forloop.counter }}, lng{{ forloop.counter }}]).addTo(map)
-                    .bindPopup('<div class="p-2"><h4 class="font-semibold">{{ report.product.name|escapejs }}</h4><p class="text-green-600 font-medium">{{ report.currency }} {{ report.price }}</p><p class="text-xs text-gray-500">{{ report.observed_at|date:"M d, Y" }}</p><p class="text-xs text-gray-500">By {{ report.user.username|escapejs }}</p><a href="{% url "price_detail" report.pk %}" class="text-blue-600 text-xs hover:underline">View details →</a></div>');
+                    .bindPopup('<div class="p-2"><h4 class="font-semibold">{{ report.product.name|escapejs }}</h4><p class="text-green-600 font-medium">{{ report.currency }} {{ report.price|intcomma }}</p><p class="text-xs text-gray-500">{{ report.observed_at|date:"M d, Y" }}</p><p class="text-xs text-gray-500">By {{ report.user.username|escapejs }}</p><a href="{% url "price_detail" report.pk %}" class="text-blue-600 text-xs hover:underline">View details →</a></div>');
                 
                 markers.push(marker{{ forloop.counter }});
                 bounds.push([lat{{ forloop.counter }}, lng{{ forloop.counter }}]);
