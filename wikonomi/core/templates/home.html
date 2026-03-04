@@ -1,6 +1,15 @@
 {% extends 'base.html' %}
 {% load custom_filters %}
 
+{% block extra_head %}
+<style>
+    #map {
+        height: 400px;
+        z-index: 10;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Hero Section -->
 <div class="text-center py-12">
@@ -42,8 +51,34 @@
                     </svg>
                     Using your location
                 </span>
+                <button type="button" id="toggle-map-btn" onclick="toggleMap()" class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0121 18.382V7.618a1 1 0 01-1.447-.894L15 4m0 13V4m0 0L9 7"></path>
+                    </svg>
+                    Show Map
+                </button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Map Section (initially hidden) -->
+<div id="map-section" class="hidden mt-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Price Locations</h3>
+            <div id="map" class="rounded-lg border border-gray-300"></div>
+            <div class="mt-3 flex items-center space-x-4 text-sm text-gray-500">
+                <div class="flex items-center">
+                    <span class="inline-block w-3 h-3 rounded-full bg-blue-500 mr-1"></span>
+                    <span>Your location</span>
+                </div>
+                <div class="flex items-center">
+                    <span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-1"></span>
+                    <span>Price reports</span>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -274,6 +309,119 @@ function handleSortChange(sortValue) {
     } else {
         // For non-location sorts, just submit the form
         document.getElementById('search-form').submit();
+    }
+}
+
+// Map functionality
+let map = null;
+let mapInitialized = false;
+
+function toggleMap() {
+    const mapSection = document.getElementById('map-section');
+    const toggleBtn = document.getElementById('toggle-map-btn');
+    
+    if (mapSection.classList.contains('hidden')) {
+        // Show map
+        mapSection.classList.remove('hidden');
+        toggleBtn.innerHTML = `
+            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            Hide Map
+        `;
+        
+        // Initialize map if not already done
+        if (!mapInitialized) {
+            initMap();
+            mapInitialized = true;
+        } else if (map) {
+            map.invalidateSize();
+        }
+    } else {
+        // Hide map
+        mapSection.classList.add('hidden');
+        toggleBtn.innerHTML = `
+            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0121 18.382V7.618a1 1 0 01-1.447-.894L15 4m0 13V4m0 0L9 7"></path>
+            </svg>
+            Show Map
+        `;
+    }
+}
+
+function initMap() {
+    try {
+        // Get user location if available
+        const userLat = document.getElementById('user-lat').value;
+        const userLng = document.getElementById('user-lng').value;
+        
+        // Initialize map centered on user location or default view
+        const initialLat = userLat ? parseFloat(userLat) : -6.5;
+        const initialLng = userLng ? parseFloat(userLng) : 147.0;
+        const initialZoom = (userLat && userLng) ? 12 : 6;
+        
+        map = L.map('map').setView([initialLat, initialLng], initialZoom);
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+        
+        // Add markers for all price reports with location
+        const markers = [];
+        const bounds = [];
+        
+        {% for report in latest_prices %}
+            {% if report.latitude and report.longitude %}
+                const lat{{ forloop.counter }} = {{ report.latitude }};
+                const lng{{ forloop.counter }} = {{ report.longitude }};
+                
+                const marker{{ forloop.counter }} = L.marker([lat{{ forloop.counter }}, lng{{ forloop.counter }}], {
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    })
+                }).addTo(map)
+                    .bindPopup('<div class="p-2"><h4 class="font-semibold">{{ report.product.name|escapejs }}</h4><p class="text-green-600 font-medium">{{ report.currency }} {{ report.price|intcomma }}</p>{% if report.business %}<p class="text-xs text-gray-500">{{ report.business.name|escapejs }}</p>{% endif %}<p class="text-xs text-gray-500">{{ report.observed_at|date:"M d, Y" }}</p><a href="{% url "price_detail" report.pk %}" class="text-blue-600 text-xs hover:underline">View details →</a></div>');
+                
+                markers.push(marker{{ forloop.counter }});
+                bounds.push([lat{{ forloop.counter }}, lng{{ forloop.counter }}]);
+            {% endif %}
+        {% endfor %}
+        
+        // Add user location marker if available
+        {% if request.GET.lat and request.GET.lng %}
+            const userLatVal = parseFloat('{{ request.GET.lat }}');
+            const userLngVal = parseFloat('{{ request.GET.lng }}');
+            
+            const userMarker = L.marker([userLatVal, userLngVal], {
+                icon: L.icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                })
+            }).addTo(map)
+                .bindPopup('<div class="p-2"><h4 class="font-semibold text-blue-600">Your Location</h4></div>');
+            
+            markers.push(userMarker);
+            bounds.push([userLatVal, userLngVal]);
+        {% endif %}
+        
+        // Fit map to show all markers if we have any
+        if (bounds.length > 0) {
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
+        
+    } catch (error) {
+        console.error('Map initialization error:', error);
     }
 }
 </script>
