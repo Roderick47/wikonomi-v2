@@ -32,32 +32,8 @@ def user_login(request):
 
 @login_required
 def profile(request):
-    try:
-        profile, created = Profile.objects.get_or_create(user=request.user)
-        
-        # Debug: Check if profile picture exists and has URL
-        debug_info = {}
-        if profile.profile_picture:
-            debug_info['has_picture'] = True
-            try:
-                debug_info['url'] = profile.profile_picture.url
-                debug_info['name'] = profile.profile_picture.name
-            except Exception as e:
-                debug_info['url_error'] = str(e)
-        else:
-            debug_info['has_picture'] = False
-        
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Profile debug: {debug_info}")
-        
-        return render(request, 'users/profile.html', {'profile': profile, 'debug_info': debug_info})
-    except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Profile view error: {str(e)}")
-        # Return a simple error page
-        return render(request, 'users/profile.html', {'profile': None, 'error': str(e)})
+    profile, created = Profile.objects.get_or_create(user=request.user)
+    return render(request, 'users/profile.html', {'profile': profile})
 
 @login_required
 def edit_profile(request):
