@@ -139,7 +139,7 @@ def home(request):
                 user_lat = float(user_lat)
                 user_lng = float(user_lng)
                 from .utils import annotate_with_distance
-                latest_prices = annotate_with_distance(latest_prices, user_lat, user_lng).order_by('distance_km', '-observed_at')
+                latest_prices = annotate_with_distance(latest_prices, user_lat, user_lng)[:20]
             except (ValueError, TypeError):
                 latest_prices = latest_prices.order_by('-observed_at')
         else:
@@ -185,7 +185,7 @@ def load_more_prices(request):
                 user_lat = float(user_lat)
                 user_lng = float(user_lng)
                 from .utils import annotate_with_distance
-                latest_prices = annotate_with_distance(latest_prices, user_lat, user_lng).order_by('distance_km', '-observed_at')
+                latest_prices = annotate_with_distance(latest_prices, user_lat, user_lng)
             except (ValueError, TypeError):
                 latest_prices = latest_prices.order_by('-observed_at')
         else:
