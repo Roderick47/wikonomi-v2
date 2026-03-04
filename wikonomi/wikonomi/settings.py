@@ -164,28 +164,39 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 CSRF_TRUSTED_ORIGINS = ['https://www.wikonomi.com']
 
 # === CLOUD FLARE R2 STORAGE (NEW DJANGO 5.2 WAY) ===
-STORAGES = {
-    "default": {  # this is for your images/media files
-        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
-        "OPTIONS": {
-            "access_key": os.environ.get('AWS_ACCESS_KEY_ID'),          # your new keys from env
-            "secret_key": os.environ.get('AWS_SECRET_ACCESS_KEY'),
-            "bucket_name": os.environ.get('AWS_STORAGE_BUCKET_NAME'),
-            "endpoint_url": os.environ.get('AWS_S3_ENDPOINT_URL'),
-            "region_name": os.environ.get('AWS_S3_REGION_NAME'),
-            "signature_version": os.environ.get('AWS_S3_SIGNATURE_VERSION'),
-            "querystring_auth": False,
-            "default_acl": None,          # R2 public bucket handles this
+# Only configure R2 if environment variables are set
+if os.environ.get('AWS_ACCESS_KEY_ID') and os.environ.get('AWS_SECRET_ACCESS_KEY'):
+    STORAGES = {
+        "default": {  # this is for your images/media files
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+            "OPTIONS": {
+                "access_key": os.environ.get('AWS_ACCESS_KEY_ID'),
+                "secret_key": os.environ.get('AWS_SECRET_ACCESS_KEY'),
+                "bucket_name": os.environ.get('AWS_STORAGE_BUCKET_NAME', ''),
+                "endpoint_url": os.environ.get('AWS_S3_ENDPOINT_URL', ''),
+                "region_name": os.environ.get('AWS_S3_REGION_NAME', 'auto'),
+                "signature_version": os.environ.get('AWS_S3_SIGNATURE_VERSION', 's3v4'),
+                "querystring_auth": False,
+                "default_acl": None,
+            },
         },
-    },
-    "staticfiles": {  # leave this for your CSS/JS
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-    },
-}
-
-# Keep these exactly as you already have them
-MEDIA_URL = 'https://pub-b55dfe64f6c44b7e8be447f5ab5fafea.r2.dev/'
-AWS_QUERYSTRING_AUTH = False
+        "staticfiles": {  # leave this for your CSS/JS
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+    MEDIA_URL = 'https://pub-b55dfe64f6c44b7e8be447f5ab5fafea.r2.dev/'
+else:
+    # Fallback to local storage if R2 not configured
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = '/var/data/media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
