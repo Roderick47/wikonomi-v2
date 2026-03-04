@@ -4,27 +4,42 @@
 <div class="max-w-4xl mx-auto">
     <div class="bg-white shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
+            {% if error %}
+                <div class="bg-red-50 border border-red-200 p-4 mb-4">
+                    <h3 class="text-red-800 font-bold">Error Loading Profile</h3>
+                    <p class="text-red-600">{{ error }}</p>
+                </div>
+            {% endif %}
+            
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6">
                 <div class="flex items-center space-x-4 mb-4 sm:mb-0">
-                    <!-- DEBUG: Profile info -->
-                    <div class="text-xs text-gray-500">
-                        DEBUG: Profile exists: {{ profile is not None }}<br>
-                        {% if profile %}
-                            DEBUG: Has profile picture: {% if profile.profile_picture %}Yes{% else %}No{% endif %}<br>
+                    {% if profile %}
+                        <!-- DEBUG: Profile info -->
+                        <div class="text-xs text-gray-500">
+                            DEBUG: Profile exists: True<br>
                             {% if profile.profile_picture %}
+                                DEBUG: Has profile picture: Yes<br>
                                 DEBUG: URL: {{ profile.profile_picture.url }}<br>
                                 DEBUG: Name: {{ profile.profile_picture.name }}
+                            {% else %}
+                                DEBUG: Has profile picture: No<br>
                             {% endif %}
-                        {% endif %}
-                    </div>
-                    
-                    {% if profile.profile_picture and profile.profile_picture.url %}
-                        <img src="{{ profile.profile_picture.url }}" alt="{{ user.username }}'s profile picture" class="h-20 w-20 rounded-full object-cover border-4 border-gray-200" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                        <div class="h-20 w-20 rounded-full bg-gray-300 flex items-center justify-center border-4 border-gray-200" style="display:none;">
-                            <svg class="h-10 w-10 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                            </svg>
                         </div>
+                        
+                        {% if profile.profile_picture and profile.profile_picture.url %}
+                            <img src="{{ profile.profile_picture.url }}" alt="{{ user.username }}'s profile picture" class="h-20 w-20 rounded-full object-cover border-4 border-gray-200" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="h-20 w-20 rounded-full bg-gray-300 flex items-center justify-center border-4 border-gray-200" style="display:none;">
+                                <svg class="h-10 w-10 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        {% else %}
+                            <div class="h-20 w-20 rounded-full bg-gray-300 flex items-center justify-center border-4 border-gray-200">
+                                <svg class="h-10 w-10 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        {% endif %}
                     {% else %}
                         <div class="h-20 w-20 rounded-full bg-gray-300 flex items-center justify-center border-4 border-gray-200">
                             <svg class="h-10 w-10 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
