@@ -116,6 +116,10 @@ price_report_create = PriceReportCreateView.as_view()
 
 def home(request):
     query = request.GET.get('q', '').strip()
+    sort = request.GET.get('sort', 'recent')  # recent, price_asc, price_desc, nearest
+    user_lat = request.GET.get('lat')
+    user_lng = request.GET.get('lng')
+    
     latest_prices = PriceReport.objects.select_related('product', 'business', 'user').prefetch_related('user__profile')
     
     if query:
@@ -123,12 +127,33 @@ def home(request):
             Q(product__name__icontains=query) | 
             Q(business__name__icontains=query)
         )
-        
+    
+    # Apply sorting
+    if sort == 'price_asc':
+        latest_prices = latest_prices.order_by('price', '-observed_at')
+    elif sort == 'price_desc':
+        latest_prices = latest_prices.order_by('-price', '-observed_at')
+    elif sort == 'nearest':
+        if user_lat and user_lng:
+            try:
+                user_lat = float(user_lat)
+                user_lng = float(user_lng)
+                from .utils import annotate_with_distance
+                latest_prices = annotate_with_distance(latest_prices, user_lat, user_lng).order_by('distance_km', '-observed_at')
+            except (ValueError, TypeError):
+                latest_prices = latest_prices.order_by('-observed_at')
+        else:
+            latest_prices = latest_prices.order_by('-observed_at')
+    else:
+        # Default: recent
+        latest_prices = latest_prices.order_by('-observed_at')
+    
     # Initial load - first 20 items
-    latest_prices = latest_prices.order_by('-observed_at')[:20]
+    latest_prices = latest_prices[:20]
     
     return render(request, 'home.html', {
         'latest_prices': latest_prices,
+        'current_sort': sort,
     })
 
 def about_view(request):
@@ -137,6 +162,9 @@ def about_view(request):
 def load_more_prices(request):
     page = int(request.GET.get('page', 1))
     query = request.GET.get('q', '').strip()
+    sort = request.GET.get('sort', 'recent')
+    user_lat = request.GET.get('lat')
+    user_lng = request.GET.get('lng')
     
     latest_prices = PriceReport.objects.select_related('product', 'business', 'user').prefetch_related('user__profile')
     
@@ -146,8 +174,27 @@ def load_more_prices(request):
             Q(business__name__icontains=query)
         )
     
+    # Apply sorting
+    if sort == 'price_asc':
+        latest_prices = latest_prices.order_by('price', '-observed_at')
+    elif sort == 'price_desc':
+        latest_prices = latest_prices.order_by('-price', '-observed_at')
+    elif sort == 'nearest':
+        if user_lat and user_lng:
+            try:
+                user_lat = float(user_lat)
+                user_lng = float(user_lng)
+                from .utils import annotate_with_distance
+                latest_prices = annotate_with_distance(latest_prices, user_lat, user_lng).order_by('distance_km', '-observed_at')
+            except (ValueError, TypeError):
+                latest_prices = latest_prices.order_by('-observed_at')
+        else:
+            latest_prices = latest_prices.order_by('-observed_at')
+    else:
+        latest_prices = latest_prices.order_by('-observed_at')
+    
     # Use paginator for infinite scroll
-    paginator = Paginator(latest_prices.order_by('-observed_at'), 20)
+    paginator = Paginator(latest_prices, 20)
     
     try:
         prices_page = paginator.page(page)
@@ -173,6 +220,9 @@ def load_more_prices(request):
             'has_location': bool(price.latitude and price.longitude),
             'timesince': f"{timesince(price.observed_at)} ago"
         }
+        # Add distance if available
+        if hasattr(price, 'distance_km'):
+            item_data['distance_km'] = round(price.distance_km, 1)
         items_data.append(item_data)
     
     return JsonResponse({

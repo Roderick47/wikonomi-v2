@@ -18,11 +18,30 @@
         </div>
     </div>
     <div class="mt-8 max-w-xl mx-auto">
-        <form method="GET" action="{% url 'home' %}" class="flex gap-2">
-            <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search for products or businesses..." class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 border">
-            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                Search
-            </button>
+        <form method="GET" action="{% url 'home' %}" id="search-form" class="space-y-4">
+            <div class="flex gap-2">
+                <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search for products or businesses..." class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 border">
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Search
+                </button>
+            </div>
+            <div class="flex flex-wrap gap-2 items-center">
+                <label for="sort" class="text-sm text-gray-600">Sort by:</label>
+                <select name="sort" id="sort" onchange="handleSortChange(this.value)" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm border-gray-300 rounded-md p-2 border">
+                    <option value="recent" {% if current_sort == 'recent' %}selected{% endif %}>Most Recent</option>
+                    <option value="price_asc" {% if current_sort == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
+                    <option value="price_desc" {% if current_sort == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
+                    <option value="nearest" {% if current_sort == 'nearest' %}selected{% endif %}>Nearest to Me</option>
+                </select>
+                <input type="hidden" name="lat" id="user-lat" value="{{ request.GET.lat }}">
+                <input type="hidden" name="lng" id="user-lng" value="{{ request.GET.lng }}">
+                <span id="location-status" class="text-xs text-gray-500 hidden">
+                    <svg class="inline h-3 w-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                    </svg>
+                    Using your location
+                </span>
+            </div>
         </form>
     </div>
 </div>
@@ -110,6 +129,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const priceFeed = document.getElementById('price-feed');
     const loadingIndicator = document.getElementById('loading-indicator');
     const searchQuery = new URLSearchParams(window.location.search).get('q') || '';
+    const currentSort = new URLSearchParams(window.location.search).get('sort') || 'recent';
+    const userLat = new URLSearchParams(window.location.search).get('lat') || '';
+    const userLng = new URLSearchParams(window.location.search).get('lng') || '';
+    
+    // Show location status if we have coordinates
+    if (userLat && userLng) {
+        document.getElementById('location-status').classList.remove('hidden');
+    }
     
     function loadMorePrices() {
         if (isLoading || !hasMore) return;
@@ -117,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
         isLoading = true;
         loadingIndicator.classList.remove('hidden');
         
-        const url = `{% url 'load_more_prices' %}?page=${currentPage}&q=${encodeURIComponent(searchQuery)}`;
+        const url = `{% url 'load_more_prices' %}?page=${currentPage}&q=${encodeURIComponent(searchQuery)}&sort=${encodeURIComponent(currentSort)}&lat=${encodeURIComponent(userLat)}&lng=${encodeURIComponent(userLng)}`;
         
         fetch(url)
             .then(response => response.json())
@@ -166,6 +193,13 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>`
             : '';
         
+        // Add distance badge if available
+        const distanceHtml = item.distance_km 
+            ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2">
+                ${item.distance_km} km away
+               </span>`
+            : '';
+        
         card.innerHTML = `
             <div class="p-6">
                 <div class="flex items-start justify-between">
@@ -174,6 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             ${item.currency} ${item.price}
                         </span>
+                        ${distanceHtml}
                     </div>
                     ${item.business_name ? `<div class="mt-2 text-sm text-gray-700 font-medium">@ ${item.business_name}</div>` : ''}
                 </div>
@@ -183,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             ${profilePictureHtml}
                             <div class="text-xs text-gray-500">
                                 <span class="font-medium">${item.username}</span>
-                                <span class="text-gray-400"> • ${item.timesince}</span>
+                                <span class="text-gray-400"> &bull; ${item.timesince}</span>
                             </div>
                         </div>
                         ${locationHtml}
@@ -202,5 +237,40 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// Handle sort change - request location if needed
+function handleSortChange(sortValue) {
+    if (sortValue === 'nearest') {
+        // Check if we already have location in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const existingLat = urlParams.get('lat');
+        const existingLng = urlParams.get('lng');
+        
+        if (existingLat && existingLng) {
+            // Already have location, just submit
+            document.getElementById('search-form').submit();
+        } else if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    document.getElementById('user-lat').value = position.coords.latitude;
+                    document.getElementById('user-lng').value = position.coords.longitude;
+                    document.getElementById('location-status').classList.remove('hidden');
+                    document.getElementById('search-form').submit();
+                },
+                function(error) {
+                    alert('Unable to get your location. Please allow location access to sort by nearest.');
+                    // Revert to recent sort
+                    document.getElementById('sort').value = 'recent';
+                }
+            );
+        } else {
+            alert('Geolocation is not supported by your browser.');
+            document.getElementById('sort').value = 'recent';
+        }
+    } else {
+        // For non-location sorts, just submit the form
+        document.getElementById('search-form').submit();
+    }
+}
 </script>
 {% endblock %}
