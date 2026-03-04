@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-{% load humanize %}
 
 {% block content %}
 <!-- Hero Section -->
@@ -64,7 +63,7 @@
                     <div>
                         <h3 class="text-lg leading-6 font-medium text-gray-900">{{ report.product.name }}</h3>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            {{ report.currency }} {{ report.price|intcomma }}
+                            {{ report.currency }} {{ report.price }}
                         </span>
                     </div>
                     {% if report.business %}
@@ -177,9 +176,6 @@ document.addEventListener('DOMContentLoaded', function() {
         card.href = `/price/${item.id}/`;
         card.className = 'block bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow';
         
-        // Format price with commas
-        const formattedPrice = Number(item.price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        
         const profilePictureHtml = item.profile_picture_url 
             ? `<img src="${item.profile_picture_url}" alt="${item.username}'s profile picture" class="h-6 w-6 rounded-full object-cover">`
             : `<div class="h-6 w-6 rounded-full bg-gray-300 flex items-center justify-center">
@@ -210,7 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div>
                         <h3 class="text-lg leading-6 font-medium text-gray-900">${item.product_name}</h3>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            ${item.currency} ${formattedPrice}
+                            ${item.currency} ${item.price}
                         </span>
                         ${distanceHtml}
                     </div>
