@@ -14,7 +14,7 @@
                         DEBUG: Profile picture name: {{ profile.profile_picture.name if profile.profile_picture else "None" }}
                     </div>
                     
-                    {% if profile.profile_picture %}
+                    {% if profile.profile_picture and profile.profile_picture.url %}
                         <img src="{{ profile.profile_picture.url }}" alt="{{ user.username }}'s profile picture" class="h-20 w-20 rounded-full object-cover border-4 border-gray-200" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                         <div class="h-20 w-20 rounded-full bg-gray-300 flex items-center justify-center border-4 border-gray-200" style="display:none;">
                             <svg class="h-10 w-10 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
