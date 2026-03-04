@@ -9,9 +9,13 @@
                     <!-- DEBUG: Profile info -->
                     <div class="text-xs text-gray-500">
                         DEBUG: Profile exists: {{ profile is not None }}<br>
-                        DEBUG: Has profile picture: {{ profile.profile_picture is not None }}<br>
-                        DEBUG: Profile picture URL: {{ profile.profile_picture.url if profile.profile_picture else "None" }}<br>
-                        DEBUG: Profile picture name: {{ profile.profile_picture.name if profile.profile_picture else "None" }}
+                        {% if profile %}
+                            DEBUG: Has profile picture: {% if profile.profile_picture %}Yes{% else %}No{% endif %}<br>
+                            {% if profile.profile_picture %}
+                                DEBUG: URL: {{ profile.profile_picture.url }}<br>
+                                DEBUG: Name: {{ profile.profile_picture.name }}
+                            {% endif %}
+                        {% endif %}
                     </div>
                     
                     {% if profile.profile_picture and profile.profile_picture.url %}
