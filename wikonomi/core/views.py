@@ -115,39 +115,41 @@ class PriceReportCreateView(CreateView):
 
 price_report_create = PriceReportCreateView.as_view()
 
-def home(request):
+def _get_prices_queryset(request):
+    """Helper to get and sort prices uniformly across feed and map endpoints."""
     query = request.GET.get('q', '').strip()
-    sort = request.GET.get('sort', 'recent')  # recent, price_asc, price_desc, nearest
+    sort = request.GET.get('sort', 'recent')
     user_lat = request.GET.get('lat')
     user_lng = request.GET.get('lng')
     
-    latest_prices = PriceReport.objects.select_related('product', 'business', 'user').prefetch_related('user__profile')
+    qs = PriceReport.objects.select_related('product', 'business', 'user').prefetch_related('user__profile')
     
     if query:
-        latest_prices = latest_prices.filter(
+        qs = qs.filter(
             Q(product__name__icontains=query) | 
             Q(business__name__icontains=query)
         )
     
     # Apply sorting
     if sort == 'price_asc':
-        latest_prices = latest_prices.order_by('price', '-observed_at')
+        qs = qs.order_by('price', '-observed_at')
     elif sort == 'price_desc':
-        latest_prices = latest_prices.order_by('-price', '-observed_at')
-    elif sort == 'nearest':
-        if user_lat and user_lng:
-            try:
-                user_lat = float(user_lat)
-                user_lng = float(user_lng)
-                from .utils import annotate_with_distance
-                latest_prices = annotate_with_distance(latest_prices, user_lat, user_lng)[:20]
-            except (ValueError, TypeError):
-                latest_prices = latest_prices.order_by('-observed_at')
-        else:
-            latest_prices = latest_prices.order_by('-observed_at')
+        qs = qs.order_by('-price', '-observed_at')
+    elif sort == 'nearest' and user_lat and user_lng:
+        try:
+            user_lat = float(user_lat)
+            user_lng = float(user_lng)
+            from .utils import annotate_with_distance
+            qs = annotate_with_distance(qs, user_lat, user_lng)
+        except (ValueError, TypeError):
+            qs = qs.order_by('-observed_at')
     else:
-        # Default: recent
-        latest_prices = latest_prices.order_by('-observed_at')
+        qs = qs.order_by('-observed_at')
+        
+    return qs, sort, user_lat, user_lng
+
+def home(request):
+    latest_prices, sort, user_lat, user_lng = _get_prices_queryset(request)
     
     # Initial load - first 20 items
     latest_prices = latest_prices[:20]
@@ -160,39 +162,38 @@ def home(request):
 def about_view(request):
     return render(request, 'about.html')
 
+def api_map_prices(request):
+    """Stateless JSON endpoint specifically for the map frontend."""
+    latest_prices, sort, user_lat, user_lng = _get_prices_queryset(request)
+    
+    # Require coords, limit to 150 points for browser performance
+    latest_prices = latest_prices.filter(latitude__isnull=False, longitude__isnull=False)[:150]
+    
+    from django.urls import reverse
+    import math
+    
+    items_data = []
+    for p in latest_prices:
+        # Check against pure math.isnan or db issues
+        if p.latitude is None or p.longitude is None:
+            continue
+        # Use proper formatting cleanly isolating python dict
+        items_data.append({
+            'lat': float(p.latitude),
+            'lng': float(p.longitude),
+            'product': p.product.name,
+            'price': f"{p.currency} {p.price:,.2f}",
+            'rawPrice': float(p.price),
+            'business': p.business.name if p.business else '',
+            'date': p.observed_at.strftime('%b %d, %Y'),
+            'url': reverse('price_detail', args=[p.id]),
+        })
+        
+    return JsonResponse({'items': items_data})
+
 def load_more_prices(request):
     page = int(request.GET.get('page', 1))
-    query = request.GET.get('q', '').strip()
-    sort = request.GET.get('sort', 'recent')
-    user_lat = request.GET.get('lat')
-    user_lng = request.GET.get('lng')
-    
-    latest_prices = PriceReport.objects.select_related('product', 'business', 'user').prefetch_related('user__profile')
-    
-    if query:
-        latest_prices = latest_prices.filter(
-            Q(product__name__icontains=query) | 
-            Q(business__name__icontains=query)
-        )
-    
-    # Apply sorting
-    if sort == 'price_asc':
-        latest_prices = latest_prices.order_by('price', '-observed_at')
-    elif sort == 'price_desc':
-        latest_prices = latest_prices.order_by('-price', '-observed_at')
-    elif sort == 'nearest':
-        if user_lat and user_lng:
-            try:
-                user_lat = float(user_lat)
-                user_lng = float(user_lng)
-                from .utils import annotate_with_distance
-                latest_prices = annotate_with_distance(latest_prices, user_lat, user_lng)
-            except (ValueError, TypeError):
-                latest_prices = latest_prices.order_by('-observed_at')
-        else:
-            latest_prices = latest_prices.order_by('-observed_at')
-    else:
-        latest_prices = latest_prices.order_by('-observed_at')
+    latest_prices, sort, user_lat, user_lng = _get_prices_queryset(request)
     
     # Use paginator for infinite scroll
     paginator = Paginator(latest_prices, 20)

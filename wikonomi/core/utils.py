@@ -15,40 +15,46 @@ def get_nearby_prices(product, lat, lng, radius_hexes=2):
 
 def annotate_with_distance(queryset, user_lat, user_lng, radius_hexes=3):
     """
-    Annotate queryset with distance from user's location using Haversine formula.
+    Annotate queryset with distance from user's location using DB-level Haversine formula.
     Uses H3 pre-filtering to avoid calculating distance for distant results.
-    Returns a list of objects with distance_km attribute, sorted by distance.
+    Returns a QuerySet annotated with 'distance_km', sorted by distance.
+    This operates entirely at the database level for maximum CPU/Memory scalability.
     """
-    R = 6371  # Earth's radius in kilometers
-    
-    def haversine_distance(lat1, lng1, lat2, lng2):
-        """Calculate distance between two points in km using Haversine formula"""
-        lat1, lng1, lat2, lng2 = map(math.radians, [lat1, lng1, lat2, lng2])
-        dlat = lat2 - lat1
-        dlng = lng2 - lng1
-        a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlng/2)**2
-        c = 2 * math.asin(math.sqrt(a))
-        return R * c
-    
-    # Step 1: Use H3 to pre-filter to nearby hexagons (fast database-level filter)
-    # This avoids calculating distance for reports that are clearly too far away
+    from django.db.models import F, FloatField, ExpressionWrapper
+    from django.db.models.functions import ASin, Cos, Radians, Sin, Sqrt
+
+    # Step 1: Use H3 to pre-filter to nearby hexagons (fast index-level filter)
+    # This avoids calculating distance for reports that are completely outside the user's city/radius
     center = h3.latlng_to_cell(user_lat, user_lng, 9)
     nearby_hexes = list(h3.grid_disk(center, radius_hexes))
     
-    # Filter to reports with location data that are in nearby hexagons
     queryset = queryset.filter(
         latitude__isnull=False, 
         longitude__isnull=False,
         h3_res9__in=nearby_hexes
     )
     
-    # Step 2: Calculate exact distance only for the pre-filtered results
-    results = []
-    for obj in queryset:
-        obj.distance_km = haversine_distance(user_lat, user_lng, obj.latitude, obj.longitude)
-        results.append(obj)
+    # Step 2: Database-level exact distance calculation (Haversine)
+    # Allows pagination (OFFSET/LIMIT) to happen in Postgres, preventing memory exhaustion
+    R = 6371.0  # Earth's radius in kilometers
     
-    # Step 3: Sort by distance (since we can't use order_by on annotated Python attributes)
-    results.sort(key=lambda x: x.distance_km)
+    lat1_rad = Radians(float(user_lat))
+    lon1_rad = Radians(float(user_lng))
+    lat2_rad = Radians(F('latitude'))
+    lon2_rad = Radians(F('longitude'))
     
-    return results
+    dlat_2 = (lat2_rad - lat1_rad) / 2.0
+    dlon_2 = (lon2_rad - lon1_rad) / 2.0
+    
+    # a = sin²(dLat/2) + cos(lat1)*cos(lat2)*sin²(dLon/2)
+    # Note: For SQLite fallback if any, we use 'Power' carefully, but Postgres handles basic arithmetic cleanly.
+    # To ensure cross-compatibility, we use django Power manually if needed, but math Operators '*' work fine.
+    a = (Sin(dlat_2) * Sin(dlat_2)) + Cos(lat1_rad) * Cos(lat2_rad) * (Sin(dlon_2) * Sin(dlon_2))
+    
+    # c = 2 * arcsin(sqrt(a))
+    c = 2.0 * ASin(Sqrt(a))
+    
+    distance_expr = ExpressionWrapper(R * c, output_field=FloatField())
+    
+    # Annotate and sort via database engine
+    return queryset.annotate(distance_km=distance_expr).order_by('distance_km')

@@ -361,6 +361,8 @@ function initPriceMap() {
     try {
         const userLat = document.getElementById('user-lat').value;
         const userLng = document.getElementById('user-lng').value;
+        const searchQuery = new URLSearchParams(window.location.search).get('q') || '';
+        const currentSort = new URLSearchParams(window.location.search).get('sort') || 'recent';
         
         // Default center (Papua New Guinea region)
         let centerLat = -6.5;
@@ -387,7 +389,9 @@ function initPriceMap() {
         
         // Add user location marker if available
         if (userLat && userLng) {
-            const userMarker = L.marker([parseFloat(userLat), parseFloat(userLng)], {
+            const markerLat = parseFloat(userLat);
+            const markerLng = parseFloat(userLng);
+            L.marker([markerLat, markerLng], {
                 icon: L.icon({
                     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
                     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -397,79 +401,72 @@ function initPriceMap() {
                     shadowSize: [41, 41]
                 })
             }).addTo(mapInstance)
-                .bindPopup('<div class="p-2"><h4 class="font-semibold text-gray-600">Your Location</h4></div>');
-            bounds.push([parseFloat(userLat), parseFloat(userLng)]);
+              .bindPopup('<div class="p-2"><h4 class="font-semibold text-gray-600">Your Location</h4></div>');
+            
+            bounds.push([markerLat, markerLng]);
         }
         
-        // Add price report markers - use data from Django template
-        const priceData = [
-            {% for report in latest_prices %}
-                {% if report.latitude and report.longitude %}
-                {
-                    lat: {{ report.latitude }},
-                    lng: {{ report.longitude }},
-                    product: '{{ report.product.name|escapejs }}',
-                    price: '{{ report.currency }} {{ report.price|intcomma }}',
-                    rawPrice: {{ report.price }},
-                    business: '{% if report.business %}{{ report.business.name|escapejs }}{% endif %}',
-                    date: '{{ report.observed_at|date:"M d, Y" }}',
-                    url: '{% url "price_detail" report.pk %}'
-                }{% if not forloop.last %},{% endif %}
-                {% endif %}
-            {% endfor %}
-        ];
-        
-        // Find min and max prices for color coding
-        let minPrice = Infinity;
-        let maxPrice = -Infinity;
-        priceData.forEach(function(price) {
-            if (price.rawPrice < minPrice) minPrice = price.rawPrice;
-            if (price.rawPrice > maxPrice) maxPrice = price.rawPrice;
-        });
-        
-        // Add markers for each price report
-        priceData.forEach(function(price) {
-            if (price.lat && price.lng) {
-                // Determine marker color based on price
-                let markerColor = 'blue'; // default
-                if (price.rawPrice === minPrice) {
-                    markerColor = 'green'; // cheapest
-                } else if (price.rawPrice === maxPrice) {
-                    markerColor = 'red'; // most expensive
+        // Fetch map points asynchronously
+        // This makes the UI completely stateless and avoids dumping thousands
+        // of objects directly into the initial HTML document load.
+        // It perfectly reflects the current sorting/filtering context.
+        const urlArgs = new URLSearchParams({
+            q: searchQuery,
+            sort: currentSort,
+            lat: userLat,
+            lng: userLng
+        }).toString();
+
+        fetch(`/api/map-prices/?${urlArgs}`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.items || data.items.length === 0) return;
+                
+                let minPrice = Infinity;
+                let maxPrice = -Infinity;
+                
+                data.items.forEach(price => {
+                    if (price.rawPrice < minPrice) minPrice = price.rawPrice;
+                    if (price.rawPrice > maxPrice) maxPrice = price.rawPrice;
+                });
+                
+                data.items.forEach(price => {
+                    let markerColor = 'blue';
+                    if (price.rawPrice === minPrice) markerColor = 'green';
+                    else if (price.rawPrice === maxPrice) markerColor = 'red';
+                    
+                    const marker = L.marker([price.lat, price.lng], {
+                        icon: L.icon({
+                            iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerColor}.png`,
+                            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                            iconSize: [25, 41],
+                            iconAnchor: [12, 41],
+                            popupAnchor: [1, -34],
+                            shadowSize: [41, 41]
+                        })
+                    }).addTo(mapInstance);
+                    
+                    let popupContent = `
+                        <div class="p-2">
+                            <h4 class="font-semibold">${price.product}</h4>
+                            <p class="text-${markerColor === 'green' ? 'green' : markerColor === 'red' ? 'red' : 'blue'}-600 font-medium">${price.price}</p>
+                            ${price.business ? `<p class="text-xs text-gray-500">${price.business}</p>` : ''}
+                            <p class="text-xs text-gray-500">${price.date}</p>
+                            <a href="${price.url}" class="text-blue-600 text-xs hover:underline">View details →</a>
+                        </div>
+                    `;
+                    marker.bindPopup(popupContent);
+                    bounds.push([price.lat, price.lng]);
+                });
+                
+                if (bounds.length > 0) {
+                    mapInstance.fitBounds(bounds, { padding: [50, 50] });
                 }
-                
-                const marker = L.marker([price.lat, price.lng], {
-                    icon: L.icon({
-                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-' + markerColor + '.png',
-                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41],
-                        popupAnchor: [1, -34],
-                        shadowSize: [41, 41]
-                    })
-                }).addTo(mapInstance);
-                
-                // Build popup content
-                let popupContent = '<div class="p-2">';
-                popupContent += '<h4 class="font-semibold">' + price.product + '</h4>';
-                popupContent += '<p class="text-' + (markerColor === 'green' ? 'green' : markerColor === 'red' ? 'red' : 'blue') + '-600 font-medium">' + price.price + '</p>';
-                if (price.business) {
-                    popupContent += '<p class="text-xs text-gray-500">' + price.business + '</p>';
-                }
-                popupContent += '<p class="text-xs text-gray-500">' + price.date + '</p>';
-                popupContent += '<a href="' + price.url + '" class="text-blue-600 text-xs hover:underline">View details →</a>';
-                popupContent += '</div>';
-                
-                marker.bindPopup(popupContent);
-                bounds.push([price.lat, price.lng]);
-            }
-        });
-        
-        // Fit map to show all markers if we have any
-        if (bounds.length > 0) {
-            mapInstance.fitBounds(bounds, { padding: [50, 50] });
-        }
-        
+            })
+            .catch(error => {
+                console.error("Failed to load map points from API:", error);
+            });
+            
     } catch (error) {
         console.error('Map initialization error:', error);
     }

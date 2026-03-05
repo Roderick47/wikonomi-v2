@@ -20,6 +20,7 @@ urlpatterns = [
     path('price/<int:pk>/vote-delete/', views.vote_delete_price, name='vote_delete_price'),
     path('price/<int:pk>/delete/', views.delete_price_report, name='delete_price_report'),
     path('about/', views.about_view, name='about'),
+    path('api/map-prices/', views.api_map_prices, name='api_map_prices'),
     path('bulk-upload/', views.bulk_upload, name='bulk_upload'),
     path('bulk-upload/template/', views.download_csv_template, name='download_csv_template'),
 ]
