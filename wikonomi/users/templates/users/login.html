@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up - Wikonomi</title>
+    <title>Login - Wikonomi</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,7 +13,7 @@
             padding: 20px;
             background-color: #f5f5f5;
         }
-        .signup-container {
+        .login-container {
             background: white;
             padding: 30px;
             border-radius: 8px;
@@ -33,7 +33,7 @@
             font-weight: bold;
             color: #555;
         }
-        input[type="text"], input[type="email"], input[type="password"] {
+        input[type="text"], input[type="password"] {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
@@ -66,22 +66,22 @@
             border-radius: 4px;
             margin-bottom: 20px;
         }
-        .login-link {
+        .signup-link {
             text-align: center;
             margin-top: 20px;
         }
-        .login-link a {
+        .signup-link a {
             color: #007bff;
             text-decoration: none;
         }
-        .login-link a:hover {
+        .signup-link a:hover {
             text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <div class="signup-container">
-        <h2>Sign Up</h2>
+    <div class="login-container">
+        <h2>Login</h2>
         
         {% if messages %}
             {% for message in messages %}
@@ -101,46 +101,14 @@
             </div>
             
             <div class="form-group">
-                <label for="{{ form.first_name.id_for_label }}">First Name:</label>
-                {{ form.first_name }}
-                {% if form.first_name.errors %}
-                    <div class="error">{{ form.first_name.errors.0 }}</div>
+                <label for="{{ form.password.id_for_label }}">Password:</label>
+                {{ form.password }}
+                {% if form.password.errors %}
+                    <div class="error">{{ form.password.errors.0 }}</div>
                 {% endif %}
             </div>
             
-            <div class="form-group">
-                <label for="{{ form.last_name.id_for_label }}">Last Name:</label>
-                {{ form.last_name }}
-                {% if form.last_name.errors %}
-                    <div class="error">{{ form.last_name.errors.0 }}</div>
-                {% endif %}
-            </div>
-            
-            <div class="form-group">
-                <label for="{{ form.email.id_for_label }}">Email:</label>
-                {{ form.email }}
-                {% if form.email.errors %}
-                    <div class="error">{{ form.email.errors.0 }}</div>
-                {% endif %}
-            </div>
-            
-            <div class="form-group">
-                <label for="{{ form.password1.id_for_label }}">Password:</label>
-                {{ form.password1 }}
-                {% if form.password1.errors %}
-                    <div class="error">{{ form.password1.errors.0 }}</div>
-                {% endif %}
-            </div>
-            
-            <div class="form-group">
-                <label for="{{ form.password2.id_for_label }}">Confirm Password:</label>
-                {{ form.password2 }}
-                {% if form.password2.errors %}
-                    <div class="error">{{ form.password2.errors.0 }}</div>
-                {% endif %}
-            </div>
-            
-            <button type="submit">Sign Up</button>
+            <button type="submit">Login</button>
         </form>
         
         <div style="text-align: center; margin: 20px 0;">
@@ -154,8 +122,8 @@
             </form>
         </div>
         
-        <div class="login-link">
-            <p>Already have an account? <a href="{% url 'login' %}">Log in</a></p>
+        <div class="signup-link">
+            <p>Don't have an account? <a href="{% url 'signup' %}">Sign up</a></p>
         </div>
     </div>
 </body>
