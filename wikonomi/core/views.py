@@ -856,6 +856,12 @@ def bulk_upload(request):
                 messages.error(request, 'Please select a CSV file to upload.')
                 return render(request, 'bulk_upload.html', context)
             
+            # Require business name
+            business_name = request.POST.get('business_name', '').strip()
+            if not business_name:
+                messages.error(request, 'Business / Store Name is required.')
+                return render(request, 'bulk_upload.html', context)
+            
             # Security validation
             is_valid, error_msg = _validate_csv_file(csv_file)
             if not is_valid:

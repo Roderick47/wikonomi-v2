@@ -134,9 +134,11 @@
 
                 <!-- Shared Business -->
                 <div>
-                    <label for="business_search" class="block text-sm font-medium text-gray-700">Business / Store Name (applies to all items)</label>
+                    <label for="business_search" class="block text-sm font-medium text-gray-700">
+                        Business / Store Name (applies to all items) <span class="text-red-500">*</span>
+                    </label>
                     <div class="mt-1 flex rounded-md shadow-sm">
-                        <input type="text" name="business_name" id="business_search" list="business_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300" placeholder="e.g. Stop-N-Shop Boroko">
+                        <input type="text" name="business_name" id="business_search" list="business_list" required class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300" placeholder="e.g. Stop-N-Shop Boroko">
                         <datalist id="business_list">
                             {% for business in businesses %}
                                 <option value="{{ business.name }}"></option>
