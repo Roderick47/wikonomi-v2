@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.utils import timezone
 from django import forms
 from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem
 
@@ -259,8 +260,17 @@ class PriceReportDetailView(DetailView):
                 user=self.request.user,
                 product=report.product
             ).exists()
+            # Deletion permission context
+            if report.marked_for_deletion:
+                context['can_vote_delete'] = report.can_vote_delete(self.request.user)
+                context['can_delete'] = report.can_delete(self.request.user)
+            else:
+                context['can_vote_delete'] = False
+                context['can_delete'] = False
         else:
             context['is_watching'] = False
+            context['can_vote_delete'] = False
+            context['can_delete'] = False
             
         return context
 
@@ -592,6 +602,7 @@ def delete_shopping_item(request, item_id):
 
 # Deletion request views
 @login_required
+@require_POST
 def mark_for_deletion(request, pk):
     """Mark a price report for deletion with a reason"""
     report = get_object_or_404(PriceReport, pk=pk)
@@ -607,6 +618,7 @@ def mark_for_deletion(request, pk):
     return redirect('price_detail', pk=pk)
 
 @login_required
+@require_POST
 def unmark_for_deletion(request, pk):
     """Unmark a price report from deletion (only by the marker or admin)"""
     report = get_object_or_404(PriceReport, pk=pk)
@@ -626,6 +638,7 @@ def unmark_for_deletion(request, pk):
     return redirect('price_detail', pk=pk)
 
 @login_required
+@require_POST
 def vote_delete_price(request, pk):
     """Vote to delete a marked price report"""
     report = get_object_or_404(PriceReport, pk=pk)
@@ -647,6 +660,7 @@ def vote_delete_price(request, pk):
     return redirect('price_detail', pk=pk)
 
 @login_required
+@require_POST
 def delete_price_report(request, pk):
     """Actually delete the price report (admin/staff or after votes)"""
     report = get_object_or_404(PriceReport, pk=pk)
