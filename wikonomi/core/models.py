@@ -57,6 +57,13 @@ class PriceReport(models.Model):
     h3_res9 = models.CharField(max_length=16, null=True, blank=True, db_index=True)
     h3_res8 = models.CharField(max_length=16, null=True, blank=True, db_index=True)
 
+    # Deletion request fields
+    marked_for_deletion = models.BooleanField(default=False)
+    marked_for_deletion_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='marked_for_deletion_reports')
+    marked_for_deletion_at = models.DateTimeField(null=True, blank=True)
+    deletion_reason = models.TextField(blank=True)
+    deletion_votes = models.ManyToManyField(User, related_name='deletion_voted_reports', blank=True)
+
     class Meta:
         ordering = ['-observed_at']
 
@@ -65,6 +72,22 @@ class PriceReport(models.Model):
 
     def get_lat_lng(self):
         return (self.latitude, self.longitude) if self.latitude and self.longitude else None
+
+    def can_delete(self, user):
+        """Check if user can delete this report (admin or has deletion votes)"""
+        if user.is_staff or user.is_superuser:
+            return True
+        if self.marked_for_deletion and self.deletion_votes.count() >= 1:
+            return True
+        return False
+
+    def can_vote_delete(self, user):
+        """Check if user can vote to delete (not the marker, not already voted)"""
+        if user == self.marked_for_deletion_by:
+            return False
+        if self.deletion_votes.filter(pk=user.pk).exists():
+            return False
+        return True
 
 class PriceHistory(models.Model):
     price_report = models.ForeignKey(PriceReport, on_delete=models.CASCADE, related_name='price_history')

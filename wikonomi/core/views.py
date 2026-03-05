@@ -588,3 +588,74 @@ def delete_shopping_item(request, item_id):
     item = get_object_or_404(ShoppingListItem, pk=item_id, shopping_list__user=request.user)
     item.delete()
     return JsonResponse({'status': 'deleted'})
+
+
+# Deletion request views
+@login_required
+def mark_for_deletion(request, pk):
+    """Mark a price report for deletion with a reason"""
+    report = get_object_or_404(PriceReport, pk=pk)
+    reason = request.POST.get('reason', '').strip()
+    
+    report.marked_for_deletion = True
+    report.marked_for_deletion_by = request.user
+    report.marked_for_deletion_at = timezone.now()
+    report.deletion_reason = reason
+    report.save()
+    
+    messages.success(request, 'Price report marked for deletion. Another user must confirm to delete it.')
+    return redirect('price_detail', pk=pk)
+
+@login_required
+def unmark_for_deletion(request, pk):
+    """Unmark a price report from deletion (only by the marker or admin)"""
+    report = get_object_or_404(PriceReport, pk=pk)
+    
+    if request.user != report.marked_for_deletion_by and not request.user.is_staff and not request.user.is_superuser:
+        messages.error(request, 'You can only unmark deletion requests you created.')
+        return redirect('price_detail', pk=pk)
+    
+    report.marked_for_deletion = False
+    report.marked_for_deletion_by = None
+    report.marked_for_deletion_at = None
+    report.deletion_reason = ''
+    report.deletion_votes.clear()
+    report.save()
+    
+    messages.success(request, 'Deletion request cancelled.')
+    return redirect('price_detail', pk=pk)
+
+@login_required
+def vote_delete_price(request, pk):
+    """Vote to delete a marked price report"""
+    report = get_object_or_404(PriceReport, pk=pk)
+    
+    if not report.marked_for_deletion:
+        messages.error(request, 'This price report is not marked for deletion.')
+        return redirect('price_detail', pk=pk)
+    
+    if request.user == report.marked_for_deletion_by:
+        messages.error(request, 'You cannot vote on your own deletion request.')
+        return redirect('price_detail', pk=pk)
+    
+    if report.deletion_votes.filter(pk=request.user.pk).exists():
+        messages.error(request, 'You have already voted to delete this report.')
+        return redirect('price_detail', pk=pk)
+    
+    report.deletion_votes.add(request.user)
+    messages.success(request, 'Your vote to delete has been recorded. An admin or staff member can now delete this report.')
+    return redirect('price_detail', pk=pk)
+
+@login_required
+def delete_price_report(request, pk):
+    """Actually delete the price report (admin/staff or after votes)"""
+    report = get_object_or_404(PriceReport, pk=pk)
+    
+    # Check if user can delete
+    if not report.can_delete(request.user):
+        messages.error(request, 'You do not have permission to delete this report.')
+        return redirect('price_detail', pk=pk)
+    
+    report.delete()
+    messages.success(request, 'Price report has been deleted.')
+    return redirect('home')
