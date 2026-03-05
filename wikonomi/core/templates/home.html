@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load custom_filters %}
+{% load custom_filters cache %}
 
 {% block extra_head %}
 <style>
@@ -100,6 +100,7 @@
         {% endif %}
     </h2>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="price-feed">
+        {% cache 120 home_feed_content request.GET.urlencode %}
         {% for report in latest_prices %}
         <a href="{% url 'price_detail' report.pk %}" class="block bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <div class="p-6">
@@ -150,6 +151,7 @@
             No price reports yet. Be the first to add one!
         </div>
         {% endfor %}
+        {% endcache %}
     </div>
     
     <!-- Loading indicator -->

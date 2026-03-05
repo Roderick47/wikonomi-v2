@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load custom_filters %}
+{% load custom_filters cache %}
 
 {% block extra_head %}
 <style>
@@ -87,6 +87,7 @@
     </div>
 
     <!-- Map Section -->
+    {% cache 300 nearby_map reference_report.id %}
     {% if reports_with_location %}
     <div class="bg-white shadow rounded-lg mb-8">
         <div class="px-4 py-5 sm:p-6">
@@ -95,8 +96,10 @@
         </div>
     </div>
     {% endif %}
+    {% endcache %}
 
     <!-- Nearby Prices Section -->
+    {% cache 300 nearby_list reference_report.id %}
     {% if nearby_prices %}
     <div class="bg-white shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
@@ -135,8 +138,10 @@
         </div>
     </div>
     {% endif %}
+    {% endcache %}
 </div>
 
+{% cache 300 nearby_map_script reference_report.id %}
 {% if reports_with_location or reference_report.latitude and reference_report.longitude %}
 <!-- Initialize Leaflet Map -->
 <script>
@@ -216,4 +221,5 @@
     });
 </script>
 {% endif %}
+{% endcache %}
 {% endblock %}

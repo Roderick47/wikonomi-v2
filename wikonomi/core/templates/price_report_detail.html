@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load custom_filters %}
+{% load custom_filters cache %}
 
 {% block extra_head %}
 <style>
@@ -219,6 +219,7 @@
 
     <!-- Nearby Prices Section -->
     {% if nearby_prices is not None %}
+    {% cache 300 nearby_prices_section report.id %}
     <div class="mt-10 mb-8">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-900">Nearby Prices for {{ report.product.name }}</h3>
@@ -259,9 +260,11 @@
             </div>
         {% endif %}
     </div>
+    {% endcache %}
     {% endif %}
 
     <!-- Price History Section -->
+    {% cache 300 price_history_section report.id %}
     {% if report.price_history.all %}
     <div class="mt-10 bg-white shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
@@ -297,6 +300,7 @@
         </div>
     </div>
     {% endif %}
+    {% endcache %}
 
 </div>
 

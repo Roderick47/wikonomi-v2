@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
 from django import forms
+from django.views.decorators.cache import cache_page
 from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem
 
 class PriceReportForm(forms.ModelForm):
@@ -162,6 +163,7 @@ def home(request):
 def about_view(request):
     return render(request, 'about.html')
 
+@cache_page(60 * 5)
 def api_map_prices(request):
     """Stateless JSON endpoint specifically for the map frontend."""
     latest_prices, sort, user_lat, user_lng = _get_prices_queryset(request)
@@ -191,6 +193,7 @@ def api_map_prices(request):
         
     return JsonResponse({'items': items_data})
 
+@cache_page(60 * 2)
 def load_more_prices(request):
     page = int(request.GET.get('page', 1))
     latest_prices, sort, user_lat, user_lng = _get_prices_queryset(request)

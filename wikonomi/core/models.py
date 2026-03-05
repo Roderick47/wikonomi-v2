@@ -5,6 +5,7 @@ import h3
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django_resized import ResizedImageField
+from django.core.cache import cache
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -158,6 +159,10 @@ def create_price_change_notification(sender, instance, created, **kwargs):
                 price_report=instance.price_report,
                 message=message
             )
+        
+        # Invalidate relevant caches
+        cache.delete(f'nearby_prices_section_{instance.price_report.id}')
+        cache.delete(f'price_history_section_{instance.price_report.id}')
 
 @receiver(post_save, sender=PriceReport)
 def create_new_price_notification(sender, instance, created, **kwargs):
@@ -174,6 +179,11 @@ def create_new_price_notification(sender, instance, created, **kwargs):
                 price_report=instance,
                 message=message
             )
+        
+        # Invalidate home feed cache (generic invalidation since it's global)
+        # Note: In a production environment with Redis, we'd use a more targeted invalidation
+        # For LocMemCache, we can clear common keys
+        cache.delete_pattern('home_feed_content_*') if hasattr(cache, 'delete_pattern') else cache.clear()
 
 class ShoppingList(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shopping_lists')
