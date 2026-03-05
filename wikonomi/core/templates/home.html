@@ -70,12 +70,20 @@
             <div id="map" class="rounded-lg border border-gray-300"></div>
             <div class="mt-3 flex items-center space-x-4 text-sm text-gray-500">
                 <div class="flex items-center">
-                    <span class="inline-block w-3 h-3 rounded-full bg-blue-500 mr-1"></span>
-                    <span>Your location</span>
+                    <span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-1"></span>
+                    <span>Cheapest</span>
                 </div>
                 <div class="flex items-center">
-                    <span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-1"></span>
-                    <span>Price reports</span>
+                    <span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-1"></span>
+                    <span>Most expensive</span>
+                </div>
+                <div class="flex items-center">
+                    <span class="inline-block w-3 h-3 rounded-full bg-blue-500 mr-1"></span>
+                    <span>Other prices</span>
+                </div>
+                <div class="flex items-center">
+                    <span class="inline-block w-3 h-3 rounded-full bg-gray-400 mr-1"></span>
+                    <span>Your location</span>
                 </div>
             </div>
         </div>
@@ -381,7 +389,7 @@ function initPriceMap() {
         if (userLat && userLng) {
             const userMarker = L.marker([parseFloat(userLat), parseFloat(userLng)], {
                 icon: L.icon({
-                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
                     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
                     iconSize: [25, 41],
                     iconAnchor: [12, 41],
@@ -389,7 +397,7 @@ function initPriceMap() {
                     shadowSize: [41, 41]
                 })
             }).addTo(mapInstance)
-                .bindPopup('<div class="p-2"><h4 class="font-semibold text-blue-600">Your Location</h4></div>');
+                .bindPopup('<div class="p-2"><h4 class="font-semibold text-gray-600">Your Location</h4></div>');
             bounds.push([parseFloat(userLat), parseFloat(userLng)]);
         }
         
@@ -402,6 +410,7 @@ function initPriceMap() {
                     lng: {{ report.longitude }},
                     product: '{{ report.product.name|escapejs }}',
                     price: '{{ report.currency }} {{ report.price|intcomma }}',
+                    rawPrice: {{ report.price }},
                     business: '{% if report.business %}{{ report.business.name|escapejs }}{% endif %}',
                     date: '{{ report.observed_at|date:"M d, Y" }}',
                     url: '{% url "price_detail" report.pk %}'
@@ -410,12 +419,28 @@ function initPriceMap() {
             {% endfor %}
         ];
         
+        // Find min and max prices for color coding
+        let minPrice = Infinity;
+        let maxPrice = -Infinity;
+        priceData.forEach(function(price) {
+            if (price.rawPrice < minPrice) minPrice = price.rawPrice;
+            if (price.rawPrice > maxPrice) maxPrice = price.rawPrice;
+        });
+        
         // Add markers for each price report
         priceData.forEach(function(price) {
             if (price.lat && price.lng) {
+                // Determine marker color based on price
+                let markerColor = 'blue'; // default
+                if (price.rawPrice === minPrice) {
+                    markerColor = 'green'; // cheapest
+                } else if (price.rawPrice === maxPrice) {
+                    markerColor = 'red'; // most expensive
+                }
+                
                 const marker = L.marker([price.lat, price.lng], {
                     icon: L.icon({
-                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-' + markerColor + '.png',
                         shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
                         iconSize: [25, 41],
                         iconAnchor: [12, 41],
@@ -427,7 +452,7 @@ function initPriceMap() {
                 // Build popup content
                 let popupContent = '<div class="p-2">';
                 popupContent += '<h4 class="font-semibold">' + price.product + '</h4>';
-                popupContent += '<p class="text-green-600 font-medium">' + price.price + '</p>';
+                popupContent += '<p class="text-' + (markerColor === 'green' ? 'green' : markerColor === 'red' ? 'red' : 'blue') + '-600 font-medium">' + price.price + '</p>';
                 if (price.business) {
                     popupContent += '<p class="text-xs text-gray-500">' + price.business + '</p>';
                 }
