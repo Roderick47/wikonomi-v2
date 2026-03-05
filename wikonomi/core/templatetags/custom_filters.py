@@ -18,3 +18,12 @@ def intcomma(value):
         return "{:,.2f}".format(value)
     except (ValueError, TypeError):
         return value
+
+
+@register.filter
+def split(value, delimiter=','):
+    """Split a string by a delimiter."""
+    if not value:
+        return []
+    return [item.strip() for item in value.split(delimiter) if item.strip()]
+

@@ -673,3 +673,335 @@ def delete_price_report(request, pk):
     report.delete()
     messages.success(request, 'Price report has been deleted.')
     return redirect('home')
+
+
+# ── Bulk CSV Upload ──────────────────────────────────────────────────────────
+
+import csv
+import io
+import re
+from decimal import Decimal, InvalidOperation
+from django.http import HttpResponse
+from django.db import transaction
+from django.utils.text import slugify
+
+# Security constants
+BULK_MAX_FILE_SIZE = 2 * 1024 * 1024  # 2 MB
+BULK_MAX_ROWS = 500
+BULK_ALLOWED_EXTENSIONS = {'.csv'}
+BULK_ALLOWED_MIMES = {'text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel'}
+
+
+def _sanitize_cell(value):
+    """
+    Prevent CSV formula injection.
+    Strips leading characters that spreadsheet apps interpret as formulas.
+    """
+    if not value:
+        return value
+    value = value.strip()
+    # Strip leading formula-trigger characters
+    while value and value[0] in ('=', '+', '-', '@', '\t', '\r'):
+        value = value[1:].strip()
+    return value
+
+
+def _validate_csv_file(uploaded_file):
+    """Validate the uploaded file for security. Returns (is_valid, error_message)."""
+    import os
+    
+    # 1. Check file size
+    if uploaded_file.size > BULK_MAX_FILE_SIZE:
+        return False, f'File too large. Maximum allowed size is {BULK_MAX_FILE_SIZE // (1024*1024)}MB.'
+    
+    # 2. Check file extension
+    _, ext = os.path.splitext(uploaded_file.name)
+    if ext.lower() not in BULK_ALLOWED_EXTENSIONS:
+        return False, f'Invalid file type "{ext}". Only .csv files are allowed.'
+    
+    # 3. Check MIME type
+    if uploaded_file.content_type not in BULK_ALLOWED_MIMES:
+        return False, f'Invalid content type "{uploaded_file.content_type}". Only CSV files are allowed.'
+    
+    return True, None
+
+
+def _parse_csv(uploaded_file):
+    """
+    Parse the CSV file in-memory. Returns (rows, errors).
+    The file is never saved to disk.
+    """
+    try:
+        raw = uploaded_file.read()
+        # Try UTF-8 first, fall back to latin-1
+        try:
+            text = raw.decode('utf-8-sig')  # handles BOM
+        except UnicodeDecodeError:
+            try:
+                text = raw.decode('latin-1')
+            except UnicodeDecodeError:
+                return [], [{'row': 0, 'error': 'File encoding not supported. Please save as UTF-8.'}]
+    except Exception:
+        return [], [{'row': 0, 'error': 'Could not read file.'}]
+    
+    reader = csv.DictReader(io.StringIO(text))
+    
+    # Validate headers
+    required_headers = {'product_name', 'price'}
+    if not reader.fieldnames:
+        return [], [{'row': 0, 'error': 'CSV file appears to be empty or has no headers.'}]
+    
+    actual_headers = {h.strip().lower() for h in reader.fieldnames if h}
+    missing = required_headers - actual_headers
+    if missing:
+        return [], [{'row': 0, 'error': f'Missing required columns: {", ".join(missing)}. Required: product_name, price'}]
+    
+    rows = []
+    errors = []
+    
+    for i, raw_row in enumerate(reader, start=2):  # start=2 because row 1 is header
+        if i - 1 > BULK_MAX_ROWS:
+            errors.append({'row': i, 'error': f'Maximum {BULK_MAX_ROWS} rows allowed. Remaining rows skipped.'})
+            break
+        
+        # Normalize keys and sanitize values
+        row = {}
+        for key, val in raw_row.items():
+            if key:
+                row[key.strip().lower()] = _sanitize_cell(val or '')
+        
+        # Skip completely empty rows
+        if not any(row.values()):
+            continue
+        
+        # Validate required fields
+        product_name = row.get('product_name', '').strip()
+        price_str = row.get('price', '').strip()
+        
+        if not product_name:
+            errors.append({'row': i, 'error': 'Missing product name.'})
+            continue
+        
+        if len(product_name) > 255:
+            errors.append({'row': i, 'error': f'Product name too long (max 255 chars): "{product_name[:30]}..."'})
+            continue
+        
+        if not price_str:
+            errors.append({'row': i, 'error': f'Missing price for "{product_name}".'})
+            continue
+        
+        # Clean price (remove currency symbols, commas, spaces)
+        price_str = re.sub(r'[^\d.]', '', price_str)
+        
+        try:
+            price = Decimal(price_str)
+            if price <= 0:
+                errors.append({'row': i, 'error': f'Price must be positive for "{product_name}".'})
+                continue
+            if price > 9999999999:
+                errors.append({'row': i, 'error': f'Price too large for "{product_name}".'})
+                continue
+        except (InvalidOperation, ValueError):
+            errors.append({'row': i, 'error': f'Invalid price "{row.get("price", "")}" for "{product_name}".'})
+            continue
+        
+        # Validate currency
+        currency = row.get('currency', '').strip().upper()
+        if currency and (len(currency) != 3 or not currency.isalpha()):
+            errors.append({'row': i, 'error': f'Invalid currency "{currency}" for "{product_name}". Use a 3-letter code like PGK.'})
+            continue
+        if not currency:
+            currency = 'PGK'
+        
+        # Validate notes length
+        notes = row.get('notes', '').strip()
+        if len(notes) > 1000:
+            notes = notes[:1000]
+        
+        # Tags
+        tags = row.get('tags', '').strip()
+        
+        rows.append({
+            'row_num': i,
+            'product_name': product_name,
+            'price': price,
+            'currency': currency,
+            'notes': notes,
+            'tags': tags,
+        })
+    
+    return rows, errors
+
+
+@login_required
+def bulk_upload(request):
+    """Handle bulk CSV upload with preview and confirmation."""
+    
+    context = {
+        'products': Product.objects.all().order_by('name'),
+        'businesses': Business.objects.all().order_by('name'),
+    }
+    
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+        
+        if action == 'preview':
+            # Step 1: Parse and validate the CSV
+            csv_file = request.FILES.get('csv_file')
+            if not csv_file:
+                messages.error(request, 'Please select a CSV file to upload.')
+                return render(request, 'bulk_upload.html', context)
+            
+            # Security validation
+            is_valid, error_msg = _validate_csv_file(csv_file)
+            if not is_valid:
+                messages.error(request, error_msg)
+                return render(request, 'bulk_upload.html', context)
+            
+            rows, errors = _parse_csv(csv_file)
+            
+            if not rows and errors:
+                for err in errors:
+                    messages.error(request, f"Row {err['row']}: {err['error']}")
+                return render(request, 'bulk_upload.html', context)
+            
+            # Store parsed data in session for confirmation step
+            # Convert Decimal to string for JSON serialization
+            session_rows = []
+            for row in rows:
+                session_rows.append({
+                    **row,
+                    'price': str(row['price']),
+                })
+            
+            request.session['bulk_upload_data'] = session_rows
+            request.session['bulk_upload_errors'] = errors
+            request.session['bulk_upload_business'] = request.POST.get('business_name', '').strip()
+            request.session['bulk_upload_latitude'] = request.POST.get('latitude', '')
+            request.session['bulk_upload_longitude'] = request.POST.get('longitude', '')
+            
+            context.update({
+                'preview_rows': rows,
+                'preview_errors': errors,
+                'total_valid': len(rows),
+                'total_errors': len(errors),
+                'business_name': request.POST.get('business_name', '').strip(),
+                'latitude': request.POST.get('latitude', ''),
+                'longitude': request.POST.get('longitude', ''),
+                'show_preview': True,
+            })
+            return render(request, 'bulk_upload.html', context)
+        
+        elif action == 'confirm':
+            # Step 2: Create all records from session data
+            session_rows = request.session.get('bulk_upload_data')
+            if not session_rows:
+                messages.error(request, 'Upload session expired. Please upload the file again.')
+                return render(request, 'bulk_upload.html', context)
+            
+            business_name = request.session.get('bulk_upload_business', '')
+            lat_str = request.session.get('bulk_upload_latitude', '')
+            lng_str = request.session.get('bulk_upload_longitude', '')
+            
+            # Parse location
+            latitude = None
+            longitude = None
+            if lat_str and lng_str:
+                try:
+                    latitude = float(lat_str)
+                    longitude = float(lng_str)
+                except (ValueError, TypeError):
+                    pass
+            
+            # Get or create business
+            business = None
+            if business_name:
+                business = Business.objects.filter(name__iexact=business_name).first()
+                if not business:
+                    business_slug = slugify(business_name)
+                    original_slug = business_slug
+                    counter = 1
+                    while Business.objects.filter(slug=business_slug).exists():
+                        business_slug = f"{original_slug}-{counter}"
+                        counter += 1
+                    business = Business.objects.create(
+                        name=business_name,
+                        slug=business_slug
+                    )
+            
+            created_count = 0
+            error_count = 0
+            
+            try:
+                with transaction.atomic():
+                    for row in session_rows:
+                        try:
+                            # Get or create product
+                            product = Product.objects.filter(name__iexact=row['product_name']).first()
+                            if not product:
+                                product_slug = slugify(row['product_name'])
+                                original_slug = product_slug
+                                counter = 1
+                                while Product.objects.filter(slug=product_slug).exists():
+                                    product_slug = f"{original_slug}-{counter}"
+                                    counter += 1
+                                product = Product.objects.create(
+                                    name=row['product_name'],
+                                    slug=product_slug,
+                                    created_by=request.user
+                                )
+                            
+                            # Create price report
+                            report = PriceReport.objects.create(
+                                product=product,
+                                business=business,
+                                user=request.user,
+                                price=Decimal(row['price']),
+                                currency=row['currency'],
+                                latitude=latitude,
+                                longitude=longitude,
+                                notes=row.get('notes', ''),
+                            )
+                            
+                            # Handle tags
+                            tags_str = row.get('tags', '').strip()
+                            if tags_str:
+                                tag_list = [t.strip() for t in tags_str.split(',') if t.strip()]
+                                if tag_list:
+                                    product.tags.add(*tag_list)
+                            
+                            created_count += 1
+                        except Exception:
+                            error_count += 1
+                            continue
+            except Exception as e:
+                messages.error(request, f'An error occurred during bulk creation: {str(e)}')
+                return render(request, 'bulk_upload.html', context)
+            
+            # Clean up session
+            for key in ['bulk_upload_data', 'bulk_upload_errors', 'bulk_upload_business',
+                        'bulk_upload_latitude', 'bulk_upload_longitude']:
+                request.session.pop(key, None)
+            
+            messages.success(request, f'Bulk upload complete! {created_count} price(s) created successfully.')
+            if error_count:
+                messages.warning(request, f'{error_count} row(s) failed during creation.')
+            
+            return redirect('home')
+    
+    return render(request, 'bulk_upload.html', context)
+
+
+@login_required
+def download_csv_template(request):
+    """Serve a downloadable CSV template file."""
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="wikonomi_bulk_upload_template.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['product_name', 'price', 'currency', 'notes', 'tags'])
+    writer.writerow(['Rice 10kg', '45.00', 'PGK', 'White rice bag', 'staple,grain'])
+    writer.writerow(['Cooking Oil 1L', '18.50', 'PGK', '', 'cooking'])
+    writer.writerow(['Sugar 1kg', '8.00', 'PGK', 'Brown sugar', 'staple'])
+    
+    return response

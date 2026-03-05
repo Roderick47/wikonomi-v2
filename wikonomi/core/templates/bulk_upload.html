@@ -1,0 +1,401 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block extra_head %}
+<style>
+    #map {
+        height: 300px;
+        z-index: 10;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
+
+    <div class="mb-4 flex items-center justify-between">
+        <a href="{% url 'add_price' %}" class="text-blue-600 hover:text-blue-800 flex items-center font-medium">
+            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Back to single price
+        </a>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="mb-4 space-y-2">
+        {% for message in messages %}
+        <div class="p-3 rounded-md text-sm font-medium
+            {% if message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200
+            {% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-200
+            {% else %}bg-green-50 text-green-800 border border-green-200{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if not show_preview %}
+    <!-- ═══════════════════════ UPLOAD FORM ═══════════════════════ -->
+    <div class="bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="flex items-center gap-3 mb-1">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Bulk Price Upload</h3>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">CSV</span>
+            </div>
+            <p class="mt-1 text-sm text-gray-500">
+                Upload a CSV file to add multiple prices at once. Perfect for stores wanting to add their entire inventory.
+            </p>
+
+            <!-- Instructions -->
+            <div class="mt-5 bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <h4 class="text-sm font-semibold text-gray-700 mb-2">How it works</h4>
+                <ol class="text-sm text-gray-600 space-y-1.5 list-decimal list-inside">
+                    <li>Download the <a href="{% url 'download_csv_template' %}" class="text-blue-600 hover:text-blue-800 font-medium underline">CSV template</a></li>
+                    <li>Fill in your product names and prices (one per row)</li>
+                    <li>Set a shared business name and location below</li>
+                    <li>Upload the file — we'll show you a preview before creating anything</li>
+                </ol>
+                <div class="mt-3">
+                    <a href="{% url 'download_csv_template' %}" class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        <svg class="h-4 w-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Download Template
+                    </a>
+                </div>
+            </div>
+
+            <!-- CSV format reference -->
+            <div class="mt-4 bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <h4 class="text-sm font-semibold text-blue-800 mb-2">CSV Column Format</h4>
+                <div class="overflow-x-auto">
+                    <table class="text-sm text-blue-900 w-full">
+                        <thead>
+                            <tr class="border-b border-blue-200">
+                                <th class="text-left py-1 pr-4 font-semibold">Column</th>
+                                <th class="text-left py-1 pr-4 font-semibold">Required</th>
+                                <th class="text-left py-1 font-semibold">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b border-blue-100">
+                                <td class="py-1 pr-4 font-mono text-xs">product_name</td>
+                                <td class="py-1 pr-4">✅ Yes</td>
+                                <td class="py-1">Name of the product</td>
+                            </tr>
+                            <tr class="border-b border-blue-100">
+                                <td class="py-1 pr-4 font-mono text-xs">price</td>
+                                <td class="py-1 pr-4">✅ Yes</td>
+                                <td class="py-1">Numeric price (e.g. 45.00)</td>
+                            </tr>
+                            <tr class="border-b border-blue-100">
+                                <td class="py-1 pr-4 font-mono text-xs">currency</td>
+                                <td class="py-1 pr-4">❌ No</td>
+                                <td class="py-1">3-letter code (defaults to PGK)</td>
+                            </tr>
+                            <tr class="border-b border-blue-100">
+                                <td class="py-1 pr-4 font-mono text-xs">notes</td>
+                                <td class="py-1 pr-4">❌ No</td>
+                                <td class="py-1">Optional notes per item</td>
+                            </tr>
+                            <tr>
+                                <td class="py-1 pr-4 font-mono text-xs">tags</td>
+                                <td class="py-1 pr-4">❌ No</td>
+                                <td class="py-1">Comma-separated tags</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Upload Form -->
+            <form method="POST" enctype="multipart/form-data" class="mt-6 space-y-6">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="preview">
+
+                <!-- CSV File -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">CSV File</label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:bg-gray-50 transition-colors" onclick="document.getElementById('csv_file').click()" id="csv-drop-zone">
+                        <div class="space-y-1 text-center" id="csv-upload-content">
+                            <svg class="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            <div class="flex text-sm text-gray-600 justify-center">
+                                <span class="font-medium text-blue-600 hover:text-blue-500">Choose a CSV file</span>
+                                <p class="pl-1">or drag and drop</p>
+                            </div>
+                            <p class="text-xs text-gray-500">CSV files only, max 2MB, up to 500 rows</p>
+                        </div>
+                    </div>
+                    <input type="file" name="csv_file" id="csv_file" accept=".csv" class="hidden">
+                    <p class="mt-1 text-sm text-green-600 hidden" id="csv-file-name"></p>
+                </div>
+
+                <!-- Shared Business -->
+                <div>
+                    <label for="business_search" class="block text-sm font-medium text-gray-700">Business / Store Name (applies to all items)</label>
+                    <div class="mt-1 flex rounded-md shadow-sm">
+                        <input type="text" name="business_name" id="business_search" list="business_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300" placeholder="e.g. Stop-N-Shop Boroko">
+                        <datalist id="business_list">
+                            {% for business in businesses %}
+                                <option value="{{ business.name }}"></option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <p class="mt-1 text-sm text-gray-500">This business/store will be assigned to all uploaded prices.</p>
+                </div>
+
+                <!-- Shared Location -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Store Location (applies to all items)</label>
+                    <p class="text-sm text-gray-500 mb-2">Click on the map to set the store location.</p>
+
+                    <div class="mb-3 flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="use_my_location" name="use_my_location" type="checkbox" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="use_my_location" class="font-medium text-gray-700">Use my current location</label>
+                            <p class="text-gray-500 text-xs mt-1" id="location_status">Browser will ask for permission.</p>
+                        </div>
+                    </div>
+
+                    <div id="map" class="rounded-lg border border-gray-300"></div>
+                    <input type="hidden" name="latitude" id="id_latitude">
+                    <input type="hidden" name="longitude" id="id_longitude">
+                </div>
+
+                <!-- Security note -->
+                <div class="flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                    <svg class="h-5 w-5 text-green-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                    <div>
+                        <p class="text-sm text-green-800 font-medium">Your data is safe</p>
+                        <p class="text-xs text-green-700 mt-0.5">Files are validated and parsed in-memory only — never saved to our servers. All data is sanitized before processing.</p>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <div class="flex justify-end gap-3 pt-2">
+                    <a href="{% url 'home' %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </a>
+                    <button type="submit" class="inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        Upload & Preview
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- ═══════════════════════ PREVIEW / CONFIRM ═══════════════════════ -->
+    <div class="bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-1">Preview Upload</h3>
+            <p class="text-sm text-gray-500 mb-4">Review the data below before confirming. Nothing has been saved yet.</p>
+
+            <!-- Summary -->
+            <div class="flex flex-wrap gap-3 mb-5">
+                <div class="flex items-center gap-2 px-3 py-2 bg-green-50 rounded-lg border border-green-200">
+                    <svg class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span class="text-sm font-medium text-green-800">{{ total_valid }} valid row{{ total_valid|pluralize }}</span>
+                </div>
+                {% if total_errors > 0 %}
+                <div class="flex items-center gap-2 px-3 py-2 bg-red-50 rounded-lg border border-red-200">
+                    <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span class="text-sm font-medium text-red-800">{{ total_errors }} error{{ total_errors|pluralize }}</span>
+                </div>
+                {% endif %}
+                {% if business_name %}
+                <div class="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-200">
+                    <span class="text-sm text-blue-800">📍 {{ business_name }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Errors -->
+            {% if preview_errors %}
+            <div class="mb-5 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <h4 class="text-sm font-semibold text-red-800 mb-2">Rows with errors (will be skipped)</h4>
+                <ul class="text-sm text-red-700 space-y-1">
+                    {% for err in preview_errors %}
+                    <li class="flex items-start gap-2">
+                        <span class="font-mono text-xs bg-red-100 px-1.5 py-0.5 rounded mt-0.5 shrink-0">Row {{ err.row }}</span>
+                        <span>{{ err.error }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Preview Table -->
+            {% if preview_rows %}
+            <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Row</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Currency</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tags</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for row in preview_rows %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 font-mono">{{ row.row_num }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{{ row.product_name }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ row.price|intcomma }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ row.currency }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">{{ row.notes|default:"-" }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">
+                                {% if row.tags %}
+                                    {% for tag in row.tags|split:"," %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-1">{{ tag }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Confirm / Cancel -->
+            <div class="mt-6 flex justify-end gap-3">
+                <a href="{% url 'bulk_upload' %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                    Cancel & Re-upload
+                </a>
+                <form method="POST" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="confirm">
+                    <button type="submit" class="inline-flex items-center py-2 px-5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors"
+                        onclick="this.disabled=true; this.innerText='Creating...'; this.form.submit();">
+                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Confirm & Create {{ total_valid }} Price{{ total_valid|pluralize }}
+                    </button>
+                </form>
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <p>No valid rows found in the uploaded file. Please fix the errors and try again.</p>
+                <a href="{% url 'bulk_upload' %}" class="mt-4 inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">
+                    ← Try again
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Leaflet Map Script (only on upload form, not preview) -->
+{% if not show_preview %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // File name display
+        const csvInput = document.getElementById('csv_file');
+        csvInput.addEventListener('change', function() {
+            const nameEl = document.getElementById('csv-file-name');
+            if (this.files && this.files[0]) {
+                nameEl.textContent = '📄 ' + this.files[0].name + ' (' + (this.files[0].size / 1024).toFixed(1) + ' KB)';
+                nameEl.classList.remove('hidden');
+                document.getElementById('csv-upload-content').innerHTML =
+                    '<svg class="mx-auto h-10 w-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' +
+                    '<p class="text-sm text-green-600 font-medium mt-1">File selected</p>';
+            }
+        });
+
+        // Drag and drop
+        const dropZone = document.getElementById('csv-drop-zone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.add('border-blue-400', 'bg-blue-50'); });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.remove('border-blue-400', 'bg-blue-50'); });
+        });
+        dropZone.addEventListener('drop', e => {
+            if (e.dataTransfer.files.length) {
+                csvInput.files = e.dataTransfer.files;
+                csvInput.dispatchEvent(new Event('change'));
+            }
+        });
+
+        // Map
+        const map = L.map('map').setView([-9.4438, 147.1803], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        let marker = null;
+        const latInput = document.getElementById('id_latitude');
+        const lngInput = document.getElementById('id_longitude');
+
+        map.on('click', function(e) {
+            if (marker) { marker.setLatLng(e.latlng); }
+            else { marker = L.marker(e.latlng).addTo(map); }
+            latInput.value = e.latlng.lat.toFixed(6);
+            lngInput.value = e.latlng.lng.toFixed(6);
+            document.getElementById('use_my_location').checked = false;
+        });
+
+        // Geolocation
+        const locationCheckbox = document.getElementById('use_my_location');
+        const locationStatus = document.getElementById('location_status');
+
+        locationCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                locationStatus.innerText = "Requesting location...";
+                locationStatus.className = "text-blue-500 text-xs mt-1";
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        function(pos) {
+                            const lat = pos.coords.latitude;
+                            const lng = pos.coords.longitude;
+                            const latlng = [lat, lng];
+                            if (marker) { marker.setLatLng(latlng); }
+                            else { marker = L.marker(latlng).addTo(map); }
+                            map.setView(latlng, 15);
+                            latInput.value = lat.toFixed(6);
+                            lngInput.value = lng.toFixed(6);
+                            locationStatus.innerText = "Location found.";
+                            locationStatus.className = "text-green-500 text-xs mt-1";
+                        },
+                        function(err) {
+                            locationStatus.innerText = "Could not get location.";
+                            locationStatus.className = "text-red-500 text-xs mt-1";
+                            locationCheckbox.checked = false;
+                        },
+                        { enableHighAccuracy: true, timeout: 10000 }
+                    );
+                } else {
+                    locationStatus.innerText = "Geolocation not supported.";
+                    locationStatus.className = "text-red-500 text-xs mt-1";
+                    this.checked = false;
+                }
+            } else {
+                locationStatus.innerText = "Browser will ask for permission.";
+                locationStatus.className = "text-gray-500 text-xs mt-1";
+            }
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

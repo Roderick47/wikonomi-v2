@@ -14,11 +14,21 @@
 <div class="max-w-3xl mx-auto mt-8">
     <div class="bg-white shadow sm:rounded-lg">
         <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900">
-                Add a New Price
-            </h3>
-            <div class="mt-2 text-sm text-gray-500">
-                <p>Help the community by sharing the price you found.</p>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                        Add a New Price
+                    </h3>
+                    <div class="mt-2 text-sm text-gray-500">
+                        <p>Help the community by sharing the price you found.</p>
+                    </div>
+                </div>
+                <a href="{% url 'bulk_upload' %}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors shrink-0">
+                    <svg class="h-4 w-4 mr-1.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    Bulk Upload (CSV)
+                </a>
             </div>
             <form method="POST" class="mt-5 space-y-6" enctype="multipart/form-data">
                 {% csrf_token %}
