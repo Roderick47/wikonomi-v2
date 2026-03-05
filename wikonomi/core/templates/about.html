@@ -1,80 +1,217 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+<div class="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
     
-    <div class="text-center mb-16">
-        <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight sm:text-5xl border-b-4 border-blue-600 inline-block pb-3">What is Wikonomi?</h1>
-        <p class="mt-6 text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Wikonomi is Papua New Guinea’s first community-driven price tracking platform. We empower everyday consumers by making the cost of living transparent, accessible, and easily comparable across different businesses and locations.
+    <!-- Hero Section with PNG Cultural Connection -->
+    <div class="text-center mb-12">
+        <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-red-500 to-black rounded-full mb-6">
+            <svg class="h-12 w-12 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+            </svg>
+        </div>
+        <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight sm:text-5xl border-b-4 border-red-600 inline-block pb-3">Wikonomi: Price Wisdom for PNG</h1>
+        <p class="mt-6 text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
+            In the land of a thousand cultures and endless markets, where every kina matters for our families, <strong>Wikonomi</strong> is Papua New Guinea's digital marketplace guardian. We unite communities to share price knowledge, protecting hard-earned money and ensuring no family overpays for their daily needs.
         </p>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-16">
+    <!-- The PNG Story -->
+    <div class="bg-gradient-to-r from-red-50 to-black/5 rounded-2xl shadow-xl overflow-hidden mb-12">
         <div class="p-8 sm:p-10">
             <h2 class="text-3xl font-bold text-gray-900 mb-6 flex items-center">
-                <svg class="h-8 w-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                How It Works
+                <svg class="h-8 w-8 text-red-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                Our PNG Story
             </h2>
-            <div class="prose prose-blue prose-lg text-gray-600">
-                <p>
-                    Prices in stores are constantly changing, and it’s hard for one person to track where the actual best deals are. <b>Wikonomi solves this through the power of crowdsourcing.</b> 
+            <div class="prose prose-lg text-gray-700">
+                <p class="text-lg">
+                    From Port Moresby to Mount Hagen, from Lae to Madang, we know the struggle. Every week, our mothers and fathers walk through markets comparing prices of rice, sugar, and tin fish. Every kina saved means another meal for the children, another school book, another contribution to the <strong>wantok</strong> system.
                 </p>
-                <p class="mt-4">
-                    Whenever you see a product on a shelf—whether it’s cheaper than normal or outrageously expensive—you can instantly snap a photo and record the price on Wikonomi. Instantly, thousands of other users across your city can see it and compare it to their nearby stores!
+                <p class="mt-4 text-lg">
+                    <strong>Wikonomi transforms this age-old wisdom into digital power.</strong> When you spot a good price at TST or RH, your knowledge instantly helps thousands of other Papua New Guinean families make smarter choices. Together, we build a shield against price exploitation.
                 </p>
             </div>
         </div>
     </div>
 
-    <div class="mb-16">
-        <h2 class="text-3xl font-bold text-gray-900 mb-8 text-center">Core Features & Tools</h2>
+    <!-- Core Features Grid -->
+    <div class="mb-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-8 text-center">Tools for Every PNG Family</h2>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- Feature 1 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Feature 1: GPS Mapping -->
             <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500 hover:shadow-lg transition">
                 <h3 class="text-xl font-bold text-gray-900 mb-3 flex items-center">
-                    <svg class="h-6 w-6 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    Live GPS Mapping
+                    <svg class="h-6 w-6 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    GPS Price Mapping
                 </h3>
-                <p class="text-gray-600">Every price report allows you to tag the exact GPS location of the business. You can check the map to find the cheapest bread, rice, or electronics within walking or driving distance of your exact current location.</p>
+                <p class="text-gray-600">Find the cheapest prices within walking distance of your home. Whether you're in Boroko, Waigani, or Gerehu, instantly see which nearby shops offer the best deals on your family's essentials.</p>
             </div>
 
-            <!-- Feature 2 -->
+            <!-- Feature 2: Shopping Lists -->
             <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500 hover:shadow-lg transition">
                 <h3 class="text-xl font-bold text-gray-900 mb-3 flex items-center">
-                    <svg class="h-6 w-6 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    Smart Shopping Center
+                    <svg class="h-6 w-6 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    Smart Shopping Lists
                 </h3>
-                <p class="text-gray-600">See a good deal on the feed? Click "Add to List". Your personalized shopping cart actively tracks what you need to buy and actually <b>estimates your checkout total</b> before you even reach the counter based on the most recent community prices.</p>
+                <p class="text-gray-600">Build your family's shopping list and watch the total calculate automatically based on real community prices. Never be surprised at the checkout again - know exactly what you'll spend before you leave home.</p>
             </div>
 
-            <!-- Feature 3 -->
+            <!-- Feature 3: Price Alerts -->
             <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-500 hover:shadow-lg transition">
                 <h3 class="text-xl font-bold text-gray-900 mb-3 flex items-center">
-                    <svg class="h-6 w-6 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                    <svg class="h-6 w-6 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                    </svg>
                     Price Watch & Alerts
                 </h3>
-                <p class="text-gray-600">Want to buy a TV but waiting for a drop? Hit the "Watch" button on any product. Whenever another user reports that product at a new price, you'll immediately receive a notification alert in your dashboard keeping you in the loop!</p>
+                <p class="text-gray-600">Waiting for prices to drop? Watch any product and get instant notifications when someone finds it cheaper. Perfect for timing big purchases like electronics or bulk food items.</p>
             </div>
 
-            <!-- Feature 4 -->
+            <!-- Feature 4: Photo Verification -->
             <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-purple-500 hover:shadow-lg transition">
                 <h3 class="text-xl font-bold text-gray-900 mb-3 flex items-center">
-                    <svg class="h-6 w-6 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    Photo Verification
+                    <svg class="h-6 w-6 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    Photo Proof System
                 </h3>
-                <p class="text-gray-600">To maintain trust and accuracy, users can snap and upload photos of price tags. Our system compresses images locally on your phone to save your data plan, and stores them for anyone who wants visual proof of a deal.</p>
+                <p class="text-gray-600">Snap photos of price tags for proof. Our smart system compresses images to save your data, so you can verify deals without worrying about phone credit costs.</p>
+            </div>
+
+            <!-- Feature 5: Bulk CSV Upload -->
+            <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-900 mb-3 flex items-center">
+                    <svg class="h-6 w-6 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                    Bulk CSV Upload
+                </h3>
+                <p class="text-gray-600">Shop owners and market vendors can upload hundreds of prices at once using Excel spreadsheets. Perfect for businesses wanting to share their complete inventory with the community.</p>
+            </div>
+
+            <!-- Feature 6: Community Moderation -->
+            <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-red-500 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-900 mb-3 flex items-center">
+                    <svg class="h-6 w-6 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                    Community Protection
+                </h3>
+                <p class="text-gray-600">Our community voting system removes fake or outdated prices. Together, we keep the information accurate and trustworthy for everyone's benefit.</p>
             </div>
         </div>
     </div>
 
-    <div class="bg-blue-600 rounded-2xl shadow-xl p-8 sm:p-12 text-center text-white">
-        <h2 class="text-3xl font-extrabold mb-4">Start Saving Today.</h2>
-        <p class="text-xl mb-8 opacity-90">Join the movement. Every price you report helps another family save money.</p>
-        <a href="{% url 'add_price' %}" class="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-lg text-blue-600 bg-white hover:bg-gray-50 focus:outline-none shadow text-center transition">
-            Add a New Price Now
-        </a>
+    <!-- How It Works for PNG -->
+    <div class="bg-gradient-to-br from-blue-50 to-green-50 rounded-2xl shadow-xl p-8 mb-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-6 text-center">How Wikonomi Works for PNG</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="text-center">
+                <div class="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                    <span class="text-2xl font-bold text-blue-600">1</span>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-2">Spot a Price</h3>
+                <p class="text-gray-600">While shopping at RH, TST, City Pharmacy, or your local market, take note of prices on the shelf.</p>
+            </div>
+            
+            <div class="text-center">
+                <div class="bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                    <span class="text-2xl font-bold text-green-600">2</span>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-2">Share Instantly</h3>
+                <p class="text-gray-600">Open Wikonomi, snap a photo if you want, and add the price. Takes less than 30 seconds.</p>
+            </div>
+            
+            <div class="text-center">
+                <div class="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                    <span class="text-2xl font-bold text-red-600">3</span>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-2">Help Everyone</h3>
+                <p class="text-gray-600">Your single price update helps thousands of other PNG families save money on their next shopping trip.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Impact Section -->
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-12">
+        <div class="bg-gradient-to-r from-red-600 to-black p-6 text-white">
+            <h2 class="text-2xl font-bold text-center">Real Impact for PNG Families</h2>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="flex items-start">
+                    <svg class="h-6 w-6 text-green-500 mr-3 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div>
+                        <h3 class="font-bold text-gray-900">Save Kina Every Week</h3>
+                        <p class="text-gray-600">Families report saving 20-50 Kina weekly by finding cheaper alternatives in their area.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <svg class="h-6 w-6 text-green-500 mr-3 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div>
+                        <h3 class="font-bold text-gray-900">Support Wantok System</h3>
+                        <p class="text-gray-600">Share price knowledge with your extended family and community networks.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <svg class="h-6 w-6 text-green-500 mr-3 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div>
+                        <h3 class="font-bold text-gray-900">Fight Price Gouging</h3>
+                        <p class="text-gray-600">Community transparency keeps businesses honest and prevents unfair pricing.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <svg class="h-6 w-6 text-green-500 mr-3 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div>
+                        <h3 class="font-bold text-gray-900">Plan Family Budgets</h3>
+                        <p class="text-gray-600">Know exact costs before shopping trips for better household financial planning.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="bg-gradient-to-r from-red-600 to-black rounded-2xl shadow-xl p-8 sm:p-12 text-center text-white">
+        <h2 class="text-3xl font-extrabold mb-4">Stand Together for Fair Prices</h2>
+        <p class="text-xl mb-8 opacity-90">Every price you share protects another PNG family. Join thousands of Papua New Guineans building a fair marketplace for all.</p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="{% url 'add_price' %}" class="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-lg text-red-600 bg-white hover:bg-gray-50 focus:outline-none shadow text-center transition">
+                <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Share Your First Price
+            </a>
+            <a href="{% url 'home' %}" class="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-lg font-bold rounded-lg text-white hover:bg-white hover:text-red-600 focus:outline-none text-center transition">
+                Browse Current Prices
+            </a>
+        </div>
+    </div>
+
+    <!-- Footer Message -->
+    <div class="text-center mt-12 text-gray-600">
+        <p class="text-lg"><strong>Wikonomi</strong> - By Papua New Guineans, For Papua New Guineans</p>
+        <p class="mt-2">Together we build a stronger, fairer marketplace for our families and our future.</p>
     </div>
 </div>
 {% endblock %}
