@@ -39,10 +39,10 @@ def send_verification_email(request, user, profile):
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             html_message=message,
-            fail_silently=False,
+            fail_silently=True,  # Prevent worker timeouts
         )
         print(f"DEBUG: send_mail returned: {result}")
-        return True
+        return result > 0  # Return True if email was sent successfully
         
     except Exception as e:
         print(f"DEBUG: Exception in send_verification_email: {str(e)}")

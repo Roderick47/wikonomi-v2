@@ -169,18 +169,29 @@ def resend_verification_email(request):
     """
     Resend verification email to logged-in user
     """
-    profile = Profile.objects.get(user=request.user)
-    
-    if profile.email_verified:
-        messages.info(request, 'Your email is already verified.')
-        return redirect('profile')
-    
-    # Send new verification email
-    email_sent = send_verification_email(request, request.user, profile)
-    
-    if email_sent:
-        messages.success(request, 'A new verification email has been sent to your email address.')
-    else:
-        messages.error(request, 'We couldn\'t send the verification email. Please try again later or contact support.')
+    try:
+        profile = Profile.objects.get(user=request.user)
+        
+        if profile.email_verified:
+            messages.info(request, 'Your email is already verified.')
+            return redirect('profile')
+        
+        # Send new verification email with fail_silently=True to prevent timeouts
+        try:
+            email_sent = send_verification_email(request, request.user, profile)
+            
+            if email_sent:
+                messages.success(request, 'A new verification email has been sent to your email address.')
+            else:
+                messages.error(request, 'We couldn\'t send the verification email. Please check your email configuration or contact support.')
+                
+        except Exception as e:
+            print(f"Email sending error: {str(e)}")
+            messages.error(request, f'Failed to send verification email. Please check your email settings or contact support.')
+            
+    except Profile.DoesNotExist:
+        messages.error(request, 'Profile not found. Please contact support.')
+    except Exception as e:
+        messages.error(request, f'An error occurred: {str(e)}')
     
     return redirect('profile')
