@@ -1,18 +1,31 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from .forms import CustomUserCreationForm, ProfileUpdateForm
 from .models import Profile
+from .utils import send_verification_email, send_password_change_notification
+from django.conf import settings
 
 def signup(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
+            profile = Profile.objects.get(user=user)
+            
+            # Send verification email
+            if settings.ACCOUNT_VERIFICATION_REQUIRED:
+                email_sent = send_verification_email(request, user, profile)
+                if email_sent:
+                    messages.info(request, 'Account created successfully! Please check your email to verify your account.')
+                else:
+                    messages.warning(request, 'Account created but we couldn\'t send a verification email. Please contact support.')
+            else:
+                messages.success(request, 'Account created successfully!')
+            
             login(request, user)
-            messages.success(request, 'Account created successfully!')
             return redirect('home')
     else:
         form = CustomUserCreationForm()
@@ -65,7 +78,11 @@ def change_password(request):
         if form.is_valid():
             user = form.save()
             update_session_auth_hash(request, user)  # Important!
-            messages.success(request, 'Password changed successfully!')
+            
+            # Send password change notification
+            send_password_change_notification(request, user)
+            
+            messages.success(request, 'Password changed successfully! A notification has been sent to your email.')
             return redirect('profile')
         else:
             messages.error(request, 'Please correct the errors below.')
@@ -78,3 +95,50 @@ def user_logout(request):
     logout(request)
     messages.success(request, 'You have been logged out.')
     return redirect('home')
+
+
+def verify_email(request, token):
+    """
+    Verify user's email address using the token sent to their email
+    """
+    try:
+        # Find profile with matching token
+        profile = get_object_or_404(Profile, email_verification_token=token)
+        
+        # Check if token is still valid
+        if profile.is_verification_token_valid(token):
+            profile.email_verified = True
+            profile.email_verification_token = None
+            profile.email_verification_sent_at = None
+            profile.save()
+            
+            messages.success(request, 'Your email has been verified successfully! Thank you.')
+        else:
+            messages.error(request, 'This verification link has expired. Please request a new verification email.')
+            
+    except Exception as e:
+        messages.error(request, 'Invalid verification link.')
+    
+    return redirect('profile')
+
+
+@login_required
+def resend_verification_email(request):
+    """
+    Resend verification email to logged-in user
+    """
+    profile = Profile.objects.get(user=request.user)
+    
+    if profile.email_verified:
+        messages.info(request, 'Your email is already verified.')
+        return redirect('profile')
+    
+    # Send new verification email
+    email_sent = send_verification_email(request, request.user, profile)
+    
+    if email_sent:
+        messages.success(request, 'A new verification email has been sent to your email address.')
+    else:
+        messages.error(request, 'We couldn\'t send the verification email. Please try again later or contact support.')
+    
+    return redirect('profile')
