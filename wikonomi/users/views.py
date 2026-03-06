@@ -145,6 +145,26 @@ def verify_email(request, token):
 
 
 @login_required
+def delete_account(request):
+    """
+    Delete user account with confirmation
+    """
+    if request.method == 'POST':
+        # Verify password for security
+        password = request.POST.get('password')
+        if request.user.check_password(password):
+            user = request.user
+            logout(request)
+            user.delete()
+            messages.success(request, 'Your account has been deleted successfully. We\'re sorry to see you go!')
+            return redirect('home')
+        else:
+            messages.error(request, 'Incorrect password. Account deletion cancelled.')
+    
+    return render(request, 'users/delete_account.html')
+
+
+@login_required
 def resend_verification_email(request):
     """
     Resend verification email to logged-in user

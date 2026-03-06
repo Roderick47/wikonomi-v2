@@ -45,6 +45,19 @@
                     <div>
                         <p class="text-sm font-medium text-gray-500">Email</p>
                         <p class="text-sm text-gray-900">{{ user.email }}</p>
+                        {% if profile.email_verified %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                ✓ Verified
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                ⚠ Not Verified
+                            </span>
+                            <br>
+                            <a href="{% url 'resend_verification' %}" class="text-blue-600 hover:text-blue-800 text-xs">
+                                Resend verification email
+                            </a>
+                        {% endif %}
                     </div>
                     <div>
                         <p class="text-sm font-medium text-gray-500">Full Name</p>
@@ -57,8 +70,20 @@
                 </div>
             </div>
             
-            <div class="mt-6 flex justify-end">
-                <a href="{% url 'logout' %}" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded">
+            <div class="mt-6 border-t pt-6">
+                <h3 class="text-lg font-medium text-red-600 mb-3">Danger Zone</h3>
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p class="text-sm text-red-800 mb-3">
+                        <strong>Warning:</strong> Deleting your account is permanent and cannot be undone.
+                    </p>
+                    <a href="{% url 'delete_account' %}" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded text-sm">
+                        🗑️ Delete Account
+                    </a>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-between">
+                <a href="{% url 'logout' %}" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
                     Log Out
                 </a>
             </div>
