@@ -31,9 +31,7 @@ def send_verification_email(request, user, profile):
         
         # Send email
         print(f"DEBUG: Attempting to send email via {settings.EMAIL_HOST}:{settings.EMAIL_PORT}")
-        print(f"DEBUG: From: {settings.EMAIL_HOST_USER}, To: {user.email}")
-        print(f"DEBUG: Email settings - Host: {settings.EMAIL_HOST}, Port: {settings.EMAIL_PORT}, TLS: {settings.EMAIL_USE_TLS}")
-        print(f"DEBUG: Email user configured: {bool(settings.EMAIL_HOST_USER)}, Email password configured: {bool(settings.EMAIL_HOST_PASSWORD)}")
+        print(f"DEBUG: From: {settings.DEFAULT_FROM_EMAIL}, To: {user.email}")
         
         result = send_mail(
             subject=subject,
