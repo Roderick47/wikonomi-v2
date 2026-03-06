@@ -17,7 +17,7 @@ def send_verification_email(request, user, profile):
         print(f"DEBUG: Generated token: {token}")
         
         # Build verification URL
-        domain = get_current_site(request).domain
+        domain = 'www.wikonomi.com'  # Hardcode for production
         verification_url = f"https://{domain}{reverse('verify_email', kwargs={'token': str(token)})}"
         print(f"DEBUG: Verification URL: {verification_url}")
         
@@ -31,7 +31,9 @@ def send_verification_email(request, user, profile):
         
         # Send email
         print(f"DEBUG: Attempting to send email via {settings.EMAIL_HOST}:{settings.EMAIL_PORT}")
-        print(f"DEBUG: From: {settings.DEFAULT_FROM_EMAIL}, To: {user.email}")
+        print(f"DEBUG: From: {settings.EMAIL_HOST_USER}, To: {user.email}")
+        print(f"DEBUG: Email settings - Host: {settings.EMAIL_HOST}, Port: {settings.EMAIL_PORT}, TLS: {settings.EMAIL_USE_TLS}")
+        print(f"DEBUG: Email user configured: {bool(settings.EMAIL_HOST_USER)}, Email password configured: {bool(settings.EMAIL_HOST_PASSWORD)}")
         
         result = send_mail(
             subject=subject,
