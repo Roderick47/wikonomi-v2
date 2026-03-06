@@ -10,22 +10,30 @@ def send_verification_email(request, user, profile):
     """
     Send email verification email to user
     """
-    token = profile.generate_verification_token()
-    
-    # Build verification URL
-    domain = get_current_site(request).domain
-    verification_url = f"https://{domain}{reverse('verify_email', kwargs={'token': str(token)})}"
-    
-    # Render email template
-    subject = 'Verify Your Email Address - Wikonomi'
-    message = render_to_string('users/email_verification.html', {
-        'user': user,
-        'verification_url': verification_url,
-    })
-    
-    # Send email
     try:
-        send_mail(
+        print(f"DEBUG: Starting email verification process for {user.email}")
+        
+        token = profile.generate_verification_token()
+        print(f"DEBUG: Generated token: {token}")
+        
+        # Build verification URL
+        domain = get_current_site(request).domain
+        verification_url = f"https://{domain}{reverse('verify_email', kwargs={'token': str(token)})}"
+        print(f"DEBUG: Verification URL: {verification_url}")
+        
+        # Render email template
+        subject = 'Verify Your Email Address - Wikonomi'
+        message = render_to_string('users/email_verification.html', {
+            'user': user,
+            'verification_url': verification_url,
+        })
+        print(f"DEBUG: Email template rendered successfully")
+        
+        # Send email
+        print(f"DEBUG: Attempting to send email via {settings.EMAIL_HOST}:{settings.EMAIL_PORT}")
+        print(f"DEBUG: From: {settings.DEFAULT_FROM_EMAIL}, To: {user.email}")
+        
+        result = send_mail(
             subject=subject,
             message='',
             from_email=settings.DEFAULT_FROM_EMAIL,
@@ -33,9 +41,13 @@ def send_verification_email(request, user, profile):
             html_message=message,
             fail_silently=False,
         )
+        print(f"DEBUG: send_mail returned: {result}")
         return True
+        
     except Exception as e:
-        print(f"Error sending verification email: {e}")
+        print(f"DEBUG: Exception in send_verification_email: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
 
 

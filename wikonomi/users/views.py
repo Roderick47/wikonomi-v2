@@ -12,24 +12,43 @@ def signup(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            profile, created = Profile.objects.get_or_create(user=user)
-            
-            # Send verification email
-            if settings.ACCOUNT_VERIFICATION_REQUIRED:
-                try:
-                    email_sent = send_verification_email(request, user, profile)
-                    if email_sent:
-                        messages.info(request, 'Account created successfully! Please check your email to verify your account.')
-                    else:
-                        messages.warning(request, 'Account created but we couldn\'t send a verification email. Please contact support.')
-                except Exception as e:
-                    messages.error(request, f'Account created but email sending failed: {str(e)}')
-            else:
-                messages.success(request, 'Account created successfully!')
-            
-            login(request, user)
-            return redirect('home')
+            try:
+                user = form.save()
+                print(f"DEBUG: User created successfully: {user.username}")
+                
+                profile, created = Profile.objects.get_or_create(user=user)
+                print(f"DEBUG: Profile {'created' if created else 'retrieved'} for user: {user.username}")
+                
+                # Send verification email
+                if settings.ACCOUNT_VERIFICATION_REQUIRED:
+                    try:
+                        print(f"DEBUG: Attempting to send verification email to {user.email}")
+                        print(f"DEBUG: Email settings - Host: {settings.EMAIL_HOST}, User: {settings.EMAIL_HOST_USER}")
+                        
+                        email_sent = send_verification_email(request, user, profile)
+                        print(f"DEBUG: Email sending result: {email_sent}")
+                        
+                        if email_sent:
+                            messages.info(request, 'Account created successfully! Please check your email to verify your account.')
+                        else:
+                            messages.warning(request, 'Account created but we couldn\'t send a verification email. Please contact support.')
+                    except Exception as e:
+                        print(f"DEBUG: Email sending failed with error: {str(e)}")
+                        import traceback
+                        traceback.print_exc()
+                        messages.error(request, f'Account created but email sending failed: {str(e)}')
+                else:
+                    messages.success(request, 'Account created successfully!')
+                
+                login(request, user)
+                return redirect('home')
+                
+            except Exception as e:
+                print(f"DEBUG: User creation failed: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                messages.error(request, f'Account creation failed: {str(e)}')
+                return render(request, 'users/signup.html', {'form': form})
     else:
         form = CustomUserCreationForm()
     return render(request, 'users/signup.html', {'form': form})

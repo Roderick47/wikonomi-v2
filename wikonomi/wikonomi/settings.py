@@ -223,5 +223,5 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@wikonomi.com')
 
 # Account verification settings
-ACCOUNT_VERIFICATION_REQUIRED = False  # Temporarily disabled
+ACCOUNT_VERIFICATION_REQUIRED = True  # Re-enabled for debugging
 ACCOUNT_VERIFICATION_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
