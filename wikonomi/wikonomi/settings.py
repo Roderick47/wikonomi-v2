@@ -78,6 +78,7 @@ SOCIALACCOUNT_PROVIDERS = {
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -162,6 +163,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Add this for Render deployment
 CSRF_TRUSTED_ORIGINS = ['https://www.wikonomi.com']
+
+# WhiteNoise configuration for static files serving
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # === CLOUD FLARE R2 STORAGE (NEW DJANGO 5.2 WAY) ===
 # Only configure R2 if environment variables are set
