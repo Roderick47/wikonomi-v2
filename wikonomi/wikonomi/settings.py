@@ -164,8 +164,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # Add this for Render deployment
 CSRF_TRUSTED_ORIGINS = ['https://www.wikonomi.com']
 
-# WhiteNoise configuration for static files serving
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Static files storage - use default for now
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 # === CLOUD FLARE R2 STORAGE (NEW DJANGO 5.2 WAY) ===
 # Only configure R2 if environment variables are set
