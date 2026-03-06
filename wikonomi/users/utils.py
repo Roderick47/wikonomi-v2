@@ -32,17 +32,25 @@ def send_verification_email(request, user, profile):
         # Send email
         print(f"DEBUG: Attempting to send email via {settings.EMAIL_HOST}:{settings.EMAIL_PORT}")
         print(f"DEBUG: From: {settings.DEFAULT_FROM_EMAIL}, To: {user.email}")
+        print(f"DEBUG: TLS enabled: {settings.EMAIL_USE_TLS}")
+        print(f"DEBUG: Email user: {settings.EMAIL_HOST_USER}")
+        print(f"DEBUG: Has password: {'Yes' if settings.EMAIL_HOST_PASSWORD else 'No'}")
         
-        result = send_mail(
-            subject=subject,
-            message='',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            html_message=message,
-            fail_silently=True,  # Prevent worker timeouts
-        )
-        print(f"DEBUG: send_mail returned: {result}")
-        return result > 0  # Return True if email was sent successfully
+        try:
+            result = send_mail(
+                subject=subject,
+                message='',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                html_message=message,
+                fail_silently=False,  # Change to False to see actual errors
+            )
+            print(f"DEBUG: send_mail returned: {result}")
+            return result > 0  # Return True if email was sent successfully
+        except Exception as e:
+            print(f"DEBUG: SMTP Exception: {str(e)}")
+            print(f"DEBUG: Exception type: {type(e).__name__}")
+            return False
         
     except Exception as e:
         print(f"DEBUG: Exception in send_verification_email: {str(e)}")
