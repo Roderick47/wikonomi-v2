@@ -158,15 +158,35 @@ def _get_prices_queryset(request):
         
     return qs, sort, user_lat, user_lng
 
-def home(request):
-    latest_prices, sort, user_lat, user_lng = _get_prices_queryset(request)
+def _get_business_queryset(request):
+    """Helper to get businesses matching search query."""
+    query = request.GET.get('q', '').strip()
     
-    # Initial load - first 20 items
+    if query:
+        return Business.objects.filter(name__icontains=query).order_by('name')
+    
+    return Business.objects.none()
+
+def home(request):
+    query = request.GET.get('q', '').strip()
+    sort = request.GET.get('sort', 'recent')
+    user_lat = request.GET.get('lat')
+    user_lng = request.GET.get('lng')
+    
+    # Get price reports
+    latest_prices, sort, user_lat, user_lng = _get_prices_queryset(request)
     latest_prices = latest_prices[:20]
+    
+    # Get businesses if there's a search query
+    businesses = []
+    if query:
+        businesses = _get_business_queryset(request)[:10]  # Limit to 10 businesses
     
     return render(request, 'home.html', {
         'latest_prices': latest_prices,
+        'businesses': businesses,
         'current_sort': sort,
+        'search_query': query,
     })
 
 def about_view(request):
@@ -205,6 +225,11 @@ def api_map_prices(request):
 @cache_page(60 * 2)
 def load_more_prices(request):
     page = int(request.GET.get('page', 1))
+    query = request.GET.get('q', '').strip()
+    sort = request.GET.get('sort', 'recent')
+    user_lat = request.GET.get('lat')
+    user_lng = request.GET.get('lng')
+    
     latest_prices, sort, user_lat, user_lng = _get_prices_queryset(request)
     
     # Use paginator for infinite scroll
@@ -241,12 +266,27 @@ def load_more_prices(request):
             item_data['distance_km'] = round(price.distance_km, 1)
         items_data.append(item_data)
     
-    return JsonResponse({
+    response_data = {
         'items': items_data,
         'has_more': prices_page.has_next(),
         'current_page': page,
         'total_pages': paginator.num_pages
-    })
+    }
+    
+    # Add business results for page 1 searches
+    if page == 1 and query:
+        businesses = _get_business_queryset(request)[:10]
+        businesses_data = []
+        for business in businesses:
+            businesses_data.append({
+                'id': business.id,
+                'name': business.name,
+                'image_url': business.image.url if business.image else None,
+                'price_reports_count': business.price_reports.count()
+            })
+        response_data['businesses'] = businesses_data
+    
+    return JsonResponse(response_data)
 
 class PriceReportDetailView(DetailView):
     model = PriceReport

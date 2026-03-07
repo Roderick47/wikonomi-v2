@@ -99,6 +99,65 @@
             Recent Price Reports
         {% endif %}
     </h2>
+    
+    <!-- Business Results Section -->
+    {% if businesses %}
+    <div class="mb-8">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <svg class="h-5 w-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+            Businesses ({{ businesses|length }})
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            {% for business in businesses %}
+            <a href="{% url 'business_detail' business.pk %}" class="block bg-white rounded-lg border border-blue-200 shadow-sm hover:shadow-md transition-shadow hover:border-blue-300">
+                <div class="p-4">
+                    <div class="flex items-center space-x-3">
+                        {% if business.image %}
+                            <img src="{{ business.image.url }}" alt="{{ business.name }} logo" class="h-12 w-12 rounded-lg object-cover shadow-sm">
+                        {% else %}
+                            <div class="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                            </div>
+                        {% endif %}
+                        <div class="flex-1">
+                            <h4 class="text-base font-medium text-gray-900">{{ business.name }}</h4>
+                            <div class="flex items-center text-sm text-gray-500">
+                                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                Business
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center justify-between">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            View Prices
+                        </span>
+                        <div class="text-xs text-gray-400">
+                            {{ business.price_reports.count }} price report{{ business.price_reports.count|pluralize }}
+                        </div>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Price Reports Section -->
+    {% if businesses %}
+    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+        <svg class="h-5 w-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        Price Reports ({{ latest_prices|length }})
+    </h3>
+    {% endif %}
+    
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="price-feed">
         {% cache 120 home_feed_content request.GET.urlencode %}
         {% for report in latest_prices %}
@@ -155,7 +214,11 @@
         </a>
         {% empty %}
         <div class="col-span-full text-center text-gray-500 py-8">
-            No price reports yet. Be the first to add one!
+            {% if request.GET.q %}
+                No results found for "{{ request.GET.q }}". Try a different search term.
+            {% else %}
+                No price reports yet. Be the first to add one!
+            {% endif %}
         </div>
         {% endfor %}
         {% endcache %}
@@ -214,6 +277,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     hasMore = false;
                 }
                 
+                // Handle business results for first page of search
+                if (data.businesses && data.businesses.length > 0 && currentPage === 2) {
+                    // Create business section if it doesn't exist
+                    let businessSection = document.querySelector('#business-section');
+                    if (!businessSection) {
+                        businessSection = createBusinessSection();
+                        priceFeed.parentNode.insertBefore(businessSection, priceFeed);
+                    }
+                    
+                    const businessGrid = businessSection.querySelector('#business-grid');
+                    data.businesses.forEach(business => {
+                        const businessCard = createBusinessCard(business);
+                        businessGrid.appendChild(businessCard);
+                    });
+                }
+                
                 isLoading = false;
                 loadingIndicator.classList.add('hidden');
             })
@@ -222,6 +301,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 isLoading = false;
                 loadingIndicator.classList.add('hidden');
             });
+    }
+
+    function createBusinessSection() {
+        const section = document.createElement('div');
+        section.id = 'business-section';
+        section.className = 'mb-8';
+        section.innerHTML = `
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <svg class="h-5 w-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+                Businesses
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8" id="business-grid">
+            </div>
+        `;
+        return section;
     }
     
     function createPriceCard(item) {
@@ -287,6 +383,47 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                         </div>
                         ${locationHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        return card;
+    }
+
+    function createBusinessCard(business) {
+        const card = document.createElement('a');
+        card.href = `/business/${business.id}/`;
+        card.className = 'block bg-white rounded-lg border border-blue-200 shadow-sm hover:shadow-md transition-shadow hover:border-blue-300';
+        
+        const imageHtml = business.image_url 
+            ? `<img src="${business.image_url}" alt="${business.name} logo" class="h-12 w-12 rounded-lg object-cover shadow-sm">`
+            : `<div class="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+            </div>`;
+        
+        card.innerHTML = `
+            <div class="p-4">
+                <div class="flex items-center space-x-3">
+                    ${imageHtml}
+                    <div class="flex-1">
+                        <h4 class="text-base font-medium text-gray-900">${business.name}</h4>
+                        <div class="flex items-center text-sm text-gray-500">
+                            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                            Business
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3 flex items-center justify-between">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        View Prices
+                    </span>
+                    <div class="text-xs text-gray-400">
+                        ${business.price_reports_count} price report${business.price_reports_count !== 1 ? 's' : ''}
                     </div>
                 </div>
             </div>
