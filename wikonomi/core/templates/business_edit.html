@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block extra_head %}
+<style>
+    .business-image-preview {
+        max-width: 200px;
+        max-height: 200px;
+        object-fit: cover;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
+    <div class="mb-6">
+        <a href="{% url 'business_detail' business.pk %}" class="text-blue-600 hover:text-blue-800 flex items-center font-medium">
+            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Back to business details
+        </a>
+    </div>
+
+    <div class="bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Edit Business</h2>
+            
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
+                
+                <div>
+                    <label for="id_name" class="block text-sm font-medium text-gray-700 mb-2">
+                        Business Name
+                    </label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.name.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="id_image" class="block text-sm font-medium text-gray-700 mb-2">
+                        Business Image
+                    </label>
+                    {{ form.image }}
+                    {% if form.image.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.image.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    {% if business.image %}
+                        <div class="mt-4">
+                            <p class="text-sm text-gray-600 mb-2">Current Image:</p>
+                            <img src="{{ business.image.url }}" alt="{{ business.name }}" class="business-image-preview rounded-lg shadow-md">
+                            <p class="text-xs text-gray-500 mt-2">Upload a new image to replace this one</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <a href="{% url 'business_detail' business.pk %}" class="text-gray-600 hover:text-gray-800 font-medium py-2 px-4 border border-gray-300 rounded-md">
+                        Cancel
+                    </a>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

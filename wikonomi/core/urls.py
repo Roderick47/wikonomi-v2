@@ -8,6 +8,7 @@ urlpatterns = [
     path('price/<int:pk>/edit/', views.edit_price_report, name='edit_price_report'),
     path('price/<int:pk>/nearby/', views.nearby_prices_detail, name='nearby_prices_detail'),
     path('business/<int:pk>/', views.business_detail, name='business_detail'),
+    path('business/<int:pk>/edit/', views.business_edit, name='business_edit'),
     path('load-more/', views.load_more_prices, name='load_more_prices'),
     path('product/<int:product_id>/watch/', views.toggle_watchlist, name='toggle_watchlist'),
     path('notifications/', views.notifications_view, name='notifications'),

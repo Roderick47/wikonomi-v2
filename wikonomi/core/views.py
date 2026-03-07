@@ -25,6 +25,15 @@ class PriceReportForm(forms.ModelForm):
             'image': forms.FileInput(attrs={'class': 'hidden', 'accept': 'image/*'}),
         }
 
+class BusinessForm(forms.ModelForm):
+    class Meta:
+        model = Business
+        fields = ['name', 'image']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'}),
+            'image': forms.FileInput(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'accept': 'image/*'}),
+        }
+
 class PriceReportCreateView(CreateView):
     model = PriceReport
     form_class = PriceReportForm
@@ -322,6 +331,25 @@ class BusinessDetailView(DetailView):
         return context
 
 business_detail = BusinessDetailView.as_view()
+
+class BusinessEditView(UpdateView):
+    model = Business
+    form_class = BusinessForm
+    template_name = 'business_edit.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['products'] = Product.objects.all().order_by('name')
+        return context
+    
+    def get_success_url(self):
+        return reverse_lazy('business_detail', kwargs={'pk': self.object.pk})
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Business updated successfully!')
+        return super().form_valid(form)
+
+business_edit = BusinessEditView.as_view()
 
 class NearbyPricesDetailView(DetailView):
     model = PriceReport
