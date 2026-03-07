@@ -111,7 +111,7 @@
                                                 {{ latest_price.currency }} {{ latest_price.price|intcomma }}
                                             </span>
                                             <span class="text-xs text-gray-500">
-                                                {{ latest_price.observed_at|timesince }} ago
+                                                {{ latest_price.observed_at|rounded_timesince }}
                                             </span>
                                         </div>
                                         <p class="text-sm text-gray-600 mt-2">

@@ -137,7 +137,7 @@
                             {% endif %}
                             <div class="text-xs text-gray-500">
                                 <span class="font-medium">{{ report.user.username }}</span>
-                                <span class="text-gray-400"> • {{ report.observed_at|timesince }} ago</span>
+                                <span class="text-gray-400"> • {{ report.observed_at|rounded_timesince }}</span>
                             </div>
                         </div>
                         {% if report.latitude and report.longitude %}

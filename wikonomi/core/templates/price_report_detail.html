@@ -243,7 +243,7 @@
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if nearby.price < report.price %}bg-green-100 text-green-800{% elif nearby.price > report.price %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
                                 {{ nearby.currency }} {{ nearby.price|intcomma }}
                             </span>
-                            <span class="text-xs text-gray-500">{{ nearby.observed_at|timesince }} ago</span>
+                            <span class="text-xs text-gray-500">{{ nearby.observed_at|rounded_timesince }}</span>
                         </div>
                         {% if nearby.business %}
                         <p class="text-sm font-medium text-gray-900 text-left">{{ nearby.business.name }}</p>

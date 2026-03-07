@@ -209,6 +209,7 @@ def load_more_prices(request):
         return JsonResponse({'has_more': False})
     
     from django.utils.timesince import timesince
+    from .templatetags.custom_filters import rounded_timesince_js
 
     # Prepare data for JSON response
     items_data = []
@@ -224,7 +225,7 @@ def load_more_prices(request):
             'image_url': price.image.url if price.image else None,
             'observed_at': price.observed_at.strftime('%Y-%m-%d %H:%M'),
             'has_location': bool(price.latitude and price.longitude),
-            'timesince': f"{timesince(price.observed_at)} ago"
+            'timesince': f"{rounded_timesince_js(price.observed_at)} ago"
         }
         # Add distance if available
         if hasattr(price, 'distance_km'):
