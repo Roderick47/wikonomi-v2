@@ -221,6 +221,7 @@ def load_more_prices(request):
             'business_name': price.business.name if price.business else None,
             'username': price.user.username,
             'profile_picture_url': price.user.profile.profile_picture.url if hasattr(price.user, 'profile') and price.user.profile.profile_picture else None,
+            'image_url': price.image.url if price.image else None,
             'observed_at': price.observed_at.strftime('%Y-%m-%d %H:%M'),
             'has_location': bool(price.latitude and price.longitude),
             'timesince': f"{timesince(price.observed_at)} ago"

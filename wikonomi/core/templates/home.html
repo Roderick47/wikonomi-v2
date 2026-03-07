@@ -105,18 +105,24 @@
         <a href="{% url 'price_detail' report.pk %}" class="block bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <div class="p-6">
                 <div class="flex items-start justify-between">
-                    <div>
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">{{ report.product.name }}</h3>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            {{ report.currency }} {{ report.price|intcomma }}
-                        </span>
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-3 mb-2">
+                            {% if report.image %}
+                                <img src="{{ report.image.url }}" alt="{{ report.product.name }} image" class="h-16 w-16 rounded-lg object-cover shadow-sm">
+                            {% endif %}
+                            <div>
+                                <h3 class="text-lg leading-6 font-medium text-gray-900">{{ report.product.name }}</h3>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    {{ report.currency }} {{ report.price|intcomma }}
+                                </span>
+                            </div>
+                        </div>
+                        {% if report.business %}
+                        <div class="mt-2 text-sm text-gray-700 font-medium">
+                            @ {{ report.business.name }}
+                        </div>
+                        {% endif %}
                     </div>
-                    {% if report.business %}
-                    <div class="mt-2 text-sm text-gray-700 font-medium">
-                        @ {{ report.business.name }}
-                    </div>
-                    {% endif %}
-                </div>
                 <div class="bg-gray-50 px-4 py-4 sm:px-6">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
@@ -249,17 +255,26 @@ document.addEventListener('DOMContentLoaded', function() {
                </span>`
             : '';
         
+        const imageHtml = item.image_url 
+            ? `<img src="${item.image_url}" alt="${item.product_name} image" class="h-16 w-16 rounded-lg object-cover shadow-sm">`
+            : '';
+        
         card.innerHTML = `
             <div class="p-6">
                 <div class="flex items-start justify-between">
-                    <div>
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">${item.product_name}</h3>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            ${item.currency} ${formattedPrice}
-                        </span>
-                        ${distanceHtml}
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-3 mb-2">
+                            ${imageHtml}
+                            <div>
+                                <h3 class="text-lg leading-6 font-medium text-gray-900">${item.product_name}</h3>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    ${item.currency} ${formattedPrice}
+                                </span>
+                                ${distanceHtml}
+                            </div>
+                        </div>
+                        ${item.business_name ? `<div class="mt-2 text-sm text-gray-700 font-medium">@ ${item.business_name}</div>` : ''}
                     </div>
-                    ${item.business_name ? `<div class="mt-2 text-sm text-gray-700 font-medium">@ ${item.business_name}</div>` : ''}
                 </div>
                 <div class="bg-gray-50 px-4 py-4 sm:px-6">
                     <div class="flex items-center justify-between">
