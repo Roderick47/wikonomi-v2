@@ -112,7 +112,9 @@
                 <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {% for item in products_data %}
                         {% with product=item.product latest_price=item.latest_price %}
-                        <div class="product-card bg-white border border-gray-200 rounded-lg overflow-hidden">
+                        {% if latest_price %}
+                        <a href="{% url 'price_detail' latest_price.pk %}" 
+                           class="product-card bg-white border border-gray-200 rounded-lg overflow-hidden block hover:shadow-lg transition-shadow duration-200 cursor-pointer">
                             <div class="p-6">
                                 <div class="flex items-center justify-between mb-4">
                                     <h3 class="text-lg font-semibold text-gray-900">{{ product.name }}</h3>
@@ -128,35 +130,41 @@
                                 </div>
                                 
                                 <!-- Latest price for this product at this business -->
-                                {% if latest_price %}
-                                    <div class="mb-4">
-                                        <div class="flex items-center justify-between">
-                                            <span class="price-badge inline-flex items-center px-3 py-1 rounded-full text-green-800 bg-green-100">
-                                                {{ latest_price.currency }} {{ latest_price.price|intcomma }}
-                                            </span>
-                                            <span class="text-xs text-gray-500">
-                                                {{ latest_price.observed_at|rounded_timesince }}
-                                            </span>
-                                        </div>
-                                        <p class="text-sm text-gray-600 mt-2">
-                                            Reported by {{ latest_price.user.username }}
-                                        </p>
+                                <div class="mb-4">
+                                    <div class="flex items-center justify-between">
+                                        <span class="price-badge inline-flex items-center px-3 py-1 rounded-full text-green-800 bg-green-100">
+                                            {{ latest_price.currency }} {{ latest_price.price|intcomma }}
+                                        </span>
+                                        <span class="text-xs text-gray-500">
+                                            {{ latest_price.observed_at|rounded_timesince }}
+                                        </span>
                                     </div>
-                                    
-                                    <!-- Link to price report details -->
-                                    <a href="{% url 'price_detail' latest_price.pk %}" 
-                                       class="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                        View details
-                                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                        </svg>
-                                    </a>
-                                {% else %}
-                                    <p class="text-sm text-gray-500">No price reports available</p>
-                                {% endif %}
-                                {% endwith %}
+                                    <p class="text-sm text-gray-600 mt-2">
+                                        Reported by {{ latest_price.user.username }}
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                        {% else %}
+                        <div class="product-card bg-white border border-gray-200 rounded-lg overflow-hidden opacity-75">
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">{{ product.name }}</h3>
+                                    {% if product.tags.all %}
+                                        <div class="flex flex-wrap gap-1">
+                                            {% for tag in product.tags.all %}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                    {{ tag.name }}
+                                                </span>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <p class="text-sm text-gray-500">No price reports available</p>
                             </div>
                         </div>
+                        {% endif %}
+                        {% endwith %}
                     {% endfor %}
                 </div>
             {% else %}
