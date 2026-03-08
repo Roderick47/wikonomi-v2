@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'core',
     'users',
+    'analytics',
     'taggit',
 ]
 

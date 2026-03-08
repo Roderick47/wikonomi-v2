@@ -27,6 +27,18 @@ class Profile(models.Model):
         self.save()
         return self.email_verification_token
     
+    def verify_email(self):
+        """Mark email as verified and track for analytics"""
+        self.email_verified = True
+        self.save()
+        
+        # Track email verification for analytics
+        try:
+            from wikonomi.analytics.models import track_email_verification
+            track_email_verification(self.user)
+        except ImportError:
+            pass  # Analytics app not yet installed
+    
     def is_verification_token_valid(self, token, max_age_hours=24):
         if self.email_verification_token != token:
             return False

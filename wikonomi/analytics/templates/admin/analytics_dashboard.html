@@ -1,0 +1,221 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">Home</a>
+&rsaquo; <a href="{% url 'admin:app_list' 'analytics' %}">Analytics</a>
+&rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <h1>{{ title }}</h1>
+    
+    <!-- Key Metrics Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
+        <!-- Total Users -->
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #007cba;">
+            <h3 style="margin: 0 0 10px 0; color: #333;">Total Users</h3>
+            <p style="font-size: 2em; margin: 0; font-weight: bold;">{{ total_users }}</p>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9em;">{{ active_users_30 }} active (30 days)</p>
+        </div>
+        
+        <!-- New Users (30 days) -->
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #28a745;">
+            <h3 style="margin: 0 0 10px 0; color: #333;">New Users (30 days)</h3>
+            <p style="font-size: 2em; margin: 0; font-weight: bold;">{{ new_users_30 }}</p>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9em;">{{ new_users_7 }} in last 7 days</p>
+        </div>
+        
+        <!-- Total Price Reports -->
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #ffc107;">
+            <h3 style="margin: 0 0 10px 0; color: #333;">Total Price Reports</h3>
+            <p style="font-size: 2em; margin: 0; font-weight: bold;">{{ total_price_reports }}</p>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9em;">{{ avg_reports_per_user }} avg per user</p>
+        </div>
+        
+        <!-- Total Logins -->
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #17a2b8;">
+            <h3 style="margin: 0 0 10px 0; color: #333;">Total Logins</h3>
+            <p style="font-size: 2em; margin: 0; font-weight: bold;">{{ total_logins }}</p>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9em;">{{ avg_logins_per_user }} avg per user</p>
+        </div>
+    </div>
+    
+    <!-- Conversion Funnel -->
+    <div style="margin-bottom: 30px;">
+        <h2>Signup Conversion Funnel (Last 30 days)</h2>
+        <div style="display: flex; align-items: center; gap: 10px; margin-top: 20px;">
+            <div style="background: #007cba; color: white; padding: 15px 20px; border-radius: 8px; text-align: center; min-width: 150px;">
+                <div style="font-size: 1.5em; font-weight: bold;">{{ total_signups_30 }}</div>
+                <div>Total Signups</div>
+            </div>
+            <div style="font-size: 1.5em;">→</div>
+            <div style="background: #28a745; color: white; padding: 15px 20px; border-radius: 8px; text-align: center; min-width: 150px;">
+                <div style="font-size: 1.5em; font-weight: bold;">{{ verified_30 }}</div>
+                <div>Email Verified</div>
+                <div style="font-size: 0.9em;">{{ verification_rate_30|floatformat:1 }}%</div>
+            </div>
+            <div style="font-size: 1.5em;">→</div>
+            <div style="background: #ffc107; color: black; padding: 15px 20px; border-radius: 8px; text-align: center; min-width: 150px;">
+                <div style="font-size: 1.5em; font-weight: bold;">{{ contributors_30 }}</div>
+                <div>Price Contributors</div>
+                <div style="font-size: 0.9em;">{{ conversion_rate_30|floatformat:1 }}%</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts and Activity -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
+        <!-- Signup Trend Chart -->
+        <div>
+            <h2>Signup Trend (Last 30 days)</h2>
+            <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
+                <canvas id="signupChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+        
+        <!-- Activity Breakdown -->
+        <div>
+            <h2>Activity Breakdown (30 days)</h2>
+            <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Logins</span>
+                        <strong>{{ login_count }}</strong>
+                    </div>
+                    <div style="background: #e9ecef; height: 20px; border-radius: 10px; overflow: hidden;">
+                        <div style="background: #007cba; height: 100%; width: {% if login_count %}{{ login_count|div:login_count }}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Price Reports</span>
+                        <strong>{{ price_report_count }}</strong>
+                    </div>
+                    <div style="background: #e9ecef; height: 20px; border-radius: 10px; overflow: hidden;">
+                        <div style="background: #ffc107; height: 100%; width: {% if price_report_count %}{{ price_report_count|div:login_count }}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Watchlist Adds</span>
+                        <strong>{{ watchlist_count }}</strong>
+                    </div>
+                    <div style="background: #e9ecef; height: 20px; border-radius: 10px; overflow: hidden;">
+                        <div style="background: #28a745; height: 100%; width: {% if watchlist_count %}{{ watchlist_count|div:login_count }}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+                <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Shopping Lists</span>
+                        <strong>{{ shopping_count }}</strong>
+                    </div>
+                    <div style="background: #e9ecef; height: 20px; border-radius: 10px; overflow: hidden;">
+                        <div style="background: #17a2b8; height: 100%; width: {% if shopping_count %}{{ shopping_count|div:login_count }}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div style="margin-top: 30px;">
+        <h2>Recent Activity</h2>
+        <div style="background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="background: #f8f9fa;">
+                    <tr>
+                        <th style="padding: 12px; text-align: left;">User</th>
+                        <th style="padding: 12px; text-align: left;">Activity</th>
+                        <th style="padding: 12px; text-align: left;">Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for activity in recent_activities %}
+                    <tr style="border-top: 1px solid #ddd;">
+                        <td style="padding: 12px;">{{ activity.user.username }}</td>
+                        <td style="padding: 12px;">
+                            <span style="background: #e9ecef; padding: 4px 8px; border-radius: 4px; font-size: 0.9em;">
+                                {{ activity.activity_type|title }}
+                            </span>
+                        </td>
+                        <td style="padding: 12px; color: #666;">{{ activity.timestamp|date:"M d, H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" style="padding: 20px; text-align: center; color: #666;">No recent activity</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('signupChart').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ signup_labels|safe }},
+            datasets: [{
+                label: 'Total Signups',
+                data: {{ signup_data|safe }},
+                borderColor: '#007cba',
+                backgroundColor: 'rgba(0, 124, 186, 0.1)',
+                tension: 0.1
+            }, {
+                label: 'Verified Signups',
+                data: {{ verified_data|safe }},
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            }
+        }
+    });
+});
+</script>
+
+<style>
+/* Custom styles for better dashboard appearance */
+#content-main {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+h1 {
+    color: #333;
+    border-bottom: 2px solid #007cba;
+    padding-bottom: 10px;
+    margin-bottom: 30px;
+}
+
+h2 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+/* Progress bar animation */
+div[style*="background: #e9ecef"] > div {
+    transition: width 0.3s ease;
+}
+</style>
+{% endblock %}

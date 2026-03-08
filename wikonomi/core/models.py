@@ -130,6 +130,16 @@ class ProductWatchlist(models.Model):
     def __str__(self):
         return f"{self.user.username} watching {self.product.name}"
 
+# Signal to track watchlist additions
+@receiver(post_save, sender=ProductWatchlist)
+def track_watchlist_analytics(sender, instance, created, **kwargs):
+    if created:
+        try:
+            from wikonomi.analytics.models import track_watchlist_addition
+            track_watchlist_addition(instance.user, instance.product)
+        except ImportError:
+            pass  # Analytics app not yet installed
+
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='notifications')
@@ -180,6 +190,13 @@ def create_new_price_notification(sender, instance, created, **kwargs):
                 message=message
             )
         
+        # Track price report for analytics
+        try:
+            from wikonomi.analytics.models import track_price_report
+            track_price_report(instance.user)
+        except ImportError:
+            pass  # Analytics app not yet installed
+        
         # Invalidate home feed cache (generic invalidation since it's global)
         # Note: In a production environment with Redis, we'd use a more targeted invalidation
         # For LocMemCache, we can clear common keys
@@ -196,6 +213,16 @@ class ShoppingList(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.user.username})"
+
+# Signal to track shopping list creation
+@receiver(post_save, sender=ShoppingList)
+def track_shopping_list_analytics(sender, instance, created, **kwargs):
+    if created:
+        try:
+            from wikonomi.analytics.models import track_shopping_list_creation
+            track_shopping_list_creation(instance.user)
+        except ImportError:
+            pass  # Analytics app not yet installed
 
 class ShoppingListItem(models.Model):
     shopping_list = models.ForeignKey(ShoppingList, on_delete=models.CASCADE, related_name='items')
