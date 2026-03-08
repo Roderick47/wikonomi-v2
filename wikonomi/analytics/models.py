@@ -94,33 +94,33 @@ class UserActivityLog(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.activity_type} at {self.timestamp}"
 
-# Signals to track user activities
-@receiver(post_save, sender=User)
-def create_user_analytics(sender, instance, created, **kwargs):
-    """Create analytics record for new users"""
-    if created:
-        UserAnalytics.objects.create(user=instance, signup_date=timezone.now())
-        
-        # Update daily signup metrics
-        today = timezone.now().date()
-        metrics, created = DailySignupMetrics.objects.get_or_create(date=today)
-        metrics.total_signups += 1
-        metrics.save()
+# Signals to track user activities - temporarily disabled to prevent timezone issues
+# @receiver(post_save, sender=User)
+# def create_user_analytics(sender, instance, created, **kwargs):
+#     """Create analytics record for new users"""
+#     if created:
+#         UserAnalytics.objects.create(user=instance, signup_date=timezone.now())
+#         
+#         # Update daily signup metrics
+#         today = timezone.now().date()
+#         metrics, created = DailySignupMetrics.objects.get_or_create(date=today)
+#         metrics.total_signups += 1
+#         metrics.save()
 
-@receiver(user_logged_in)
-def track_user_login(sender, request, user, **kwargs):
-    """Track user logins"""
-    analytics, created = UserAnalytics.objects.get_or_create(user=user)
-    analytics.last_login_at = timezone.now()
-    analytics.login_count += 1
-    analytics.update_activity()
-    
-    # Log activity
-    UserActivityLog.objects.create(
-        user=user,
-        activity_type='login',
-        metadata={'ip_address': request.META.get('REMOTE_ADDR', 'unknown')}
-    )
+# @receiver(user_logged_in)
+# def track_user_login(sender, request, user, **kwargs):
+#     """Track user logins"""
+#     analytics, created = UserAnalytics.objects.get_or_create(user=user)
+#     analytics.last_login_at = timezone.now()
+#     analytics.login_count += 1
+#     analytics.update_activity()
+#     
+#     # Log activity
+#     UserActivityLog.objects.create(
+#         user=user,
+#         activity_type='login',
+#         metadata={'ip_address': request.META.get('REMOTE_ADDR', 'unknown')}
+#     )
 
 def track_price_report(user):
     """Track when user creates a price report"""
