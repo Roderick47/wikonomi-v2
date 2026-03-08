@@ -1,27 +1,183 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+<div class="max-w-6xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
     <div class="text-center mb-16">
         <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight sm:text-5xl border-b-4 border-blue-600 inline-block pb-3">What is Wikonomi?</h1>
-        <p class="mt-6 text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Wikonomi is Papua New Guinea's first community-driven price tracking platform. We empower everyday consumers by making the cost of living transparent, accessible, and easily comparable across different businesses and locations.
+        <p class="mt-6 text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            Wikonomi is Papua New Guinea's first community-driven price tracking platform. We empower everyday consumers by making cost of living transparent, accessible, and easily comparable across different businesses and locations.
         </p>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-16">
-        <div class="p-8 sm:p-10">
-            <h2 class="text-3xl font-bold text-gray-900 mb-6">How It Works</h2>
-            <p class="text-gray-600">
-                Prices in stores are constantly changing, and it's hard for one person to track where the actual best deals are. Wikonomi solves this through the power of crowdsourcing.
-            </p>
+    <!-- Main Features Section -->
+    <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3 mb-16">
+        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+            <div class="flex items-center mb-4">
+                <div class="flex-shrink-0 bg-blue-100 rounded-lg p-3">
+                    <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                </div>
+                <h3 class="ml-3 text-lg font-semibold text-gray-900">Price Comparison</h3>
+            </div>
+            <p class="text-gray-600">Compare prices across different stores and locations to find the best deals on everyday items.</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+            <div class="flex items-center mb-4">
+                <div class="flex-shrink-0 bg-green-100 rounded-lg p-3">
+                    <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="ml-3 text-lg font-semibold text-gray-900">Location-Based</h3>
+            </div>
+            <p class="text-gray-600">Find prices near your location with interactive maps and distance-based search.</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+            <div class="flex items-center mb-4">
+                <div class="flex-shrink-0 bg-purple-100 rounded-lg p-3">
+                    <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0"></path>
+                    </svg>
+                </div>
+                <h3 class="ml-3 text-lg font-semibold text-gray-900">Community Driven</h3>
+            </div>
+            <p class="text-gray-600">Real people sharing real prices from actual stores across Papua New Guinea.</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+            <div class="flex items-center mb-4">
+                <div class="flex-shrink-0 bg-yellow-100 rounded-lg p-3">
+                    <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3-2-1.343-2-3-2zm0 8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v8m0 0c1.11 0 2.08-.402 2.599-1M15.232 22.5a2.5 2.5 0 11-4.464 0 2.5 2.5 0 014.464 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="ml-3 text-lg font-semibold text-gray-900">Price History</h3>
+            </div>
+            <p class="text-gray-600">Track price trends over time to know when to buy and when to wait.</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+            <div class="flex items-center mb-4">
+                <div class="flex-shrink-0 bg-red-100 rounded-lg p-3">
+                    <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                </div>
+                <h3 class="ml-3 text-lg font-semibold text-gray-900">Shopping Lists</h3>
+            </div>
+            <p class="text-gray-600">Create and manage shopping lists with price estimates for budget planning.</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+            <div class="flex items-center mb-4">
+                <div class="flex-shrink-0 bg-indigo-100 rounded-lg p-3">
+                    <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7m9 11l-1-4h-4l1 4z"></path>
+                    </svg>
+                </div>
+                <h3 class="ml-3 text-lg font-semibold text-gray-900">Bulk Upload</h3>
+            </div>
+            <p class="text-gray-600">Business owners can upload multiple prices at once using CSV files.</p>
         </div>
     </div>
 
+    <!-- How It Works Section -->
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-16">
+        <div class="p-8 sm:p-10">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6">How Wikonomi Helps You Save Money</h2>
+            
+            <div class="grid gap-8 md:grid-cols-2">
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">🔍 Find the Best Deals</h3>
+                    <p class="text-gray-600 mb-4">
+                        Instead of visiting multiple stores to compare prices, search Wikonomi to instantly see where products are cheapest. Our community-driven database shows real prices from real stores across PNG.
+                    </p>
+                    <ul class="space-y-2 text-gray-600">
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-2">✓</span>
+                            Compare prices across different businesses
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-2">✓</span>
+                            Find stores nearest to your location
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-2">✓</span>
+                            See price history to time your purchases
+                        </li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">💰 Maximize Your Savings</h3>
+                    <p class="text-gray-600 mb-4">
+                        Smart shopping is about more than just finding the lowest price. Wikonomi helps you make informed decisions that save you money consistently.
+                    </p>
+                    <ul class="space-y-2 text-gray-600">
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-2">✓</span>
+                            Track price trends and buy at the right time
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-2">✓</span>
+                            Plan shopping trips with price estimates
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-2">✓</span>
+                            Discover alternative stores with better prices
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Benefits Section -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 mb-16">
+        <h2 class="text-3xl font-bold text-gray-900 mb-6 text-center">Why Choose Wikonomi?</h2>
+        <div class="grid gap-6 md:grid-cols-3">
+            <div class="text-center">
+                <div class="text-4xl font-bold text-blue-600 mb-2">100%</div>
+                <p class="text-gray-700 font-medium">Community Driven</p>
+                <p class="text-sm text-gray-600 mt-1">Real prices from real shoppers</p>
+            </div>
+            <div class="text-center">
+                <div class="text-4xl font-bold text-green-600 mb-2">24/7</div>
+                <p class="text-gray-700 font-medium">Always Updated</p>
+                <p class="text-sm text-gray-600 mt-1">Fresh prices added daily</p>
+            </div>
+            <div class="text-center">
+                <div class="text-4xl font-bold text-purple-600 mb-2">Free</div>
+                <p class="text-gray-700 font-medium">For Everyone</p>
+                <p class="text-sm text-gray-600 mt-1">No subscriptions or fees</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call to Action -->
     <div class="text-center">
-        <a href="{% url 'add_price' %}" class="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-lg text-blue-600 bg-white hover:bg-gray-50 focus:outline-none shadow text-center transition">
-            Add a New Price Now
-        </a>
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Start Saving Money Today!</h2>
+        <p class="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+            Join thousands of Papua New Guineans who are already using Wikonomi to make smarter shopping decisions and stretch their budget further.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="{% url 'add_price' %}" class="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none shadow transition">
+                <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add a New Price Now
+            </a>
+            <a href="{% url 'home' %}" class="inline-flex items-center justify-center px-8 py-4 border border-blue-600 text-lg font-bold rounded-lg text-blue-600 bg-white hover:bg-blue-50 focus:outline-none shadow transition">
+                <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                Browse Prices
+            </a>
+        </div>
     </div>
 </div>
 {% endblock %}
