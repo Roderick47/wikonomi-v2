@@ -99,7 +99,7 @@ class UserActivityLog(models.Model):
 def create_user_analytics(sender, instance, created, **kwargs):
     """Create analytics record for new users"""
     if created:
-        UserAnalytics.objects.create(user=instance)
+        UserAnalytics.objects.create(user=instance, signup_date=timezone.now())
         
         # Update daily signup metrics
         today = timezone.now().date()
@@ -177,6 +177,7 @@ def track_email_verification(user):
     """Track when user verifies email"""
     analytics, created = UserAnalytics.objects.get_or_create(user=user)
     analytics.email_verified_at = timezone.now()
+    analytics.save()
     
     # Update daily metrics
     signup_date = analytics.signup_date.date()
