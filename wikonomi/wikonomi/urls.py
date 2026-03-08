@@ -24,6 +24,7 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('', include('core.urls')),
     path('users/', include('users.urls')),
+    path('analytics/', include('analytics.urls')),
 ]
 
 # Serve media files during development
