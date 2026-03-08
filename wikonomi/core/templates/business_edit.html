@@ -44,6 +44,21 @@
                 </div>
 
                 <div>
+                    <label for="id_details" class="block text-sm font-medium text-gray-700 mb-2">
+                        Business Details (Optional)
+                    </label>
+                    {{ form.details }}
+                    {% if form.details.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.details.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <p class="mt-2 text-sm text-gray-500">Add any additional information about this business such as opening hours, contact information, services offered, etc.</p>
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Business Image</label>
                     <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md relative cursor-pointer hover:bg-gray-50" onclick="document.getElementById('id_image').click()" id="image-drop-zone">
                         <div class="space-y-1 text-center" id="image-upload-content">

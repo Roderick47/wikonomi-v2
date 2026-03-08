@@ -81,6 +81,18 @@
         </div>
     </div>
 
+    <!-- Business Details Section -->
+    {% if business.details %}
+    <div class="bg-white shadow rounded-lg mb-8">
+        <div class="px-4 py-5 sm:p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">About {{ business.name }}</h2>
+            <div class="prose max-w-none">
+                <p class="text-gray-700 whitespace-pre-wrap">{{ business.details }}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Map Section -->
     {% if reports_with_location %}
     <div class="bg-white shadow rounded-lg mb-8">

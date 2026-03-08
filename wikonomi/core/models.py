@@ -30,6 +30,7 @@ class Product(models.Model):
 class Business(models.Model):
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(unique=True)
+    details = models.TextField(blank=True, null=True, help_text="Additional information about the business")
     image = ResizedImageField(upload_to='business_images/', null=True, blank=True, size=[1000, 1000], quality=75, force_format='JPEG')
     created_at = models.DateTimeField(auto_now_add=True)
 
