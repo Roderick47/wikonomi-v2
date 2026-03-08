@@ -44,10 +44,23 @@
                 </div>
 
                 <div>
-                    <label for="id_image" class="block text-sm font-medium text-gray-700 mb-2">
-                        Business Image
-                    </label>
-                    {{ form.image }}
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Business Image</label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md relative cursor-pointer hover:bg-gray-50" onclick="document.getElementById('id_image').click()" id="image-drop-zone">
+                        <div class="space-y-1 text-center" id="image-upload-content">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div class="flex text-sm text-gray-600 justify-center">
+                                <span class="relative rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                    <span>Upload a file</span>
+                                    {{ form.image }}
+                                </span>
+                                <p class="pl-1">or drag and drop</p>
+                            </div>
+                            <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                        </div>
+                        <img id="image-preview" class="hidden absolute inset-0 w-full h-full object-contain rounded-md" />
+                    </div>
                     {% if form.image.errors %}
                         <div class="mt-1 text-sm text-red-600">
                             {% for error in form.image.errors %}
@@ -77,4 +90,66 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Image preview logic
+    const imageInput = document.getElementById('id_image');
+    if (imageInput) {
+        async function compressImage(file, maxWidth, maxHeight, quality) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = event => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        let w = img.width;
+                        let h = img.height;
+                        if (w > maxWidth || h > maxHeight) {
+                            const ratio = Math.min(maxWidth / w, maxHeight / h);
+                            w *= ratio;
+                            h *= ratio;
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        canvas.toBlob(blob => {
+                            if (!blob) return resolve(file);
+                            const compressedFile = new File([blob], file.name, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            });
+                            resolve(compressedFile.size < file.size ? compressedFile : file);
+                        }, 'image/jpeg', quality);
+                    };
+                    img.onerror = () => resolve(file);
+                };
+                reader.onerror = () => resolve(file);
+            });
+        }
+
+        imageInput.addEventListener('change', async function(event) {
+            if (event.target.files && event.target.files[0]) {
+                let file = event.target.files[0];
+                if (file.type.startsWith('image/')) {
+                    const compressedFile = await compressImage(file, 1920, 1920, 0.8);
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(compressedFile);
+                    imageInput.files = dataTransfer.files;
+
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('image-upload-content').classList.add('opacity-0');
+                        const preview = document.getElementById('image-preview');
+                        preview.src = e.target.result;
+                        preview.classList.remove('hidden');
+                    }
+                    reader.readAsDataURL(compressedFile);
+                }
+            }
+        });
+    }
+</script>
 {% endblock %}
