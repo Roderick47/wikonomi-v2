@@ -11,15 +11,12 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Fix existing UserAnalytics records with naive datetimes
         migrations.RunPython(
-            code='fix_user_analytics_timezones',
+            code=fix_user_analytics_timezones,
             reverse_code=migrations.RunPython.noop
         ),
-        
-        # Fix existing UserActivityLog records with naive timestamps
         migrations.RunPython(
-            code='fix_activity_log_timezones',
+            code=fix_activity_log_timezones,
             reverse_code=migrations.RunPython.noop
         ),
     ]
