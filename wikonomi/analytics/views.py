@@ -19,40 +19,67 @@ def analytics_dashboard(request):
     last_30_days = today - timedelta(days=30)
     last_7_days = today - timedelta(days=7)
     
-    # User signup metrics
-    total_users = UserAnalytics.objects.count()
-    active_users_30 = UserAnalytics.objects.filter(is_active_user=True).count()
-    new_users_30 = UserAnalytics.objects.filter(signup_date__gte=last_30_days).count()
-    new_users_7 = UserAnalytics.objects.filter(signup_date__gte=last_7_days).count()
-    
-    # Daily signup trends
-    daily_signups = DailySignupMetrics.objects.filter(date__gte=last_30_days).order_by('date')
-    signup_labels = [d.date.strftime('%m/%d') for d in daily_signups]
-    signup_data = [d.total_signups for d in daily_signups]
-    verified_data = [d.verified_signups for d in daily_signups]
-    
-    # Engagement metrics
-    total_price_reports = UserAnalytics.objects.aggregate(total=Count('total_price_reports'))['total'] or 0
-    avg_reports_per_user = UserAnalytics.objects.aggregate(avg=Avg('total_price_reports'))['avg'] or 0
-    total_logins = UserAnalytics.objects.aggregate(total=Count('login_count'))['total'] or 0
-    avg_logins_per_user = UserAnalytics.objects.aggregate(avg=Avg('login_count'))['avg'] or 0
-    
-    # Conversion funnel
-    total_signups_30 = DailySignupMetrics.objects.filter(date__gte=last_30_days).aggregate(total=Count('total_signups'))['total'] or 0
-    verified_30 = DailySignupMetrics.objects.filter(date__gte=last_30_days).aggregate(total=Count('verified_signups'))['total'] or 0
-    contributors_30 = DailySignupMetrics.objects.filter(date__gte=last_30_days).aggregate(total=Count('price_contributor_signups'))['total'] or 0
-    
-    # Activity breakdown
-    login_count = UserActivityLog.objects.filter(activity_type='login', timestamp__gte=last_30_days).count()
-    price_report_count = UserActivityLog.objects.filter(activity_type='price_report', timestamp__gte=last_30_days).count()
-    watchlist_count = UserActivityLog.objects.filter(activity_type='watchlist_add', timestamp__gte=last_30_days).count()
-    shopping_count = UserActivityLog.objects.filter(activity_type='shopping_list_create', timestamp__gte=last_30_days).count()
-    
-    # Top contributors
-    top_contributors = UserAnalytics.objects.filter(total_price_reports__gt=0).order_by('-total_price_reports')[:10]
-    
-    # Recent activity
-    recent_activities = UserActivityLog.objects.select_related('user').order_by('-timestamp')[:10]
+    try:
+        # User signup metrics
+        total_users = UserAnalytics.objects.count()
+        active_users_30 = UserAnalytics.objects.filter(is_active_user=True).count()
+        new_users_30 = UserAnalytics.objects.filter(signup_date__gte=last_30_days).count()
+        new_users_7 = UserAnalytics.objects.filter(signup_date__gte=last_7_days).count()
+        
+        # Daily signup trends
+        daily_signups = DailySignupMetrics.objects.filter(date__gte=last_30_days).order_by('date')
+        signup_labels = [d.date.strftime('%m/%d') for d in daily_signups]
+        signup_data = [d.total_signups for d in daily_signups]
+        verified_data = [d.verified_signups for d in daily_signups]
+        
+        # Engagement metrics
+        total_price_reports = UserAnalytics.objects.aggregate(total=Count('total_price_reports'))['total'] or 0
+        avg_reports_per_user = UserAnalytics.objects.aggregate(avg=Avg('total_price_reports'))['avg'] or 0
+        total_logins = UserAnalytics.objects.aggregate(total=Count('login_count'))['total'] or 0
+        avg_logins_per_user = UserAnalytics.objects.aggregate(avg=Avg('login_count'))['avg'] or 0
+        
+        # Conversion funnel
+        total_signups_30 = DailySignupMetrics.objects.filter(date__gte=last_30_days).aggregate(total=Count('total_signups'))['total'] or 0
+        verified_30 = DailySignupMetrics.objects.filter(date__gte=last_30_days).aggregate(total=Count('verified_signups'))['total'] or 0
+        contributors_30 = DailySignupMetrics.objects.filter(date__gte=last_30_days).aggregate(total=Count('price_contributor_signups'))['total'] or 0
+        
+        # Activity breakdown
+        login_count = UserActivityLog.objects.filter(activity_type='login', timestamp__gte=last_30_days).count()
+        price_report_count = UserActivityLog.objects.filter(activity_type='price_report', timestamp__gte=last_30_days).count()
+        watchlist_count = UserActivityLog.objects.filter(activity_type='watchlist_add', timestamp__gte=last_30_days).count()
+        shopping_count = UserActivityLog.objects.filter(activity_type='shopping_list_create', timestamp__gte=last_30_days).count()
+        
+        # Top contributors
+        top_contributors = UserAnalytics.objects.filter(total_price_reports__gt=0).order_by('-total_price_reports')[:10]
+        
+        # Recent activity
+        recent_activities = UserActivityLog.objects.select_related('user').order_by('-timestamp')[:10]
+        
+    except Exception as e:
+        # Handle case where analytics tables don't exist yet
+        total_users = 0
+        active_users_30 = 0
+        new_users_30 = 0
+        new_users_7 = 0
+        total_price_reports = 0
+        avg_reports_per_user = 0
+        total_logins = 0
+        avg_logins_per_user = 0
+        total_signups_30 = 0
+        verified_30 = 0
+        contributors_30 = 0
+        login_count = 0
+        price_report_count = 0
+        watchlist_count = 0
+        shopping_count = 0
+        signup_labels = []
+        signup_data = []
+        verified_data = []
+        top_contributors = []
+        recent_activities = []
+        verification_rate_30 = 0
+        conversion_rate_30 = 0
+        active_rate = 0
     
     context = {
         'title': 'Analytics Dashboard',
