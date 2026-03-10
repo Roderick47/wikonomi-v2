@@ -19,8 +19,8 @@ def signup(request):
                 profile, created = Profile.objects.get_or_create(user=user)
                 print(f"DEBUG: Profile {'created' if created else 'retrieved'} for user: {user.username}")
                 
-                # Send verification email
-                if settings.ACCOUNT_VERIFICATION_REQUIRED:
+                # Send verification email - DISABLED
+                if False and settings.ACCOUNT_VERIFICATION_REQUIRED:
                     try:
                         print(f"DEBUG: Attempting to send verification email to {user.email}")
                         print(f"DEBUG: Email settings - Host: {settings.EMAIL_HOST}, User: {settings.EMAIL_HOST_USER}")
@@ -101,10 +101,10 @@ def change_password(request):
             user = form.save()
             update_session_auth_hash(request, user)  # Important!
             
-            # Send password change notification
-            send_password_change_notification(request, user)
+            # Send password change notification - DISABLED
+            # send_password_change_notification(request, user)
             
-            messages.success(request, 'Password changed successfully! A notification has been sent to your email.')
+            messages.success(request, 'Password changed successfully!')
             return redirect('profile')
         else:
             messages.error(request, 'Please correct the errors below.')
@@ -168,30 +168,7 @@ def delete_account(request):
 def resend_verification_email(request):
     """
     Resend verification email to logged-in user
+    EMAIL FUNCTIONALITY DISABLED
     """
-    try:
-        profile = Profile.objects.get(user=request.user)
-        
-        if profile.email_verified:
-            messages.info(request, 'Your email is already verified.')
-            return redirect('profile')
-        
-        # Send new verification email with fail_silently=True to prevent timeouts
-        try:
-            email_sent = send_verification_email(request, request.user, profile)
-            
-            if email_sent:
-                messages.success(request, 'A new verification email has been sent to your email address.')
-            else:
-                messages.error(request, 'We couldn\'t send the verification email. Please check your email configuration or contact support.')
-                
-        except Exception as e:
-            print(f"Email sending error: {str(e)}")
-            messages.error(request, f'Failed to send verification email. Please check your email settings or contact support.')
-            
-    except Profile.DoesNotExist:
-        messages.error(request, 'Profile not found. Please contact support.')
-    except Exception as e:
-        messages.error(request, f'An error occurred: {str(e)}')
-    
+    messages.info(request, 'Email verification is currently disabled. Your account is fully active.')
     return redirect('profile')
