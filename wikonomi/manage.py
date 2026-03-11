@@ -6,7 +6,14 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'wikonomi.settings')
+    # Use local settings for development, production settings for production
+    if os.environ.get('DJANGO_SETTINGS_MODULE') is None:
+        # Check if we're in production (Render environment)
+        if 'RENDER' in os.environ or 'DATABASE_URL' in os.environ:
+            os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'wikonomi.production')
+        else:
+            os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'wikonomi.local')
+    
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
