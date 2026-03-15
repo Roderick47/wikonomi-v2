@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django import forms
 from django.views.decorators.cache import cache_page
-from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem
+from .models import PriceReport, PriceHistory, Product, Business, BusinessBranch, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessAlias
 
 class PriceReportForm(forms.ModelForm):
     class Meta:
@@ -60,46 +60,42 @@ class PriceReportCreateView(CreateView):
         else:
             form.instance.user = self.request.user
 
-        # 2. Handle product (dynamic text input)
+        # 2. Handle product (using normalization service)
         product_name = self.request.POST.get('product_name', '').strip()
         if not product_name:
             form.add_error(None, "Product name is required.")
             return self.form_invalid(form)
             
-        # Get or create product (using slugify for slug, ensuring uniqueness)
-        product = Product.objects.filter(name__iexact=product_name).first()
-        if not product:
-            product_slug = slugify(product_name)
-            original_slug = product_slug
-            counter = 1
-            while Product.objects.filter(slug=product_slug).exists():
-                product_slug = f"{original_slug}-{counter}"
-                counter += 1
-            
-            product = Product.objects.create(
-                name=product_name,
-                slug=product_slug,
-                created_by=form.instance.user
-            )
+        # Use normalization service to find or create product
+        product, was_created = ProductNormalizationService.normalize_price_report_data(
+            product_name=product_name,
+            category=None,
+        )
+        
+        # If this is a newly created product, set the creator
+        if was_created:
+            product.created_by = form.instance.user
+            product.save()
 
         form.instance.product = product
         
-        # 2b. Handle business (optional dynamic text input)
+        # 2b. Handle business (using normalization service with branch support)
         business_name = self.request.POST.get('business_name', '').strip()
+        business_location = self.request.POST.get('business_location', '').strip()
+        
         if business_name:
-            from .models import Business
-            business = Business.objects.filter(name__iexact=business_name).first()
-            if not business:
-                business_slug = slugify(business_name)
-                original_slug = business_slug
-                counter = 1
-                while Business.objects.filter(slug=business_slug).exists():
-                    business_slug = f"{original_slug}-{counter}"
-                    counter += 1
-                business = Business.objects.create(
-                    name=business_name,
-                    slug=business_slug
-                )
+            # Use normalization service to find or create business with branch
+            business, branch, was_created = BusinessNormalizationService.normalize_price_report_data(
+                business_name=business_name,
+                location=business_location
+            )
+            
+            # Set the branch on the price report if we have one
+            if branch:
+                form.instance.business_branch = branch
+                # Also set the main business for compatibility
+                form.instance.business = business
+            
             form.instance.business = business
         
         # 3. Save the form to hit the DB
@@ -136,10 +132,44 @@ def _get_prices_queryset(request):
     qs = PriceReport.objects.select_related('product', 'business', 'user').prefetch_related('user__profile')
     
     if query:
-        qs = qs.filter(
-            Q(product__name__icontains=query) | 
-            Q(business__name__icontains=query)
-        )
+        # Enhanced search using product normalization
+        # 1. Try exact product matches first
+        exact_products = Product.objects.filter(name__icontains=query)
+        
+        # 2. Try alias matches
+        alias_products = Product.objects.filter(
+            aliases__alias_name__icontains=query,
+            aliases__is_active=True
+        ).distinct()
+        
+        # 3. Try signature-based matching for pattern variations
+        query_signature = ProductAlias.create_normalized_signature(query)
+        signature_products = Product.objects.filter(
+            aliases__signature=query_signature,
+            aliases__is_active=True
+        ).distinct()
+        
+        # Combine all matched products
+        matched_products = Product.objects.filter(
+            Q(id__in=exact_products) | 
+            Q(id__in=alias_products) | 
+            Q(id__in=signature_products)
+        ).distinct()
+        
+        # Build search query
+        search_query = Q()
+        
+        if matched_products.exists():
+            search_query |= Q(product__in=matched_products)
+        
+        # Also search business names
+        search_query |= Q(business__name__icontains=query)
+        
+        # If no products matched, fall back to basic text search
+        if not matched_products.exists():
+            search_query |= Q(product__name__icontains=query)
+        
+        qs = qs.filter(search_query)
     
     # Apply sorting
     if sort == 'price_asc':
@@ -164,7 +194,63 @@ def _get_business_queryset(request):
     query = request.GET.get('q', '').strip()
     
     if query:
-        return Business.objects.filter(name__icontains=query).order_by('name')
+        # Enhanced business search using normalization
+        # 1. Try exact business name matches first
+        exact_businesses = Business.objects.filter(name__icontains=query)
+        
+        # 2. Try alias matches
+        alias_businesses = Business.objects.filter(
+            aliases__alias_name__icontains=query,
+            aliases__is_active=True
+        ).distinct()
+        
+        # 3. Try normalized text matching
+        normalized_query = BusinessAlias.normalize_text(query)
+        normalized_businesses = Business.objects.filter(
+            aliases__normalized_name=normalized_query,
+            aliases__is_active=True
+        ).distinct()
+        
+        # Combine all matched businesses
+        matched_businesses = Business.objects.filter(
+            Q(id__in=exact_businesses) | 
+            Q(id__in=alias_businesses) | 
+            Q(id__in=normalized_businesses)
+        ).distinct()
+        
+        # Also return businesses that have products matching search
+        if query:
+            # Find products matching query (using same logic as price search)
+            exact_products = Product.objects.filter(name__icontains=query)
+            alias_products = Product.objects.filter(
+                aliases__alias_name__icontains=query,
+                aliases__is_active=True
+            ).distinct()
+            query_signature = ProductAlias.create_normalized_signature(query)
+            signature_products = Product.objects.filter(
+                aliases__signature=query_signature,
+                aliases__is_active=True
+            ).distinct()
+            
+            matched_products = Product.objects.filter(
+                Q(id__in=exact_products) | 
+                Q(id__in=alias_products) | 
+                Q(id__in=signature_products)
+            ).distinct()
+            
+            # Get businesses that have price reports for these products
+            if matched_products.exists():
+                businesses_with_matched_products = Business.objects.filter(
+                    price_reports__product__in=matched_products
+                ).distinct().order_by('name')
+                
+                # Combine and deduplicate
+                matched_businesses = Business.objects.filter(
+                    Q(id__in=matched_businesses) | 
+                    Q(id__in=businesses_with_matched_products)
+                ).distinct()
+        
+        return matched_businesses.order_by('name')
     
     return Business.objects.none()
 

@@ -6,6 +6,9 @@ from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django_resized import ResizedImageField
 from django.core.cache import cache
+from django.utils.text import slugify
+from difflib import SequenceMatcher
+import re
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -27,6 +30,302 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+class ProductAlias(models.Model):
+    """
+    Maps product name variations to canonical products.
+    This enables normalization of user-submitted product names.
+    """
+    canonical_product = models.ForeignKey(
+        Product, 
+        on_delete=models.CASCADE, 
+        related_name='aliases'
+    )
+    alias_name = models.CharField(max_length=255, db_index=True)
+    normalized_name = models.CharField(max_length=255, db_index=True)
+    signature = models.CharField(max_length=255, db_index=True, null=True, blank=True)  # For pattern-based matching
+    created_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        unique_together = ('canonical_product', 'alias_name')
+        ordering = ['alias_name']
+        indexes = [
+            models.Index(fields=['signature']),
+        ]
+    
+    def __str__(self):
+        return f"{self.alias_name} → {self.canonical_product.name}"
+    
+    def save(self, *args, **kwargs):
+        # Auto-generate normalized name and signature for better matching
+        self.normalized_name = self.normalize_text(self.alias_name)
+        self.signature = self.create_normalized_signature(self.alias_name)
+        super().save(*args, **kwargs)
+    
+    @staticmethod
+    def normalize_text(text):
+        """Normalize text for better matching by removing extra spaces, punctuation, etc."""
+        # Convert to lowercase and remove extra whitespace
+        text = ' '.join(text.lower().split())
+        # Remove common punctuation
+        text = re.sub(r'[^\w\s]', ' ', text)
+        # Remove extra spaces again
+        text = ' '.join(text.split())
+        return text
+    
+    @staticmethod
+    def extract_product_components(text):
+        """
+        Extract product name and size/quantity components from text.
+        Handles patterns like "Rice 1kg", "1kg Rice", "Coca Cola 500ml", etc.
+        """
+        normalized = ProductAlias.normalize_text(text)
+        
+        # Common size patterns
+        size_patterns = [
+            r'(\d+(?:\.\d+)?)\s*(kg|g|l|ml|oz|lb|pcs|pc|pack|bottle|can|box|bag)',
+            r'(\d+(?:\.\d+)?)\s*(kilogram|gram|liter|milliliter|ounce|pound|piece|pieces)',
+            r'(\d+(?:\.\d+)?)\s*(x\s*\d+)',  # pack sizes like "6 x 250ml"
+        ]
+        
+        size_match = None
+        size_info = None
+        
+        for pattern in size_patterns:
+            match = re.search(pattern, normalized)
+            if match:
+                size_match = match
+                size_info = match.group(0)
+                break
+        
+        if size_match:
+            # Remove size from text to get product name
+            product_name = normalized.replace(size_info, '').strip()
+            return {
+                'product_name': product_name,
+                'size_info': size_info,
+                'full_text': normalized
+            }
+        else:
+            return {
+                'product_name': normalized,
+                'size_info': None,
+                'full_text': normalized
+            }
+    
+    @staticmethod
+    def create_normalized_signature(text):
+        """
+        Create a normalized signature that handles pattern variations.
+        "Rice 1kg" and "1kg Rice" will produce the same signature.
+        """
+        components = ProductAlias.extract_product_components(text)
+        
+        if components['size_info']:
+            # Sort components: product name first, then size
+            signature = f"{components['product_name']} {components['size_info']}"
+        else:
+            signature = components['product_name']
+        
+        return ProductAlias.normalize_text(signature)
+
+class ProductMatcher:
+    """
+    Service class for matching and normalizing product names.
+    """
+    
+    @staticmethod
+    def find_best_match(product_name, min_similarity=0.7):
+        """
+        Find the best matching product for a given name.
+        Returns tuple (product, similarity_score) or (None, 0)
+        """
+        # Create signature for pattern-based matching
+        input_signature = ProductAlias.create_normalized_signature(product_name)
+        normalized_input = ProductAlias.normalize_text(product_name)
+        
+        # First try exact signature match (handles "Rice 1kg" vs "1kg Rice")
+        signature_match = ProductAlias.objects.filter(
+            signature=input_signature,
+            is_active=True
+        ).first()
+        
+        if signature_match:
+            return signature_match.canonical_product, 1.0
+        
+        # Then try exact normalized name match
+        alias_match = ProductAlias.objects.filter(
+            normalized_name=normalized_input,
+            is_active=True
+        ).first()
+        
+        if alias_match:
+            return alias_match.canonical_product, 1.0
+        
+        # Try fuzzy matching with signatures (pattern-based)
+        best_match = None
+        best_score = 0
+        
+        for alias in ProductAlias.objects.filter(is_active=True):
+            # Compare signatures first (pattern-based)
+            signature_similarity = SequenceMatcher(
+                None, 
+                input_signature, 
+                alias.signature
+            ).ratio()
+            
+            # Also compare normalized names
+            name_similarity = SequenceMatcher(
+                None, 
+                normalized_input, 
+                alias.normalized_name
+            ).ratio()
+            
+            # Use the higher of the two similarities
+            similarity = max(signature_similarity, name_similarity)
+            
+            if similarity > best_score and similarity >= min_similarity:
+                best_score = similarity
+                best_match = alias.canonical_product
+        
+        # If no alias match, try direct product matching with signatures
+        if not best_match:
+            for product in Product.objects.all():
+                product_signature = ProductAlias.create_normalized_signature(product.name)
+                product_normalized = ProductAlias.normalize_text(product.name)
+                
+                signature_similarity = SequenceMatcher(
+                    None, 
+                    input_signature, 
+                    product_signature
+                ).ratio()
+                
+                name_similarity = SequenceMatcher(
+                    None, 
+                    normalized_input, 
+                    product_normalized
+                ).ratio()
+                
+                similarity = max(signature_similarity, name_similarity)
+                
+                if similarity > best_score and similarity >= min_similarity:
+                    best_score = similarity
+                    best_match = product
+        
+        return best_match, best_score
+    
+    @staticmethod
+    def create_or_match_product(product_name, category=None, created_by=None):
+        """
+        Create a new product or find existing match.
+        Returns the product object and whether it was created.
+        """
+        product, similarity = ProductMatcher.find_best_match(product_name)
+        
+        if product and similarity >= 0.8:
+            return product, False
+        
+        # Create new product if no good match found
+        slug = slugify(product_name)
+        
+        # Ensure unique slug
+        original_slug = slug
+        counter = 1
+        while Product.objects.filter(slug=slug).exists():
+            slug = f"{original_slug}-{counter}"
+            counter += 1
+        
+        product = Product.objects.create(
+            name=product_name,
+            slug=slug,
+            category=category,
+            created_by=created_by
+        )
+        
+        return product, True
+    
+    @staticmethod
+    def add_alias(canonical_product, alias_name, created_by=None):
+        """
+        Add an alias for a canonical product.
+        """
+        alias, created = ProductAlias.objects.get_or_create(
+            canonical_product=canonical_product,
+            alias_name=alias_name,
+            defaults={'created_by': created_by}
+        )
+        return alias, created
+
+
+class ProductNormalizationService:
+    """
+    High-level service for product normalization operations.
+    """
+    
+    @staticmethod
+    def normalize_price_report_data(product_name, business_name=None, category=None):
+        """
+        Normalize product data for price reports.
+        Returns (product, was_created) tuple.
+        """
+        return ProductMatcher.create_or_match_product(product_name, category)
+    
+    @staticmethod
+    def bulk_normalize_products(product_names, created_by=None):
+        """
+        Normalize a list of product names.
+        Returns list of (product, was_created) tuples.
+        """
+        results = []
+        for name in product_names:
+            product, was_created = ProductMatcher.create_or_match_product(
+                name, created_by=created_by
+            )
+            results.append((product, was_created))
+        return results
+    
+    @staticmethod
+    def get_product_variations(canonical_product):
+        """
+        Get all known variations/aliases for a product.
+        """
+        return ProductAlias.objects.filter(
+            canonical_product=canonical_product,
+            is_active=True
+        )
+    
+    @staticmethod
+    def merge_products(source_product, target_product, created_by=None):
+        """
+        Merge two products, making target_product the canonical one.
+        All aliases and price reports will be redirected to target_product.
+        """
+        # Update all aliases to point to target
+        ProductAlias.objects.filter(
+            canonical_product=source_product
+        ).update(canonical_product=target_product)
+        
+        # Update all price reports to point to target
+        PriceReport.objects.filter(
+            product=source_product
+        ).update(product=target_product)
+        
+        # Create an alias for the old product name
+        ProductAlias.objects.get_or_create(
+            canonical_product=target_product,
+            alias_name=source_product.name,
+            defaults={'created_by': created_by}
+        )
+        
+        # Delete the source product
+        source_product.delete()
+
 class Business(models.Model):
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(unique=True)
@@ -37,9 +336,332 @@ class Business(models.Model):
     def __str__(self):
         return self.name
 
+class BusinessBranch(models.Model):
+    """
+    Represents a specific branch/location of a business.
+    This allows businesses like "TST" to have multiple locations.
+    """
+    canonical_business = models.ForeignKey(
+        Business,
+        on_delete=models.CASCADE,
+        related_name='branches'
+    )
+    name = models.CharField(max_length=255, help_text="Branch name (e.g., 'Port Moresby Main', 'Waigani Branch')")
+    slug = models.SlugField(max_length=255)
+    address = models.TextField(blank=True, null=True, help_text="Full address of this branch")
+    latitude = models.FloatField(null=True, blank=True, help_text="Branch latitude for mapping")
+    longitude = models.FloatField(null=True, blank=True, help_text="Branch longitude for mapping")
+    phone = models.CharField(max_length=50, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    is_main_branch = models.BooleanField(default=False, help_text="Mark as the main/head office branch")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    class Meta:
+        unique_together = ('canonical_business', 'slug')
+        ordering = ['is_main_branch', 'name']
+        indexes = [
+            models.Index(fields=['canonical_business', 'is_active']),
+            models.Index(fields=['latitude', 'longitude']),
+        ]
+
+    def __str__(self):
+        return f"{self.canonical_business.name} - {self.name}"
+
+    def get_full_name(self):
+        """Get the full business name including branch"""
+        if self.name.lower() in ['main', 'head office', 'hq']:
+            return self.canonical_business.name
+        return f"{self.canonical_business.name} {self.name}"
+
+class BusinessAlias(models.Model):
+    """
+    Maps business name variations to canonical businesses.
+    This enables normalization of user-submitted business names.
+    """
+    canonical_business = models.ForeignKey(
+        Business, 
+        on_delete=models.CASCADE, 
+        related_name='aliases'
+    )
+    alias_name = models.CharField(max_length=255, db_index=True)
+    normalized_name = models.CharField(max_length=255, db_index=True)
+    created_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        unique_together = ('canonical_business', 'alias_name')
+        ordering = ['alias_name']
+        indexes = [
+            models.Index(fields=['normalized_name']),
+        ]
+    
+    def __str__(self):
+        return f"{self.alias_name} → {self.canonical_business.name}"
+    
+    def save(self, *args, **kwargs):
+        # Auto-generate normalized name for better matching
+        self.normalized_name = self.normalize_text(self.alias_name)
+        super().save(*args, **kwargs)
+    
+    @staticmethod
+    def normalize_text(text):
+        """Normalize text for better matching by removing extra spaces, punctuation, etc."""
+        # Convert to lowercase and remove extra whitespace
+        text = ' '.join(text.lower().split())
+        # Remove common punctuation
+        text = re.sub(r'[^\w\s]', ' ', text)
+        # Remove extra spaces again
+        text = ' '.join(text.split())
+        return text
+
+class BusinessMatcher:
+    """
+    Service class for matching and normalizing business names with branch support.
+    """
+    
+    @staticmethod
+    def find_best_match(business_name, min_similarity=0.7):
+        """
+        Find the best matching business for a given name.
+        Returns tuple (business, branch, similarity_score) or (None, None, 0)
+        """
+        normalized_input = BusinessAlias.normalize_text(business_name)
+        
+        # First try exact branch match
+        branch_match = BusinessBranch.objects.filter(
+            name__icontains=business_name
+        ).select_related('canonical_business').first()
+        
+        if branch_match:
+            return branch_match.canonical_business, branch_match, 1.0
+        
+        # Try business alias matches
+        alias_match = BusinessAlias.objects.filter(
+            normalized_name=normalized_input,
+            is_active=True
+        ).first()
+        
+        if alias_match:
+            # Find the main branch for this business
+            main_branch = BusinessBranch.objects.filter(
+                canonical_business=alias_match.canonical_business,
+                is_main_branch=True
+            ).first()
+            return alias_match.canonical_business, main_branch, 1.0
+        
+        # Try fuzzy matching with existing aliases
+        best_match = None
+        best_branch = None
+        best_score = 0
+        
+        for alias in BusinessAlias.objects.filter(is_active=True):
+            similarity = SequenceMatcher(
+                None, 
+                normalized_input, 
+                alias.normalized_name
+            ).ratio()
+            
+            if similarity > best_score and similarity >= min_similarity:
+                best_score = similarity
+                best_match = alias.canonical_business
+                # Find main branch for this business
+                main_branch = BusinessBranch.objects.filter(
+                    canonical_business=alias.canonical_business,
+                    is_main_branch=True
+                ).first()
+                best_branch = main_branch
+        
+        # If no alias match, try direct business matching
+        if not best_match:
+            for business in Business.objects.all():
+                business_normalized = BusinessAlias.normalize_text(business.name)
+                similarity = SequenceMatcher(
+                    None, 
+                    normalized_input, 
+                    business_normalized
+                ).ratio()
+                
+                if similarity > best_score and similarity >= min_similarity:
+                    best_score = similarity
+                    best_match = business
+                    # Find main branch for this business
+                    main_branch = BusinessBranch.objects.filter(
+                        canonical_business=business,
+                        is_main_branch=True
+                    ).first()
+                    best_branch = main_branch
+        
+        return best_match, best_branch, best_score
+    
+    @staticmethod
+    def create_or_match_business_with_location(business_name, location=None, created_by=None):
+        """
+        Create a new business or find existing match, optionally creating a branch.
+        Returns the (business, branch, was_created) tuple.
+        """
+        business, branch, similarity = BusinessMatcher.find_best_match(business_name)
+        
+        if business and similarity >= 0.8:
+            # If we have location info and it's different from main branch, create new branch
+            if location and location.strip():
+                existing_branch = BusinessBranch.objects.filter(
+                    canonical_business=business,
+                    name__icontains=location
+                ).first()
+                
+                if not existing_branch:
+                    # Create new branch
+                    branch = BusinessBranch.objects.create(
+                        canonical_business=business,
+                        name=location,
+                        slug=f"{business.slug}-{slugify(location)}",
+                        created_by=created_by
+                    )
+                    return business, branch, True
+                else:
+                    return business, existing_branch, False
+            
+            return business, branch, False
+        
+        # Create new business if no good match found
+        slug = slugify(business_name)
+        
+        # Ensure unique slug
+        original_slug = slug
+        counter = 1
+        while Business.objects.filter(slug=slug).exists():
+            slug = f"{original_slug}-{counter}"
+            counter += 1
+        
+        business = Business.objects.create(
+            name=business_name,
+            slug=slug
+        )
+        
+        # Create main branch if location provided
+        branch = None
+        if location and location.strip():
+            branch = BusinessBranch.objects.create(
+                canonical_business=business,
+                name=location if location.strip() else "Main Branch",
+                slug=f"{business.slug}-main",
+                is_main_branch=True,
+                created_by=created_by
+            )
+        
+        return business, branch, True
+    
+    @staticmethod
+    def add_alias(canonical_business, alias_name, created_by=None):
+        """
+        Add an alias for a canonical business.
+        """
+        alias, created = BusinessAlias.objects.get_or_create(
+            canonical_business=canonical_business,
+            alias_name=alias_name,
+            defaults={'created_by': created_by}
+        )
+        return alias, created
+
+
+class BusinessNormalizationService:
+    """
+    High-level service for business normalization operations with branch support.
+    """
+    
+    @staticmethod
+    def normalize_price_report_data(business_name, location=None):
+        """
+        Normalize business data for price reports with location support.
+        Returns (business, branch, was_created) tuple.
+        """
+        return BusinessMatcher.create_or_match_business_with_location(
+            business_name, location=location
+        )
+    
+    @staticmethod
+    def bulk_normalize_businesses(business_data, created_by=None):
+        """
+        Normalize a list of business names with optional locations.
+        business_data should be list of (name, location) tuples.
+        Returns list of (business, branch, was_created) tuples.
+        """
+        results = []
+        for name, location in business_data:
+            business, branch, was_created = BusinessMatcher.create_or_match_business_with_location(
+                name, location=location, created_by=created_by
+            )
+            results.append((business, branch, was_created))
+        return results
+    
+    @staticmethod
+    def get_business_variations(canonical_business):
+        """
+        Get all known variations/aliases for a business.
+        """
+        return BusinessAlias.objects.filter(
+            canonical_business=canonical_business,
+            is_active=True
+        )
+    
+    @staticmethod
+    def get_business_branches(canonical_business):
+        """
+        Get all branches for a business.
+        """
+        return BusinessBranch.objects.filter(
+            canonical_business=canonical_business,
+            is_active=True
+        ).select_related('canonical_business')
+    
+    @staticmethod
+    def merge_businesses(source_business, target_business, created_by=None):
+        """
+        Merge two businesses, making target_business the canonical one.
+        All aliases and branches will be redirected to target_business.
+        """
+        # Update all aliases to point to target
+        BusinessAlias.objects.filter(
+            canonical_business=source_business
+        ).update(canonical_business=target_business)
+        
+        # Update all branches to point to target
+        BusinessBranch.objects.filter(
+            canonical_business=source_business
+        ).update(canonical_business=target_business)
+        
+        # Update all price reports to point to target
+        PriceReport.objects.filter(
+            business=source_business
+        ).update(business=target_business)
+        
+        # Create an alias for the old business name
+        BusinessAlias.objects.get_or_create(
+            canonical_business=target_business,
+            alias_name=source_business.name,
+            defaults={'created_by': created_by}
+        )
+        
+        # Delete the source business
+        source_business.delete()
+
 class PriceReport(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='price_reports')
     business = models.ForeignKey(Business, on_delete=models.SET_NULL, null=True, blank=True, related_name='price_reports')
+    business_branch = models.ForeignKey('BusinessBranch', on_delete=models.SET_NULL, null=True, blank=True, related_name='price_reports')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='price_reports')
     last_edited_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='edited_price_reports')
     
@@ -72,7 +694,18 @@ class PriceReport(models.Model):
     def __str__(self):
         return f"{self.price} {self.currency} — {self.product}"
 
+    def get_business_display(self):
+        """Get the best business name for display (branch preferred over main)"""
+        if self.business_branch:
+            return self.business_branch.get_full_name()
+        elif self.business:
+            return self.business.name
+        return "Unknown Business"
+
     def get_lat_lng(self):
+        """Get coordinates from branch first, then from report"""
+        if self.business_branch and self.business_branch.latitude and self.business_branch.longitude:
+            return (self.business_branch.latitude, self.business_branch.longitude)
         return (self.latitude, self.longitude) if self.latitude and self.longitude else None
 
     def can_delete(self, user):
