@@ -121,12 +121,11 @@
                             {% if report.image %}
                             <div class="relative group">
                                 <img id="image-preview" src="{{ report.image.url }}" class="w-full h-64 object-contain rounded-md" />
-                                <button type="button" onclick="clearImage()" class="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600">
+                                <button type="button" onclick="clearImage()" class="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full transition-opacity duration-200 hover:bg-red-600 cursor-pointer">
                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                     </svg>
                                 </button>
-                                <p class="text-xs text-gray-500 mt-2 text-center">Click the X to remove this image</p>
                             </div>
                             {% endif %}
                         </div>
