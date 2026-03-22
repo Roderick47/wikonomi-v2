@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django import forms
 from django.views.decorators.cache import cache_page
-from .models import PriceReport, PriceHistory, Product, Business, BusinessBranch, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessAlias
+from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias
 
 class PriceReportForm(forms.ModelForm):
     class Meta:
@@ -150,11 +150,7 @@ def _get_prices_queryset(request):
         ).distinct()
         
         # Combine all matched products
-        matched_products = Product.objects.filter(
-            Q(id__in=exact_products) | 
-            Q(id__in=alias_products) | 
-            Q(id__in=signature_products)
-        ).distinct()
+        matched_products = (exact_products | alias_products | signature_products).distinct()
         
         # Build search query
         search_query = Q()
@@ -194,33 +190,12 @@ def _get_business_queryset(request):
     query = request.GET.get('q', '').strip()
     
     if query:
-        # Enhanced business search using normalization
-        # 1. Try exact business name matches first
-        exact_businesses = Business.objects.filter(name__icontains=query)
+        # Enhanced business search
+        businesses = Business.objects.filter(name__icontains=query).order_by('name')
         
-        # 2. Try alias matches
-        alias_businesses = Business.objects.filter(
-            aliases__alias_name__icontains=query,
-            aliases__is_active=True
-        ).distinct()
-        
-        # 3. Try normalized text matching
-        normalized_query = BusinessAlias.normalize_text(query)
-        normalized_businesses = Business.objects.filter(
-            aliases__normalized_name=normalized_query,
-            aliases__is_active=True
-        ).distinct()
-        
-        # Combine all matched businesses
-        matched_businesses = Business.objects.filter(
-            Q(id__in=exact_businesses) | 
-            Q(id__in=alias_businesses) | 
-            Q(id__in=normalized_businesses)
-        ).distinct()
-        
-        # Also return businesses that have products matching search
+        # Also return businesses that have products matching the search
         if query:
-            # Find products matching query (using same logic as price search)
+            # Find products matching the query (using same logic as price search)
             exact_products = Product.objects.filter(name__icontains=query)
             alias_products = Product.objects.filter(
                 aliases__alias_name__icontains=query,
@@ -232,11 +207,7 @@ def _get_business_queryset(request):
                 aliases__is_active=True
             ).distinct()
             
-            matched_products = Product.objects.filter(
-                Q(id__in=exact_products) | 
-                Q(id__in=alias_products) | 
-                Q(id__in=signature_products)
-            ).distinct()
+            matched_products = (exact_products | alias_products | signature_products).distinct()
             
             # Get businesses that have price reports for these products
             if matched_products.exists():
@@ -245,12 +216,9 @@ def _get_business_queryset(request):
                 ).distinct().order_by('name')
                 
                 # Combine and deduplicate
-                matched_businesses = Business.objects.filter(
-                    Q(id__in=matched_businesses) | 
-                    Q(id__in=businesses_with_matched_products)
-                ).distinct()
+                businesses = (businesses | businesses_with_matched_products).distinct()
         
-        return matched_businesses.order_by('name')
+        return businesses
     
     return Business.objects.none()
 
@@ -554,114 +522,132 @@ def edit_price_report(request, pk):
     report = get_object_or_404(PriceReport, pk=pk)
     
     if request.method == 'POST':
-        # Store old values
-        old_price = report.price
-        old_currency = report.currency
-        
-        # Update fields
-        report.price = request.POST.get('price')
-        report.currency = request.POST.get('currency', 'PGK')
-        report.notes = request.POST.get('notes', '')
-        report.last_edited_by = request.user
-        
-        from django.utils.text import slugify
-        
-        # Handle product updates
-        product_name = request.POST.get('product_name', '').strip()
-        if product_name and product_name.lower() != report.product.name.lower():
-            product = Product.objects.filter(name__iexact=product_name).first()
-            if not product:
-                product_slug = slugify(product_name)
-                original_slug = product_slug
-                counter = 1
-                while Product.objects.filter(slug=product_slug).exists():
-                    product_slug = f"{original_slug}-{counter}"
-                    counter += 1
-                product = Product.objects.create(
-                    name=product_name,
-                    slug=product_slug,
-                    created_by=request.user
-                )
-            report.product = product
-
-        # Handle business updates
-        business_name = request.POST.get('business_name', '').strip()
-        if business_name:
-            if not report.business or business_name.lower() != report.business.name.lower():
-                business = Business.objects.filter(name__iexact=business_name).first()
-                if not business:
-                    business_slug = slugify(business_name)
-                    original_slug = business_slug
-                    counter = 1
-                    while Business.objects.filter(slug=business_slug).exists():
-                        business_slug = f"{original_slug}-{counter}"
-                        counter += 1
-                    business = Business.objects.create(
-                        name=business_name,
-                        slug=business_slug
-                    )
-                report.business = business
-        elif 'business_name' in request.POST:
-            # If the field is submitted but empty, the user wants to remove the business
-            report.business = None
-        
-        # Handle image
-        if 'image' in request.FILES:
-            report.image = request.FILES['image']
+        form = PriceReportForm(request.POST, request.FILES, instance=report)
+        if form.is_valid():
+            # Store old values for history
+            old_price = report.price
+            old_currency = report.currency
             
-            # Optionally update product or business if they don't have an image
-            if not report.product.image:
-                report.product.image = report.image
-                report.product.save()
-            if report.business and not report.business.image:
-                report.business.image = report.image
-                report.business.save()
-        
-        # Handle location updates
-        lat = request.POST.get('latitude')
-        lng = request.POST.get('longitude')
-        
-        if lat and lng:
-            try:
-                report.latitude = float(lat)
-                report.longitude = float(lng)
-            except ValueError:
-                messages.warning(request, 'Invalid coordinates provided. Location not updated.')
-        elif lat == '' or lng == '':
-            # Clear location if both fields are empty
-            report.latitude = None
-            report.longitude = None
-        
-        report.save()
-        
-        # Handle tags
-        tags_string = request.POST.get('tags', '').strip()
-        if tags_string:
-            # Clear existing tags
-            report.product.tags.clear()
-            # Add new tags
-            tag_list = [tag.strip() for tag in tags_string.split(',') if tag.strip()]
-            if tag_list:
-                report.product.tags.add(*tag_list)
-        
-        # Create history record if price changed
-        if old_price != report.price or old_currency != report.currency:
-            PriceHistory.objects.create(
-                price_report=report,
-                old_price=old_price,
-                new_price=report.price,
-                old_currency=old_currency,
-                new_currency=report.currency,
-                changed_by=request.user,
-                notes=f"Price updated from {old_price} {old_currency} to {report.price} {report.currency}"
-            )
-        
-        messages.success(request, 'Price report updated successfully!')
-        return redirect('price_detail', pk=report.pk)
-    
-    products = Product.objects.all().order_by('name')
-    businesses = Business.objects.all().order_by('name')
-    return render(request, 'price_report_edit.html', {'report': report, 'products': products, 'businesses': businesses})
+            # Save the form but don't commit yet
+            form.instance.last_edited_by = request.user
+            updated_report = form.save()
+            
+            # Handle product updates
+            product_name = request.POST.get('product_name', '').strip()
+            if product_name and product_name.lower() != report.product.name.lower():
+                product = Product.objects.filter(name__iexact=product_name).first()
+                if not product:
+                    from django.utils.text import slugify
+                    product_slug = slugify(product_name)
+                    original_slug = product_slug
+                    counter = 1
+                    while Product.objects.filter(slug=product_slug).exists():
+                        product_slug = f"{original_slug}-{counter}"
+                        counter += 1
+                    product = Product.objects.create(
+                        name=product_name,
+                        slug=product_slug,
+                        created_by=request.user
+                    )
+                updated_report.product = product
+
+            # Handle business updates
+            business_name = request.POST.get('business_name', '').strip()
+            if business_name:
+                if not updated_report.business or business_name.lower() != updated_report.business.name.lower():
+                    business = Business.objects.filter(name__iexact=business_name).first()
+                    if not business:
+                        from django.utils.text import slugify
+                        business_slug = slugify(business_name)
+                        original_slug = business_slug
+                        counter = 1
+                        while Business.objects.filter(slug=business_slug).exists():
+                            business_slug = f"{original_slug}-{counter}"
+                            counter += 1
+                        business = Business.objects.create(
+                            name=business_name,
+                            slug=business_slug
+                        )
+                    updated_report.business = business
+            elif 'business_name' in request.POST:
+                # If the field is submitted but empty, the user wants to remove the business
+                updated_report.business = None
+            
+            # Handle image
+            if 'image' in request.FILES:
+                updated_report.image = request.FILES['image']
+                
+                # Optionally update product or business if they don't have an image
+                if not updated_report.product.image:
+                    updated_report.product.image = updated_report.image
+                    updated_report.product.save()
+                if updated_report.business and not updated_report.business.image:
+                    updated_report.business.image = updated_report.image
+                    updated_report.business.save()
+            
+            # Handle location updates from form
+            lat = request.POST.get('latitude')
+            lng = request.POST.get('longitude')
+            
+            if lat and lng:
+                try:
+                    updated_report.latitude = float(lat)
+                    updated_report.longitude = float(lng)
+                except ValueError:
+                    messages.warning(request, 'Invalid coordinates provided. Location not updated.')
+            elif lat == '' or lng == '':
+                # Clear location if both fields are empty
+                updated_report.latitude = None
+                updated_report.longitude = None
+            
+            # Save all updates
+            updated_report.save()
+            
+            # Handle tags
+            tags_string = request.POST.get('tags', '').strip()
+            if tags_string:
+                # Clear existing tags
+                updated_report.product.tags.clear()
+                # Add new tags
+                tag_list = [tag.strip() for tag in tags_string.split(',') if tag.strip()]
+                if tag_list:
+                    updated_report.product.tags.add(*tag_list)
+            
+            # Create history record if price changed
+            if old_price != updated_report.price or old_currency != updated_report.currency:
+                PriceHistory.objects.create(
+                    price_report=updated_report,
+                    old_price=old_price,
+                    new_price=updated_report.price,
+                    old_currency=old_currency,
+                    new_currency=updated_report.currency,
+                    changed_by=request.user,
+                    notes=f"Price updated from {old_price} {old_currency} to {updated_report.price} {updated_report.currency}"
+                )
+            
+            messages.success(request, 'Price report updated successfully!')
+            return redirect('price_detail', pk=updated_report.pk)
+        else:
+            # Form is invalid, continue with the form containing errors
+            products = Product.objects.all().order_by('name')
+            businesses = Business.objects.all().order_by('name')
+            return render(request, 'price_report_edit.html', {
+                'form': form, 
+                'report': report, 
+                'products': products, 
+                'businesses': businesses
+            })
+    else:
+        # GET request - create form with existing report data
+        form = PriceReportForm(instance=report)
+        products = Product.objects.all().order_by('name')
+        businesses = Business.objects.all().order_by('name')
+        return render(request, 'price_report_edit.html', {
+            'form': form, 
+            'report': report, 
+            'products': products, 
+            'businesses': businesses
+        })
 
 @login_required
 @require_POST

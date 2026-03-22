@@ -138,8 +138,8 @@
                         <div id="map" class="rounded-lg border border-gray-300"></div>
                         
                         <!-- Hidden inputs for latitude and longitude populated by Leaflet -->
-                        <input type="hidden" id="latitude" name="latitude" value="{{ report.latitude }}">
-                        <input type="hidden" id="longitude" name="longitude" value="{{ report.longitude }}">
+                        {{ form.latitude }}
+                        {{ form.longitude }}
                     </div>
                 </div>
                 
@@ -196,6 +196,9 @@
 <!-- Initialize Leaflet -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, initializing map...');
+        console.log('Leaflet available:', typeof L !== 'undefined');
+        
         // Initialize map centered on existing location or Port Moresby
         let initialLat = -9.4438;
         let initialLng = 147.1803;
@@ -208,137 +211,138 @@
         initialZoom = 15;
         {% endif %}
         
-        const map = L.map('map').setView([initialLat, initialLng], initialZoom);
+        console.log('Initial coordinates:', initialLat, initialLng);
         
-        // Add OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        }).addTo(map);
-
         let marker = null;
+        let latInput, lngInput;
         
-        const latInput = document.getElementById('latitude');
-        const lngInput = document.getElementById('longitude');
+        try {
+            const map = L.map('map').setView([initialLat, initialLng], initialZoom);
+            console.log('Map created successfully');
+            
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            console.log('Tile layer added');
+            
+            latInput = document.getElementById('{{ form.latitude.id_for_label }}');
+            lngInput = document.getElementById('{{ form.longitude.id_for_label }}');
+            
+            console.log('Form field IDs:', {
+                latId: '{{ form.latitude.id_for_label }}',
+                lngId: '{{ form.longitude.id_for_label }}',
+                latElement: latInput,
+                lngElement: lngInput
+            });
 
-        // If there's already a value, load the marker
-        if (latInput.value && lngInput.value) {
-            const lat = parseFloat(latInput.value);
-            const lng = parseFloat(lngInput.value);
-            marker = L.marker([lat, lng]).addTo(map);
-            map.setView([lat, lng], 15);
+            // If there's already a value, load marker
+            if (latInput.value && lngInput.value) {
+                const lat = parseFloat(latInput.value);
+                const lng = parseFloat(lngInput.value);
+                marker = L.marker([lat, lng]).addTo(map);
+                map.setView([lat, lng], 15);
+            }
+
+            // On map click, place marker and update hidden inputs
+            map.on('click', function(e) {
+                console.log('Map clicked!', e.latlng);
+                const lat = e.latlng.lat;
+                const lng = e.latlng.lng;
+                
+                if (marker) {
+                    marker.setLatLng(e.latlng);
+                } else {
+                    marker = L.marker(e.latlng).addTo(map);
+                }
+                
+                // Update hidden inputs
+                latInput.value = lat.toFixed(6);
+                lngInput.value = lng.toFixed(6);
+                
+                console.log('Coordinates updated:', lat, lng);
+                console.log('Hidden inputs updated:', latInput.value, lngInput.value);
+                
+                // Uncheck "use my location" if user manually clicks map
+                document.getElementById('use_my_location').checked = false;
+            });
+            
+            // Handle geolocation
+            const locationCheckbox = document.getElementById('use_my_location');
+            const locationStatus = document.getElementById('location_status');
+
+            locationCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    
+                    if (isMobile) {
+                        locationStatus.textContent = 'Getting location...';
+                        navigator.geolocation.getCurrentPosition(
+                            function(position) {
+                                const lat = position.coords.latitude;
+                                const lng = position.coords.longitude;
+                                
+                                if (marker) {
+                                    marker.setLatLng([lat, lng]);
+                                } else {
+                                    marker = L.marker([lat, lng]).addTo(map);
+                                }
+                                
+                                map.setView([lat, lng], 15);
+                                latInput.value = lat.toFixed(6);
+                                lngInput.value = lng.toFixed(6);
+                                
+                                locationStatus.textContent = 'Location updated successfully';
+                            },
+                            function(error) {
+                                let message = 'Unknown error occurred';
+                                switch(error.code) {
+                                    case error.PERMISSION_DENIED:
+                                        message = 'Location access denied by user';
+                                        break;
+                                    case error.POSITION_UNAVAILABLE:
+                                        message = 'Location information unavailable';
+                                        break;
+                                    case error.TIMEOUT:
+                                        message = 'Location request timed out';
+                                        break;
+                                    case error.UNKNOWN_ERROR:
+                                        message = 'Unknown error occurred';
+                                        break;
+                                }
+                                locationStatus.textContent = message;
+                            }
+                        );
+                    } else {
+                        locationStatus.textContent = 'Geolocation not available on this device';
+                    }
+                } else {
+                    locationStatus.textContent = '';
+                }
+            });
+
+        } catch (error) {
+            console.error('Error initializing map:', error);
+            console.error('Error details:', error.stack);
         }
-
-        // On map click, place marker and update hidden inputs
-        map.on('click', function(e) {
-            const lat = e.latlng.lat;
-            const lng = e.latlng.lng;
-            
-            if (marker) {
-                marker.setLatLng(e.latlng);
-            } else {
-                marker = L.marker(e.latlng).addTo(map);
-            }
-            
-            // Update hidden inputs
-            latInput.value = lat.toFixed(6);
-            lngInput.value = lng.toFixed(6);
-            
-            // Uncheck "use my location" if user manually clicks map
-            document.getElementById('use_my_location').checked = false;
-            document.getElementById('location_status').innerText = "Browser will ask for permission.";
-            document.getElementById('location_status').className = "text-gray-500 text-xs mt-1";
-        });
-
-        // Handle geolocation
-        const locationCheckbox = document.getElementById('use_my_location');
-        const locationStatus = document.getElementById('location_status');
-
-        locationCheckbox.addEventListener('change', function() {
-            if (this.checked) {
-                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                
-                if (isMobile) {
-                    locationStatus.innerText = "Requesting exact GPS location permission...";
-                } else {
-                    locationStatus.innerText = "Requesting approximate location permission...";
+        
+        // Image preview logic
+        const imageInput = document.getElementById('id_image');
+        if (imageInput) {
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    compressImage(file, 800, 600, 0.7).then(compressedDataUrl => {
+                        const preview = document.getElementById('image_preview');
+                        preview.src = compressedDataUrl;
+                        preview.classList.remove('hidden');
+                    });
                 }
-                locationStatus.className = "text-blue-500 text-xs mt-1";
-                
-                if (navigator.geolocation) {
-                    const geoOptions = {
-                        enableHighAccuracy: isMobile,
-                        timeout: 10000,
-                        maximumAge: 0
-                    };
-
-                    const successCallback = function(position) {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        
-                        // Update map and marker
-                        const latlng = [lat, lng];
-                        if (marker) {
-                            marker.setLatLng(latlng);
-                        } else {
-                            marker = L.marker(latlng).addTo(map);
-                        }
-                        map.setView(latlng, 15);
-                        
-                        // Update hidden inputs
-                        latInput.value = lat.toFixed(6);
-                        lngInput.value = lng.toFixed(6);
-                        
-                        locationStatus.innerText = "Location found successfully.";
-                        locationStatus.className = "text-green-500 text-xs mt-1";
-                    };
-
-                    const errorCallback = function(error) {
-                        if (isMobile && geoOptions.enableHighAccuracy && error.code !== error.PERMISSION_DENIED) {
-                            // Fallback to approximate location if exact fails on mobile
-                            locationStatus.innerText = "Exact location failed, trying approximate...";
-                            geoOptions.enableHighAccuracy = false;
-                            navigator.geolocation.getCurrentPosition(successCallback, finalErrorCallback, geoOptions);
-                        } else {
-                            finalErrorCallback(error);
-                        }
-                    };
-
-                    const finalErrorCallback = function(error) {
-                        let msg = "Error getting location.";
-                        switch(error.code) {
-                            case error.PERMISSION_DENIED:
-                                msg = "User denied the request for Geolocation.";
-                                break;
-                            case error.POSITION_UNAVAILABLE:
-                                msg = "Location information is unavailable.";
-                                break;
-                            case error.TIMEOUT:
-                                msg = "The request to get user location timed out.";
-                                break;
-                        }
-                        locationStatus.innerText = msg;
-                        locationStatus.className = "text-red-500 text-xs mt-1";
-                        locationCheckbox.checked = false; // Uncheck on error
-                    };
-
-                    navigator.geolocation.getCurrentPosition(successCallback, errorCallback, geoOptions);
-                } else {
-                    locationStatus.innerText = "Geolocation is not supported by this browser.";
-                    locationStatus.className = "text-red-500 text-xs mt-1";
-                    this.checked = false;
-                }
-            } else {
-                locationStatus.innerText = "Browser will ask for permission.";
-                locationStatus.className = "text-gray-500 text-xs mt-1";
-            }
-        });
-    });
-
-    // Image preview logic
-    const imageInput = document.getElementById('id_image');
-    if (imageInput) {
-        async function compressImage(file, maxWidth, maxHeight, quality) {
+            });
+        }
+        
+        function compressImage(file, maxWidth, maxHeight, quality) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
@@ -346,6 +350,35 @@
                     const img = new Image();
                     img.src = event.target.result;
                     img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height *= maxWidth / width;
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width *= maxHeight / height;
+                                height = maxHeight;
+                            }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                };
+            });
+        }
+    });
+</script>
                         let w = img.width;
                         let h = img.height;
                         if (w > maxWidth || h > maxHeight) {
