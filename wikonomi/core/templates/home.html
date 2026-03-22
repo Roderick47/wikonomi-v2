@@ -534,10 +534,14 @@ function initPriceMap() {
         mapInstance = L.map('map').setView([centerLat, centerLng], zoomLevel);
         
         // Add OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            attribution: '© OpenStreetMap contributors'
         }).addTo(mapInstance);
+        
+        // Debug: Log map initialization
+        console.log('Map initialized successfully');
+        console.log('Tile layer added');
         
         // Build markers array for bounds fitting
         const bounds = [];
