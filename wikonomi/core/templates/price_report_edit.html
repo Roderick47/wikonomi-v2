@@ -104,7 +104,7 @@
                     <div class="sm:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Upload Photo (Optional)</label>
                         <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md relative cursor-pointer hover:bg-gray-50" onclick="document.getElementById('id_image').click()" id="image-drop-zone">
-                            <div class="space-y-1 text-center" id="image-upload-content" class="{% if report.image %}opacity-0{% endif %}">
+                            <div class="space-y-1 text-center" id="image-upload-content" {% if report.image %}class="hidden"{% endif %}>
                                 <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
                                     <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                 </svg>
@@ -117,7 +117,17 @@
                                 </div>
                                 <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
                             </div>
-                            <img id="image-preview" src="{% if report.image %}{{ report.image.url }}{% endif %}" class="{% if not report.image %}hidden{% endif %} absolute inset-0 w-full h-full object-contain rounded-md" />
+                            {% if report.image %}
+                            <div class="relative group">
+                                <img id="image-preview" src="{{ report.image.url }}" class="w-full h-64 object-contain rounded-md" />
+                                <button type="button" onclick="clearImage()" class="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                                <p class="text-xs text-gray-500 mt-2 text-center">Click the X to remove this image</p>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     
@@ -196,9 +206,6 @@
 <!-- Initialize Leaflet -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM loaded, initializing map...');
-        console.log('Leaflet available:', typeof L !== 'undefined');
-        
         // Initialize map centered on existing location or Port Moresby
         let initialLat = -9.4438;
         let initialLng = 147.1803;
@@ -211,31 +218,20 @@
         initialZoom = 15;
         {% endif %}
         
-        console.log('Initial coordinates:', initialLat, initialLng);
-        
         let marker = null;
         let latInput, lngInput;
         
         try {
             const map = L.map('map').setView([initialLat, initialLng], initialZoom);
-            console.log('Map created successfully');
             
             // Add OpenStreetMap tiles
             L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
-            console.log('Tile layer added');
             
             latInput = document.getElementById('{{ form.latitude.id_for_label }}');
             lngInput = document.getElementById('{{ form.longitude.id_for_label }}');
-            
-            console.log('Form field IDs:', {
-                latId: '{{ form.latitude.id_for_label }}',
-                lngId: '{{ form.longitude.id_for_label }}',
-                latElement: latInput,
-                lngElement: lngInput
-            });
 
             // If there's already a value, load marker
             if (latInput.value && lngInput.value) {
@@ -247,7 +243,6 @@
 
             // On map click, place marker and update hidden inputs
             map.on('click', function(e) {
-                console.log('Map clicked!', e.latlng);
                 const lat = e.latlng.lat;
                 const lng = e.latlng.lng;
                 
@@ -260,9 +255,6 @@
                 // Update hidden inputs
                 latInput.value = lat.toFixed(6);
                 lngInput.value = lng.toFixed(6);
-                
-                console.log('Coordinates updated:', lat, lng);
-                console.log('Hidden inputs updated:', latInput.value, lngInput.value);
                 
                 // Uncheck "use my location" if user manually clicks map
                 document.getElementById('use_my_location').checked = false;
@@ -323,20 +315,43 @@
             });
 
         } catch (error) {
-            console.error('Error initializing map:', error);
-            console.error('Error details:', error.stack);
+            // Silently handle map initialization errors
         }
         
-        // Image preview logic
+        // Image preview and management logic
         const imageInput = document.getElementById('id_image');
+        
+        function clearImage() {
+            // Clear the file input
+            imageInput.value = '';
+            
+            // Hide the preview and show upload area
+            const preview = document.getElementById('image-preview');
+            const uploadContent = document.getElementById('image-upload-content');
+            
+            if (preview) {
+                preview.style.display = 'none';
+            }
+            if (uploadContent) {
+                uploadContent.classList.remove('hidden');
+            }
+        }
+        
         if (imageInput) {
             imageInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (file) {
                     compressImage(file, 800, 600, 0.7).then(compressedDataUrl => {
-                        const preview = document.getElementById('image_preview');
-                        preview.src = compressedDataUrl;
-                        preview.classList.remove('hidden');
+                        const preview = document.getElementById('image-preview');
+                        const uploadContent = document.getElementById('image-upload-content');
+                        
+                        if (preview) {
+                            preview.src = compressedDataUrl;
+                            preview.style.display = 'block';
+                        }
+                        if (uploadContent) {
+                            uploadContent.classList.add('hidden');
+                        }
                     });
                 }
             });
@@ -378,54 +393,5 @@
             });
         }
     });
-</script>
-                        let w = img.width;
-                        let h = img.height;
-                        if (w > maxWidth || h > maxHeight) {
-                            const ratio = Math.min(maxWidth / w, maxHeight / h);
-                            w *= ratio;
-                            h *= ratio;
-                        }
-                        const canvas = document.createElement('canvas');
-                        canvas.width = w;
-                        canvas.height = h;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, w, h);
-                        canvas.toBlob(blob => {
-                            if (!blob) return resolve(file);
-                            const compressedFile = new File([blob], file.name, {
-                                type: 'image/jpeg',
-                                lastModified: Date.now()
-                            });
-                            resolve(compressedFile.size < file.size ? compressedFile : file);
-                        }, 'image/jpeg', quality);
-                    };
-                    img.onerror = () => resolve(file);
-                };
-                reader.onerror = () => resolve(file);
-            });
-        }
-
-        imageInput.addEventListener('change', async function(event) {
-            if (event.target.files && event.target.files[0]) {
-                let file = event.target.files[0];
-                if (file.type.startsWith('image/')) {
-                    const compressedFile = await compressImage(file, 1920, 1920, 0.8);
-                    const dataTransfer = new DataTransfer();
-                    dataTransfer.items.add(compressedFile);
-                    imageInput.files = dataTransfer.files;
-
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        document.getElementById('image-upload-content').classList.add('opacity-0');
-                        const preview = document.getElementById('image-preview');
-                        preview.src = e.target.result;
-                        preview.classList.remove('hidden');
-                    }
-                    reader.readAsDataURL(compressedFile);
-                }
-            }
-        });
-    }
 </script>
 {% endblock %}
