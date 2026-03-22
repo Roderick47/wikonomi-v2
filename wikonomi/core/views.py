@@ -1,6 +1,9 @@
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, UpdateView
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.db.models import Avg, Min, Max, Count
+from django.utils import timezone
+from datetime import timedelta
 from django.http import JsonResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
@@ -352,6 +355,83 @@ class PriceReportDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         from .utils import get_nearby_prices
         report = self.get_object()
+
+        price_analysis = None
+        try:
+            alias_names = list(ProductAlias.objects.filter(
+                canonical_product=report.product
+            ).values_list('alias_name', flat=True))
+
+            name_variants = set([report.product.name])
+            for n in alias_names:
+                if n:
+                    name_variants.add(n)
+
+            variant_products_qs = Product.objects.filter(name__in=list(name_variants))
+            if report.product_id:
+                variant_products_qs = variant_products_qs | Product.objects.filter(id=report.product_id)
+
+            variant_product_ids = list(variant_products_qs.values_list('id', flat=True).distinct())
+
+            reports_qs = PriceReport.objects.filter(
+                product_id__in=variant_product_ids,
+                currency=report.currency,
+                price__isnull=False,
+            ).order_by('-observed_at')
+
+            total_count = reports_qs.count()
+            if total_count > 1:
+                agg = reports_qs.aggregate(
+                    min_price=Min('price'),
+                    max_price=Max('price'),
+                    avg_price=Avg('price'),
+                )
+
+                last_two = list(reports_qs.values_list('price', flat=True)[:2])
+                latest_price = float(last_two[0]) if len(last_two) >= 1 else None
+                previous_price = float(last_two[1]) if len(last_two) >= 2 else None
+
+                change_value = None
+                change_pct = None
+                if latest_price is not None and previous_price not in (None, 0):
+                    change_value = latest_price - previous_price
+                    change_pct = (change_value / previous_price) * 100
+
+                now = timezone.now()
+                week_ago = now - timedelta(days=7)
+                two_weeks_ago = now - timedelta(days=14)
+
+                current_week_avg = reports_qs.filter(observed_at__gte=week_ago).aggregate(a=Avg('price'))['a']
+                prev_week_avg = reports_qs.filter(observed_at__gte=two_weeks_ago, observed_at__lt=week_ago).aggregate(a=Avg('price'))['a']
+
+                trend = None
+                if current_week_avg is not None and prev_week_avg not in (None, 0):
+                    diff = float(current_week_avg) - float(prev_week_avg)
+                    pct = (diff / float(prev_week_avg)) * 100
+                    trend = {
+                        'direction': 'up' if diff > 0 else 'down' if diff < 0 else 'flat',
+                        'diff': diff,
+                        'pct': pct,
+                        'current_week_avg': float(current_week_avg),
+                        'prev_week_avg': float(prev_week_avg),
+                    }
+
+                price_analysis = {
+                    'currency': report.currency,
+                    'count': total_count,
+                    'min_price': float(agg['min_price']) if agg['min_price'] is not None else None,
+                    'max_price': float(agg['max_price']) if agg['max_price'] is not None else None,
+                    'avg_price': float(agg['avg_price']) if agg['avg_price'] is not None else None,
+                    'latest_price': latest_price,
+                    'previous_price': previous_price,
+                    'change_value': change_value,
+                    'change_pct': change_pct,
+                    'trend_7d': trend,
+                }
+        except Exception:
+            price_analysis = None
+
+        context['price_analysis'] = price_analysis
         
         # Get nearby prices if the report has coordinates
         if report.latitude and report.longitude:

@@ -217,6 +217,58 @@
         </div>
     </div>
 
+    {% if price_analysis %}
+    <div class="mt-10 mb-8">
+        <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+            <div class="px-4 py-5 sm:px-6">
+                <h3 class="text-xl font-bold text-gray-900">Price Analysis</h3>
+                <p class="text-sm text-gray-500 mt-1">Based on {{ price_analysis.count }} report(s) for this product name and its aliases.</p>
+
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="p-3 bg-gray-50 rounded border border-gray-200">
+                        <div class="text-xs text-gray-500">Average</div>
+                        <div class="text-lg font-semibold text-gray-900">{{ price_analysis.currency }} {{ price_analysis.avg_price|floatformat:2|intcomma }}</div>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded border border-gray-200">
+                        <div class="text-xs text-gray-500">Min</div>
+                        <div class="text-lg font-semibold text-gray-900">{{ price_analysis.currency }} {{ price_analysis.min_price|floatformat:2|intcomma }}</div>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded border border-gray-200">
+                        <div class="text-xs text-gray-500">Max</div>
+                        <div class="text-lg font-semibold text-gray-900">{{ price_analysis.currency }} {{ price_analysis.max_price|floatformat:2|intcomma }}</div>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded border border-gray-200">
+                        <div class="text-xs text-gray-500">Latest change</div>
+                        {% if price_analysis.change_value is not None %}
+                            <div class="text-lg font-semibold {% if price_analysis.change_value > 0 %}text-red-700{% elif price_analysis.change_value < 0 %}text-green-700{% else %}text-gray-900{% endif %}">
+                                {{ price_analysis.change_value|floatformat:2 }} ({{ price_analysis.change_pct|floatformat:1 }}%)
+                            </div>
+                        {% else %}
+                            <div class="text-lg font-semibold text-gray-500">—</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if price_analysis.trend_7d %}
+                <div class="mt-4 p-3 rounded border {% if price_analysis.trend_7d.direction == 'up' %}border-red-200 bg-red-50{% elif price_analysis.trend_7d.direction == 'down' %}border-green-200 bg-green-50{% else %}border-gray-200 bg-gray-50{% endif %}">
+                    <div class="text-sm font-medium text-gray-900">7-day trend</div>
+                    <div class="text-sm text-gray-700 mt-1">
+                        {% if price_analysis.trend_7d.direction == 'up' %}
+                            Average price is up by {{ price_analysis.trend_7d.pct|floatformat:1 }}% compared to the previous week.
+                        {% elif price_analysis.trend_7d.direction == 'down' %}
+                            Average price is down by {{ price_analysis.trend_7d.pct|floatformat:1 }}% compared to the previous week.
+                        {% else %}
+                            Average price is flat compared to the previous week.
+                        {% endif %}
+                        <span class="text-gray-500">(This week avg: {{ price_analysis.currency }} {{ price_analysis.trend_7d.current_week_avg|floatformat:2|intcomma }}, previous week avg: {{ price_analysis.currency }} {{ price_analysis.trend_7d.prev_week_avg|floatformat:2|intcomma }})</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Nearby Prices Section -->
     {% if nearby_prices is not None %}
     {% cache 300 nearby_prices_section report.id %}
