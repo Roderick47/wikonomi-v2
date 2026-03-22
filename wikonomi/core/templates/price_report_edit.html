@@ -324,7 +324,9 @@
         
         function clearImage() {
             // Clear the file input
-            imageInput.value = '';
+            if (imageInput) {
+                imageInput.value = '';
+            }
             
             // Hide the preview and show upload area
             const preview = document.getElementById('image-preview');
