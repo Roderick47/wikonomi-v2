@@ -103,31 +103,31 @@
                     
                     <div class="sm:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Upload Photo (Optional)</label>
-                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md relative cursor-pointer hover:bg-gray-50" onclick="document.getElementById('id_image').click()" id="image-drop-zone">
+                        <input type="hidden" name="clear_image" id="clear_image" value="0">
+                        <input type="file" name="image" id="id_image" accept="image/*" class="hidden">
+
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md relative cursor-pointer hover:bg-gray-50" id="image-drop-zone">
                             <div class="space-y-1 text-center" id="image-upload-content" {% if report.image %}class="hidden"{% endif %}>
-                                {% if not report.image %}
                                 <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
                                     <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                 </svg>
                                 <div class="flex text-sm text-gray-600 justify-center">
                                     <span class="relative rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
                                         <span>Upload a file</span>
-                                        <input type="file" name="image" id="id_image" accept="image/*" class="hidden">
                                     </span>
                                     <p class="pl-1">or drag and drop</p>
                                 </div>
                                 <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-                                {% endif %}
-                            {% if report.image %}
-                            <div class="relative group">
-                                <img id="image-preview" src="{{ report.image.url }}" class="w-full h-64 object-contain rounded-md" />
-                                <button type="button" onclick="clearImage()" class="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full transition-opacity duration-200 hover:bg-red-600 cursor-pointer">
+                            </div>
+
+                            <div id="image-preview-wrap" class="relative w-full {% if not report.image %}hidden{% endif %}">
+                                <img id="image-preview" src="{% if report.image %}{{ report.image.url }}{% endif %}" class="w-full h-64 object-contain rounded-md" />
+                                <button type="button" id="image-clear-btn" class="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 cursor-pointer">
                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                     </svg>
                                 </button>
                             </div>
-                            {% endif %}
                         </div>
                     </div>
                     
@@ -320,39 +320,58 @@
         
         // Image preview and management logic
         const imageInput = document.getElementById('id_image');
-        
-        function clearImage() {
-            // Clear the file input
+        const imageDropZone = document.getElementById('image-drop-zone');
+        const imageUploadContent = document.getElementById('image-upload-content');
+        const imagePreviewWrap = document.getElementById('image-preview-wrap');
+        const imagePreview = document.getElementById('image-preview');
+        const imageClearBtn = document.getElementById('image-clear-btn');
+        const clearImageField = document.getElementById('clear_image');
+
+        window.clearImage = function(e) {
+            if (e && typeof e.stopPropagation === 'function') {
+                e.stopPropagation();
+            }
+            if (clearImageField) {
+                clearImageField.value = '1';
+            }
             if (imageInput) {
                 imageInput.value = '';
             }
-            
-            // Hide the preview and show upload area
-            const preview = document.getElementById('image-preview');
-            const uploadContent = document.getElementById('image-upload-content');
-            
-            if (preview) {
-                preview.style.display = 'none';
+            if (imagePreview && imagePreviewWrap) {
+                imagePreview.src = '';
+                imagePreviewWrap.classList.add('hidden');
             }
-            if (uploadContent) {
-                uploadContent.classList.remove('hidden');
+            if (imageUploadContent) {
+                imageUploadContent.classList.remove('hidden');
             }
+        };
+
+        if (imageClearBtn) {
+            imageClearBtn.addEventListener('click', function(e) {
+                window.clearImage(e);
+            });
         }
-        
+
+        if (imageDropZone && imageInput) {
+            imageDropZone.addEventListener('click', function() {
+                imageInput.click();
+            });
+        }
+
         if (imageInput) {
             imageInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
+                const file = e.target.files && e.target.files[0];
                 if (file) {
+                    if (clearImageField) {
+                        clearImageField.value = '0';
+                    }
                     compressImage(file, 800, 600, 0.7).then(compressedDataUrl => {
-                        const preview = document.getElementById('image-preview');
-                        const uploadContent = document.getElementById('image-upload-content');
-                        
-                        if (preview) {
-                            preview.src = compressedDataUrl;
-                            preview.style.display = 'block';
+                        if (imagePreview && imagePreviewWrap) {
+                            imagePreview.src = compressedDataUrl;
+                            imagePreviewWrap.classList.remove('hidden');
                         }
-                        if (uploadContent) {
-                            uploadContent.classList.add('hidden');
+                        if (imageUploadContent) {
+                            imageUploadContent.classList.add('hidden');
                         }
                     });
                 }

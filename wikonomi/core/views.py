@@ -517,7 +517,6 @@ class PriceReportEditView(UpdateView):
         messages.success(self.request, 'Price report updated successfully!')
         return response
 
-@login_required
 def edit_price_report(request, pk):
     report = get_object_or_404(PriceReport, pk=pk)
     
@@ -574,6 +573,12 @@ def edit_price_report(request, pk):
                 updated_report.business = None
             
             # Handle image
+            clear_image = request.POST.get('clear_image')
+            if clear_image in ('1', 'true', 'True', 'on'):
+                if updated_report.image:
+                    updated_report.image.delete(save=False)
+                updated_report.image = None
+
             if 'image' in request.FILES:
                 updated_report.image = request.FILES['image']
                 
