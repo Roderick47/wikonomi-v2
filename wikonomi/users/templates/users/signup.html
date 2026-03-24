@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-{% load socialaccount %}
 
 {% block content %}
 <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -28,8 +27,9 @@
             {% endfor %}
         {% endif %}
         
+        <!-- Google OAuth temporarily disabled
         <div class="mt-6">
-            <form action="{% provider_login_url 'google' %}" method="post">
+            <form action="/accounts/google/login/" method="post">
                 {% csrf_token %}
                 <button type="submit" class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition duration-150 ease-in-out">
                     <svg class="h-5 w-5 mr-2" viewBox="0 0 24 24">
@@ -42,6 +42,7 @@
                 </button>
             </form>
         </div>
+        -->
         
         <div class="mt-6">
             <div class="relative">
