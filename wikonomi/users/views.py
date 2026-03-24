@@ -114,6 +114,8 @@ def change_password(request):
     return render(request, 'users/change_password.html', {'form': form})
 
 def user_logout(request):
+    # Clear all session data to prevent freezing
+    request.session.flush()
     logout(request)
     messages.success(request, 'You have been logged out.')
     return redirect('home')
