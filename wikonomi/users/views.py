@@ -40,7 +40,7 @@ def signup(request):
                 else:
                     messages.success(request, 'Account created successfully!')
                 
-                login(request, user)
+                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
                 return redirect('home')
                 
             except Exception as e:
@@ -58,7 +58,7 @@ def user_login(request):
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
-            login(request, user)
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             messages.success(request, 'Welcome back!')
             return redirect('home')
     else:
