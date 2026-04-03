@@ -576,7 +576,7 @@ function initPriceMap() {
             lng: userLng
         }).toString();
 
-        fetch(`/api/map-prices/?${urlArgs}`)
+        fetch(`/api/map-prices/?${urlArgs}&_t=${Date.now()}`)
             .then(res => res.json())
             .then(data => {
                 if (!data.items || data.items.length === 0) return;
@@ -589,10 +589,14 @@ function initPriceMap() {
                     if (price.rawPrice > maxPrice) maxPrice = price.rawPrice;
                 });
                 
+                console.log('Price range:', { minPrice, maxPrice, itemCount: data.items.length });
+                
                 data.items.forEach(price => {
                     let markerColor = 'blue';
                     if (price.rawPrice <= minPrice) markerColor = 'green';
                     else if (price.rawPrice >= maxPrice) markerColor = 'red';
+                    
+                    console.log(`Price: ${price.rawPrice}, Color: ${markerColor}`);
                     
                     const marker = L.marker([price.lat, price.lng], {
                         icon: L.icon({
