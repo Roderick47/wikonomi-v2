@@ -137,7 +137,7 @@ def _get_prices_queryset(request):
     if query:
         # Enhanced search using product normalization
         # 1. Try exact product matches first
-        exact_products = Product.objects.filter(name__icontains=query)
+        exact_products = Product.objects.filter(name__icontains=query).distinct()
         
         # 2. Try alias matches
         alias_products = Product.objects.filter(
@@ -194,12 +194,12 @@ def _get_business_queryset(request):
     
     if query:
         # Enhanced business search
-        businesses = Business.objects.filter(name__icontains=query).order_by('name')
+        businesses = set(Business.objects.filter(name__icontains=query))
         
         # Also return businesses that have products matching the search
         if query:
             # Find products matching the query (using same logic as price search)
-            exact_products = Product.objects.filter(name__icontains=query)
+            exact_products = Product.objects.filter(name__icontains=query).distinct()
             alias_products = Product.objects.filter(
                 aliases__alias_name__icontains=query,
                 aliases__is_active=True
@@ -214,14 +214,16 @@ def _get_business_queryset(request):
             
             # Get businesses that have price reports for these products
             if matched_products.exists():
-                businesses_with_matched_products = Business.objects.filter(
+                businesses_with_matched_products = set(Business.objects.filter(
                     price_reports__product__in=matched_products
-                ).distinct().order_by('name')
+                ).distinct())
                 
                 # Combine and deduplicate
-                businesses = (businesses | businesses_with_matched_products).distinct()
+                businesses = businesses.union(businesses_with_matched_products)
         
-        return businesses
+        # Convert back to queryset and order
+        business_ids = [b.id for b in businesses]
+        return Business.objects.filter(id__in=business_ids).order_by('name')
     
     return Business.objects.none()
 

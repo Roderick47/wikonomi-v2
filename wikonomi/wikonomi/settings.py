@@ -12,6 +12,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-pul7ennk&s5n=3bpmfinr%vdm-aya@sh@c%q@lj&43i4yyu)hz'
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
@@ -66,8 +70,8 @@ LOGOUT_REDIRECT_URL = '/'
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'APP': {
-            'client_id': '963328296285-eo4f8d53bvn3k16nqo85rm7b6kcpqbst.apps.googleusercontent.com',
-            'secret': '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',
+            'client_id': os.environ.get('GOOGLE_OAUTH_CLIENT_ID'),
+            'secret': os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET'),
             'key': ''
         },
         'SCOPE': [
