@@ -10,3 +10,4 @@ django-storages[s3]
 boto3
 django-resized
 whitenoise
+python-dotenv
