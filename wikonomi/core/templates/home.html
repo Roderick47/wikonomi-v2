@@ -591,8 +591,8 @@ function initPriceMap() {
                 
                 data.items.forEach(price => {
                     let markerColor = 'blue';
-                    if (price.rawPrice === minPrice) markerColor = 'green';
-                    else if (price.rawPrice === maxPrice) markerColor = 'red';
+                    if (price.rawPrice <= minPrice) markerColor = 'green';
+                    else if (price.rawPrice >= maxPrice) markerColor = 'red';
                     
                     const marker = L.marker([price.lat, price.lng], {
                         icon: L.icon({
