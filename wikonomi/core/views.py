@@ -55,73 +55,81 @@ class PriceReportCreateView(CreateView):
         from .models import Product
         from django.utils.text import slugify
         
-        # 1. Handle user
-        if not self.request.user.is_authenticated:
-            # MVP: get or create an anonymous user
-            user, _ = User.objects.get_or_create(username='anonymous')
-            form.instance.user = user
-        else:
-            form.instance.user = self.request.user
+        try:
+            # 1. Handle user
+            if not self.request.user.is_authenticated:
+                # MVP: get or create an anonymous user
+                user, _ = User.objects.get_or_create(username='anonymous')
+                form.instance.user = user
+            else:
+                form.instance.user = self.request.user
 
-        # 2. Handle product (using normalization service)
-        product_name = self.request.POST.get('product_name', '').strip()
-        if not product_name:
-            form.add_error(None, "Product name is required.")
-            return self.form_invalid(form)
-            
-        # Use normalization service to find or create product
-        product, was_created = ProductNormalizationService.normalize_price_report_data(
-            product_name=product_name,
-            category=None,
-        )
-        
-        # If this is a newly created product, set the creator
-        if was_created:
-            product.created_by = form.instance.user
-            product.save()
-
-        form.instance.product = product
-        
-        # 2b. Handle business (using normalization service with branch support)
-        business_name = self.request.POST.get('business_name', '').strip()
-        business_location = self.request.POST.get('business_location', '').strip()
-        
-        if business_name:
-            # Use normalization service to find or create business with branch
-            business, branch, was_created = BusinessNormalizationService.normalize_price_report_data(
-                business_name=business_name,
-                location=business_location
+            # 2. Handle product (using normalization service)
+            product_name = self.request.POST.get('product_name', '').strip()
+            if not product_name:
+                form.add_error(None, "Product name is required.")
+                return self.form_invalid(form)
+                
+            # Use normalization service to find or create product
+            product, was_created = ProductNormalizationService.normalize_price_report_data(
+                product_name=product_name,
+                category=None,
             )
             
-            # Set the branch on the price report if we have one
-            if branch:
-                form.instance.business_branch = branch
-                # Also set the main business for compatibility
-                form.instance.business = business
-            
-            form.instance.business = business
-        
-        # 3. Save the form to hit the DB
-        response = super().form_valid(form)
-        
-        # Apply image to product/business if they don't have one and one was uploaded
-        if form.instance.image:
-            if not product.image:
-                product.image = form.instance.image
+            # If this is a newly created product, set the creator
+            if was_created:
+                product.created_by = form.instance.user
                 product.save()
-            if hasattr(form.instance, 'business') and form.instance.business and not form.instance.business.image:
-                form.instance.business.image = form.instance.image
-                form.instance.business.save()
-        
-        # 4. Handle Tags (comma separated string)
-        tags_string = self.request.POST.get('tags', '').strip()
-        if tags_string:
-            # taggit manages these automatically when we add them
-            tag_list = [tag.strip() for tag in tags_string.split(',') if tag.strip()]
-            if tag_list:
-                product.tags.add(*tag_list)
-        
-        return response
+
+            form.instance.product = product
+            
+            # 2b. Handle business (using normalization service with branch support)
+            business_name = self.request.POST.get('business_name', '').strip()
+            business_location = self.request.POST.get('business_location', '').strip()
+            
+            if business_name:
+                # Use normalization service to find or create business with branch
+                business, branch, was_created = BusinessNormalizationService.normalize_price_report_data(
+                    business_name=business_name,
+                    location=business_location
+                )
+                
+                # Set the branch on price report if we have one
+                if branch:
+                    form.instance.business_branch = branch
+                    # Also set the main business for compatibility
+                    form.instance.business = business
+                
+                form.instance.business = business
+
+            # 3. Save form to hit the DB
+            response = super().form_valid(form)
+            
+            # Apply image to product/business if they don't have one and one was uploaded
+            if form.instance.image:
+                if not product.image:
+                    product.image = form.instance.image
+                    product.save()
+                if hasattr(form.instance, 'business') and form.instance.business and not form.instance.business.image:
+                    form.instance.business.image = form.instance.image
+                    form.instance.business.save()
+            
+            # 4. Handle Tags (comma separated string)
+            tags_string = self.request.POST.get('tags', '').strip()
+            if tags_string:
+                # taggit manages these automatically when we add them
+                tag_list = [tag.strip() for tag in tags_string.split(',') if tag.strip()]
+                if tag_list:
+                    product.tags.add(*tag_list)
+            
+            return response
+            
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in price report creation: {str(e)}")
+            form.add_error(None, f"An error occurred: {str(e)}")
+            return self.form_invalid(form)
 
 price_report_create = PriceReportCreateView.as_view()
 
