@@ -250,11 +250,29 @@ def home(request):
     if query:
         businesses = _get_business_queryset(request)[:10]  # Limit to 10 businesses
     
+    # Get cheapest recent fuel prices
+    fuel_keywords = ['petrol', 'diesel', 'zoom']
+    fuel_summary = []
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    
+    for keyword in fuel_keywords:
+        cheapest_report = PriceReport.objects.filter(
+            product__name__icontains=keyword,
+            observed_at__gte=thirty_days_ago
+        ).select_related('product', 'business', 'business_branch').order_by('price', '-observed_at').first()
+        
+        if cheapest_report:
+            fuel_summary.append({
+                'type': keyword.capitalize(),
+                'report': cheapest_report
+            })
+    
     return render(request, 'home.html', {
         'latest_prices': latest_prices,
         'businesses': businesses,
         'current_sort': sort,
         'search_query': query,
+        'fuel_summary': fuel_summary,
     })
 
 def about_view(request):
