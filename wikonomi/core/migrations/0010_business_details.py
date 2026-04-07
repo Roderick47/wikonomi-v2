@@ -6,9 +6,8 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0009_pricereport_deletion_reason_and_more'),
     ]
-
+    
     operations = [
         migrations.AddField(
             model_name='business',
