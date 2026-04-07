@@ -687,6 +687,9 @@ class PriceReport(models.Model):
     marked_for_deletion_at = models.DateTimeField(null=True, blank=True)
     deletion_reason = models.TextField(blank=True)
     deletion_votes = models.ManyToManyField(User, related_name='deletion_voted_reports', blank=True)
+    
+    # OCR processing field
+    ocr_processed = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['-observed_at']
