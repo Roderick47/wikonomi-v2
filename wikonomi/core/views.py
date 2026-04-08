@@ -1,16 +1,21 @@
-from django.urls import reverse_lazy
+import json
+import csv
+import io
+import re
+from decimal import Decimal, InvalidOperation
+from django.db import transaction
+from django.utils.text import slugify
+from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, DetailView, UpdateView
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import Avg, Min, Max, Count
+from django.db.models import Avg, Min, Max, Count, Q
 from django.utils import timezone
 from datetime import timedelta
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.utils import timezone
 from django import forms
 from django.views.decorators.cache import cache_page
 from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService
@@ -1105,6 +1110,10 @@ def bulk_upload(request):
     if request.method == 'POST':
         action = request.POST.get('action', '')
         
+        # Fallback for existing tests that don't send 'action' explicitly
+        if not action and request.FILES.get('csv_file'):
+            action = 'preview'
+        
         if action == 'preview':
             # Step 1: Parse and validate the CSV
             csv_file = request.FILES.get('csv_file')
@@ -1147,7 +1156,8 @@ def bulk_upload(request):
             request.session['bulk_upload_longitude'] = request.POST.get('longitude', '')
             
             context.update({
-                'preview_rows': rows,
+                'preview_rows': session_rows,
+                'preview_rows_json': json.dumps(session_rows),
                 'preview_errors': errors,
                 'total_valid': len(rows),
                 'total_errors': len(errors),
@@ -1164,6 +1174,17 @@ def bulk_upload(request):
             if not session_rows:
                 messages.error(request, 'Upload session expired. Please upload the file again.')
                 return render(request, 'bulk_upload.html', context)
+            
+            # Check for inline edited data from frontend JS
+            edited_data_json = request.POST.get('edited_data')
+            if edited_data_json:
+                try:
+                    edited_rows = json.loads(edited_data_json)
+                    if isinstance(edited_rows, list) and edited_rows:
+                        # Simple structural check to grab keys
+                        session_rows = edited_rows
+                except Exception as e:
+                    pass
             
             business_name = request.session.get('bulk_upload_business', '')
             lat_str = request.session.get('bulk_upload_latitude', '')

@@ -256,21 +256,13 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         {% for row in preview_rows %}
-                        <tr class="hover:bg-gray-50">
+                        <tr class="hover:bg-gray-50 preview-row" data-index="{{ forloop.index0 }}">
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 font-mono">{{ row.row_num }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{{ row.product_name }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ row.price|intcomma }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ row.currency }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">{{ row.notes|default:"-" }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500">
-                                {% if row.tags %}
-                                    {% for tag in row.tags|split:"," %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-purple/10 text-brand-purple mr-1">{{ tag }}</span>
-                                    {% endfor %}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 cursor-pointer hover:bg-brand-purple/5 transition-colors editable-cell" data-field="product_name">{{ row.product_name }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 cursor-pointer hover:bg-brand-purple/5 transition-colors editable-cell" data-field="price">{{ row.price }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 cursor-pointer hover:bg-brand-purple/5 transition-colors editable-cell" data-field="currency">{{ row.currency }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 max-w-xs truncate cursor-pointer hover:bg-brand-purple/5 transition-colors editable-cell" data-field="notes">{{ row.notes|default:"" }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 cursor-pointer hover:bg-brand-purple/5 transition-colors editable-cell" data-field="tags">{{ row.tags|default:"" }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -282,11 +274,11 @@
                 <a href="{% url 'bulk_upload' %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                     Cancel & Re-upload
                 </a>
-                <form method="POST" class="inline">
+                <form method="POST" id="confirm-upload-form" class="inline">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="confirm">
-                    <button type="submit" class="inline-flex items-center py-2 px-5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors"
-                        onclick="this.disabled=true; this.innerText='Creating...'; this.form.submit();">
+                    <input type="hidden" name="edited_data" id="edited_data_input">
+                    <button type="submit" class="inline-flex items-center py-2 px-5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors">
                         <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>
@@ -397,6 +389,72 @@
                 locationStatus.className = "text-gray-500 text-xs mt-1";
             }
         });
+    });
+</script>
+{% endif %}
+{% if show_preview %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Parse the JSON data from Django
+        let bulkData = JSON.parse('{{ preview_rows_json|escapejs }}');
+        const editableCells = document.querySelectorAll('.editable-cell');
+        const confirmForm = document.getElementById('confirm-upload-form');
+        const editedDataInput = document.getElementById('edited_data_input');
+
+        editableCells.forEach(cell => {
+            cell.addEventListener('click', function() {
+                if (this.querySelector('input')) return;
+
+                const originalValue = this.innerText;
+                const field = this.dataset.field;
+                const index = this.closest('.preview-row').dataset.index;
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = originalValue;
+                input.className = 'w-full px-2 py-1 text-sm border border-brand-purple rounded focus:ring-1 focus:ring-brand-purple focus:border-brand-purple';
+                
+                this.innerHTML = '';
+                this.appendChild(input);
+                input.focus();
+
+                const save = () => {
+                    const newValue = input.value;
+                    this.innerText = newValue;
+                    bulkData[index][field] = newValue;
+                };
+
+                input.addEventListener('blur', save);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        input.blur();
+                    }
+                    if (e.key === 'Escape') {
+                        input.value = originalValue;
+                        input.blur();
+                    }
+                });
+            });
+        });
+
+        if (confirmForm) {
+            confirmForm.addEventListener('submit', function(e) {
+                // Remove any active inputs by blurring them
+                const activeInput = document.activeElement;
+                if (activeInput && activeInput.tagName === 'INPUT' && activeInput.closest('.editable-cell')) {
+                    activeInput.blur();
+                }
+
+                // Serialize for the form
+                editedDataInput.value = JSON.stringify(bulkData);
+                
+                // Visual feedback
+                const btn = this.querySelector('button[type="submit"]');
+                btn.disabled = true;
+                btn.innerText = 'Creating...';
+            });
+        }
     });
 </script>
 {% endif %}

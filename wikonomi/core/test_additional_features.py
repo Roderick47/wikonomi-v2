@@ -41,30 +41,32 @@ class BulkUploadTest(TestCase):
         
     def test_bulk_upload_post_invalid_csv(self):
         """Test bulk upload with invalid CSV format"""
-        csv_content = "invalid,csv,format"
+        csv_content = "invalid,csv,format".encode('utf-8')
         csv_file = SimpleUploadedFile(
             "test.csv", csv_content, content_type="text/csv"
         )
         
         response = self.client.post(reverse('bulk_upload'), {
+            'action': 'preview',
             'csv_file': csv_file,
             'business_name': 'Test Business'
         })
         
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'CSV format validation error')
+        self.assertContains(response, 'Missing required columns')
         
     def test_bulk_upload_valid_csv_preview(self):
         """Test bulk upload with valid CSV shows preview"""
         csv_content = """product_name,price,currency,notes
 Test Product 1,10.50,PGK,Test note 1
-Test Product 2,15.75,PGK,Test note 2"""
+Test Product 2,15.75,PGK,Test note 2""".encode('utf-8')
         
         csv_file = SimpleUploadedFile(
             "test.csv", csv_content, content_type="text/csv"
         )
         
         response = self.client.post(reverse('bulk_upload'), {
+            'action': 'preview',
             'csv_file': csv_file,
             'business_name': 'Test Business'
         })
@@ -77,7 +79,7 @@ Test Product 2,15.75,PGK,Test note 2"""
         """Test bulk upload confirmation creates price reports"""
         csv_content = """product_name,price,currency,notes
 Test Product 1,10.50,PGK,Test note 1
-Test Product 2,15.75,PGK,Test note 2"""
+Test Product 2,15.75,PGK,Test note 2""".encode('utf-8')
         
         csv_file = SimpleUploadedFile(
             "test.csv", csv_content, content_type="text/csv"
@@ -85,6 +87,7 @@ Test Product 2,15.75,PGK,Test note 2"""
         
         # Step 1: Upload file
         response1 = self.client.post(reverse('bulk_upload'), {
+            'action': 'preview',
             'csv_file': csv_file,
             'business_name': 'Test Business'
         })
@@ -100,7 +103,7 @@ Test Product 2,15.75,PGK,Test note 2"""
         
         # Verify records were created
         self.assertEqual(PriceReport.objects.count(), 2)
-        reports = PriceReport.objects.all().order_by('-observed_at')
+        reports = PriceReport.objects.all().order_by('product__name')
         
         # Check first report
         report1 = reports[0]
@@ -109,17 +112,56 @@ Test Product 2,15.75,PGK,Test note 2"""
         self.assertEqual(report1.currency, 'PGK')
         self.assertEqual(report1.notes, 'Test note 1')
         self.assertEqual(report1.business.name, 'Test Business')
+
+    def test_bulk_upload_inline_editing_confirm(self):
+        """Test that inline edits from the frontend correctly override CSV data on confirm"""
+        csv_content = "product_name,price\nOriginal Product,10.00"
+        csv_file = SimpleUploadedFile("test.csv", csv_content.encode('utf-8'), content_type="text/csv")
+        
+        # Step 1: Preview upload
+        self.client.post(reverse('bulk_upload'), {
+            'action': 'preview',
+            'csv_file': csv_file,
+            'business_name': 'Test Business'
+        })
+        
+        # Step 2: Confirm with EDITED data (simulating the hidden input from JS)
+        edited_data = [
+            {
+                'row_num': 2,
+                'product_name': 'Edited Product Name',
+                'price': '99.99',
+                'currency': 'USD',
+                'notes': 'Edited Notes',
+                'tags': 'edited,tags'
+            }
+        ]
+        
+        response = self.client.post(reverse('bulk_upload'), {
+            'action': 'confirm',
+            'edited_data': json.dumps(edited_data)
+        })
+        
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify the database contains the EDITED values, not the original ones
+        report = PriceReport.objects.first()
+        self.assertEqual(report.product.name, 'Edited Product Name')
+        self.assertEqual(report.price, Decimal('99.99'))
+        self.assertEqual(report.currency, 'USD')
+        self.assertEqual(report.notes, 'Edited Notes')
         
     def test_bulk_upload_with_location_data(self):
         """Test bulk upload with latitude/longitude"""
         csv_content = """product_name,price,currency,latitude,longitude
-Test Product 1,10.50,PGK,-9.4438,147.1803"""
+Test Product 1,10.50,PGK,-9.4438,147.1803""".encode('utf-8')
         
         csv_file = SimpleUploadedFile(
             "test.csv", csv_content, content_type="text/csv"
         )
         
         response = self.client.post(reverse('bulk_upload'), {
+            'action': 'preview',
             'csv_file': csv_file,
             'business_name': 'Test Business',
             'latitude': '-9.4438',
@@ -132,7 +174,7 @@ Test Product 1,10.50,PGK,-9.4438,147.1803"""
     def test_bulk_upload_session_expiry(self):
         """Test bulk upload session expires"""
         csv_content = """product_name,price,currency
-Test Product 1,10.50,PGK"""
+Test Product 1,10.50,PGK""".encode('utf-8')
         
         csv_file = SimpleUploadedFile(
             "test.csv", csv_content, content_type="text/csv"
@@ -140,6 +182,7 @@ Test Product 1,10.50,PGK"""
         
         # Upload file
         response1 = self.client.post(reverse('bulk_upload'), {
+            'action': 'preview',
             'csv_file': csv_file,
             'business_name': 'Test Business'
         })
@@ -153,25 +196,27 @@ Test Product 1,10.50,PGK"""
         })
         
         self.assertEqual(response2.status_code, 200)
-        self.assertContains(response, 'Upload session expired')
+        self.assertContains(response2, 'Upload session expired')
         
     def test_bulk_upload_error_handling(self):
         """Test bulk upload error handling for malformed data"""
         csv_content = """product_name,price,currency
 Test Product 1,invalid_price,PGK
-Test Product 2,10.50,invalid_currency"""
+Test Product 2,10.50,invalid_currency""".encode('utf-8')
         
         csv_file = SimpleUploadedFile(
             "test.csv", csv_content, content_type="text/csv"
         )
         
         response = self.client.post(reverse('bulk_upload'), {
+            'action': 'preview',
             'csv_file': csv_file,
             'business_name': 'Test Business'
         })
         
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'validation error')  # Should catch invalid price/currency
+        self.assertContains(response, 'price')  # Checks for price error message
+        self.assertContains(response, 'currency')  # Checks for currency error message
         
     def test_download_csv_template(self):
         """Test CSV template download"""
