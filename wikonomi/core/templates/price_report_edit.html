@@ -17,8 +17,8 @@
             
             {% if messages %}
                 {% for message in messages %}
-                    <div class="mb-4 p-4 rounded-md bg-green-50 border border-green-200">
-                        <div class="text-sm text-green-800">{{ message }}</div>
+                    <div class="mb-4 p-4 rounded-md bg-brand-green/10 border border-brand-green/50">
+                        <div class="text-sm text-brand-green/80">{{ message }}</div>
                     </div>
                 {% endfor %}
             {% endif %}
@@ -30,7 +30,7 @@
                     <div class="sm:col-span-2">
                         <label for="product_search" class="block text-sm font-medium text-gray-700">Product</label>
                         <div class="mt-1 flex rounded-md shadow-sm">
-                            <input type="text" name="product_name" id="product_search" value="{{ report.product.name }}" list="product_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300" placeholder="Type a product name..." required>
+                            <input type="text" name="product_name" id="product_search" value="{{ report.product.name }}" list="product_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm border-gray-300" placeholder="Type a product name..." required>
                             <datalist id="product_list">
                                 {% for product in products %}
                                     <option value="{{ product.name }}"></option>
@@ -43,7 +43,7 @@
                     <div class="sm:col-span-2">
                         <label for="business_search" class="block text-sm font-medium text-gray-700">Business</label>
                         <div class="mt-1 flex rounded-md shadow-sm">
-                            <input type="text" name="business_name" id="business_search" value="{% if report.business %}{{ report.business.name }}{% endif %}" list="business_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300" placeholder="Type a business name...">
+                            <input type="text" name="business_name" id="business_search" value="{% if report.business %}{{ report.business.name }}{% endif %}" list="business_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm border-gray-300" placeholder="Type a business name...">
                             <datalist id="business_list">
                                 {% for business in businesses %}
                                     <option value="{{ business.name }}"></option>
@@ -62,7 +62,7 @@
                                    value="{{ report.price }}" 
                                    step="0.01" 
                                    required
-                                   class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                   class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm">
                         </div>
                     </div>
                     
@@ -74,7 +74,7 @@
                                    name="currency" 
                                    value="{{ report.currency }}" 
                                    maxlength="3"
-                                   class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                   class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm">
                         </div>
                     </div>
                     
@@ -84,7 +84,7 @@
                             <textarea id="notes" 
                                       name="notes" 
                                       rows="3"
-                                      class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">{{ report.notes }}</textarea>
+                                      class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm">{{ report.notes }}</textarea>
                         </div>
                     </div>
                     
@@ -96,7 +96,7 @@
                                    name="tags" 
                                    value="{{ report.product.tags.all|join:',' }}"
                                    placeholder="Enter tags separated by commas (e.g., electronics, sale, urgent)"
-                                   class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                   class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm">
                             <p class="mt-1 text-sm text-gray-500">Separate multiple tags with commas.</p>
                         </div>
                     </div>
@@ -112,7 +112,7 @@
                                     <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                 </svg>
                                 <div class="flex text-sm text-gray-600 justify-center">
-                                    <span class="relative rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                    <span class="relative rounded-md font-medium text-brand-purple hover:text-brand-blue focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-brand-purple/50">
                                         <span>Upload a file</span>
                                     </span>
                                     <p class="pl-1">or drag and drop</p>
@@ -137,7 +137,7 @@
                         
                         <div class="mb-3 flex items-start">
                             <div class="flex items-center h-5">
-                                <input id="use_my_location" name="use_my_location" type="checkbox" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+                                <input id="use_my_location" name="use_my_location" type="checkbox" class="focus:ring-brand-purple/50 h-4 w-4 text-brand-purple border-gray-300 rounded">
                             </div>
                             <div class="ml-3 text-sm">
                                 <label for="use_my_location" class="font-medium text-gray-700">Use my current location</label>
@@ -157,7 +157,7 @@
                     <a href="{% url 'price_detail' report.pk %}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded">
                         Cancel
                     </a>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">
+                    <button type="submit" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold py-2 px-4 rounded">
                         Update Price Report
                     </button>
                 </div>
@@ -172,7 +172,7 @@
             <h2 class="text-lg font-medium text-gray-900 mb-4">Price History</h2>
             <div class="space-y-3">
                 {% for history in report.price_history.all %}
-                <div class="border-l-4 border-blue-400 pl-4 py-2">
+                <div class="border-l-4 border-brand-blue pl-4 py-2">
                     <div class="flex items-center justify-between">
                         <div>
                             <span class="text-sm text-gray-500">
@@ -189,7 +189,7 @@
                                 <span class="text-gray-500">{{ history.old_price }} {{ history.old_currency }}</span>
                                 <span class="mx-2">→</span>
                             {% endif %}
-                            <span class="text-green-600">{{ history.new_price }} {{ history.new_currency }}</span>
+                            <span class="text-brand-green">{{ history.new_price }} {{ history.new_currency }}</span>
                         </div>
                     </div>
                     {% if history.notes %}

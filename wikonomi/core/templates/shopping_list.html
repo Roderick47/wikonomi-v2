@@ -11,11 +11,11 @@
         <form id="add-item-form" class="flex items-center gap-2 sm:gap-4">
             <div class="flex-grow min-w-0">
                 <input type="text" id="new-item-name" 
-                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm sm:text-base p-2.5 sm:p-3 border truncate" 
+                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-brand-blue focus:ring-brand-purple/50 text-sm sm:text-base p-2.5 sm:p-3 border truncate" 
                        placeholder="Add custom item..." required>
             </div>
             <button type="submit" 
-                    class="shrink-0 inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 sm:py-3 sm:px-6 text-sm font-bold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                    class="shrink-0 inline-flex items-center justify-center rounded-md border border-transparent bg-brand-purple py-2 px-4 sm:py-3 sm:px-6 text-sm font-bold text-white shadow-sm hover:bg-brand-purple/90 focus:outline-none focus:ring-2 focus:ring-brand-purple/50 focus:ring-offset-2 transition-colors">
                 Add Item
             </button>
         </form>
@@ -29,7 +29,7 @@
                 <li class="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors" id="item-{{ item.id }}">
                     <div class="flex items-center gap-4 flex-1">
                         <input type="checkbox" 
-                               class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer toggle-item" 
+                               class="h-5 w-5 text-brand-purple focus:ring-brand-purple/50 border-gray-300 rounded cursor-pointer toggle-item" 
                                data-item-id="{{ item.id }}"
                                {% if item.is_checked %}checked{% endif %}>
                         
@@ -49,7 +49,7 @@
                     
                     <div class="flex items-center gap-4">
                         {% if item.estimated_price and not item.is_checked %}
-                            <div class="text-sm text-green-600 font-medium">
+                            <div class="text-sm text-brand-green font-medium">
                                 Est: {{ item.currency }} {{ item.estimated_price }}
                             </div>
                         {% endif %}

@@ -14,7 +14,7 @@
 {% block content %}
 <div class="max-w-4xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
     <div class="mb-6">
-        <a href="{% url 'business_detail' business.pk %}" class="text-blue-600 hover:text-blue-800 flex items-center font-medium">
+        <a href="{% url 'business_detail' business.pk %}" class="text-brand-purple hover:text-brand-purple/80 flex items-center font-medium">
             <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
             </svg>
@@ -66,7 +66,7 @@
                                 <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
                             <div class="flex text-sm text-gray-600 justify-center">
-                                <span class="relative rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                <span class="relative rounded-md font-medium text-brand-purple hover:text-brand-blue focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-brand-purple/50">
                                     <span>Upload a file</span>
                                     {{ form.image }}
                                 </span>
@@ -97,7 +97,7 @@
                     <a href="{% url 'business_detail' business.pk %}" class="text-gray-600 hover:text-gray-800 font-medium py-2 px-4 border border-gray-300 rounded-md">
                         Cancel
                     </a>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <button type="submit" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
                         Save Changes
                     </button>
                 </div>

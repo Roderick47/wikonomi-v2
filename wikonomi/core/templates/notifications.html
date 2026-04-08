@@ -12,7 +12,7 @@
             <ul class="divide-y divide-gray-200">
                 {% for n in notifications %}
                 <li>
-                    <a href="{% url 'price_detail' n.price_report.id %}" class="block p-4 sm:p-6 hover:bg-gray-50 transition-colors {% if not n.is_read %}bg-blue-50 border-l-4 border-blue-600{% endif %}">
+                    <a href="{% url 'price_detail' n.price_report.id %}" class="block p-4 sm:p-6 hover:bg-gray-50 transition-colors {% if not n.is_read %}bg-brand-purple/5 border-l-4 border-brand-purple{% endif %}">
                         <div class="flex flex-col gap-1.5">
                             <div class="text-sm sm:text-base font-semibold text-gray-900 leading-tight">
                                 {{ n.message }}

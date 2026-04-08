@@ -4,8 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>wikonomi</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='100%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' stop-color='%2366D17E' /%3E%3Cstop offset='50%25' stop-color='%234DB8FF' /%3E%3Cstop offset='100%25' stop-color='%234B2798' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ctext x='50%25' y='80%25' font-family='Arial, sans-serif' font-size='80' font-weight='900' font-style='italic' fill='url(%23g)' text-anchor='middle'%3EW%3C/text%3E%3C/svg%3E">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            purple: '#4B2798',
+                            blue: '#4DB8FF',
+                            green: '#66D17E',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <!-- Leaflet JS -->
@@ -18,33 +35,33 @@
             <div class="flex justify-between h-16">
                 <div class="flex">
                     <div class="flex-shrink-0 flex items-center">
-                        <a href="{% url 'home' %}" class="text-xl font-bold text-blue-600">wikonomi</a>
+                        <a href="{% url 'home' %}" class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-green via-brand-blue to-brand-purple">wikonomi</a>
                     </div>
                 </div>
                 <div class="flex items-center space-x-2 sm:space-x-4">
                     {% if user.is_authenticated %}
                         <div class="flex items-center space-x-2 sm:space-x-4">
-                            <a href="{% url 'shopping_list' %}" class="text-gray-700 hover:text-blue-600 flex items-center relative" title="Shopping List">
+                            <a href="{% url 'shopping_list' %}" class="text-gray-700 hover:text-brand-purple flex items-center relative" title="Shopping List">
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                             </a>
-                            <a href="{% url 'notifications' %}" class="relative text-gray-700 hover:text-blue-600 flex items-center" title="Notifications">
+                            <a href="{% url 'notifications' %}" class="relative text-gray-700 hover:text-brand-purple flex items-center" title="Notifications">
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                                 {% if unread_notifications_count > 0 %}
                                 <span class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-red-100 transform translate-x-1/4 -translate-y-1/4 bg-red-600 rounded-full">{{ unread_notifications_count }}</span>
                                 {% endif %}
                             </a>
                         </div>
-                        <a href="{% url 'profile' %}" class="text-gray-700 hover:text-blue-600 font-medium text-sm sm:text-base">
+                        <a href="{% url 'profile' %}" class="text-gray-700 hover:text-brand-purple font-medium text-sm sm:text-base">
                             {{ user.username }}
                         </a>
-                        <a href="{% url 'add_price' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-3 sm:py-2 sm:px-4 rounded text-sm sm:text-base whitespace-nowrap">
+                        <a href="{% url 'add_price' %}" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold py-1.5 px-3 sm:py-2 sm:px-4 rounded text-sm sm:text-base whitespace-nowrap">
                             Add Price
                         </a>
                     {% else %}
-                        <a href="{% url 'signup' %}" class="text-gray-700 hover:text-blue-600 font-medium text-sm sm:text-base">
+                        <a href="{% url 'signup' %}" class="text-gray-700 hover:text-brand-purple font-medium text-sm sm:text-base">
                             Sign Up
                         </a>
-                        <a href="{% url 'login' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-3 sm:py-2 sm:px-4 rounded text-sm sm:text-base">
+                        <a href="{% url 'login' %}" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold py-1.5 px-3 sm:py-2 sm:px-4 rounded text-sm sm:text-base">
                             Login
                         </a>
                     {% endif %}
@@ -62,7 +79,7 @@
                 &copy; 2026 Wikonomi. All rights reserved.
             </div>
             <div class="mt-4 md:mt-0 space-x-4">
-                <a href="{% url 'about' %}" class="text-gray-500 hover:text-blue-600 text-sm font-medium">About Wikonomi</a>
+                <a href="{% url 'about' %}" class="text-gray-500 hover:text-brand-purple text-sm font-medium">About Wikonomi</a>
             </div>
         </div>
     </footer>
@@ -72,7 +89,7 @@
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
             <p class="text-sm">We use cookies to improve your experience and support caching for faster performance. By continuing, you agree to our use of cookies.</p>
             <div class="flex gap-4">
-                <button onclick="acceptCookies()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-bold transition-colors">Accept</button>
+                <button onclick="acceptCookies()" class="bg-brand-purple hover:bg-brand-purple/90 text-white px-4 py-2 rounded text-sm font-bold transition-colors">Accept</button>
             </div>
         </div>
     </div>

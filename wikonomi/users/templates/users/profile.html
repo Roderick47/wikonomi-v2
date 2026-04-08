@@ -26,7 +26,7 @@
                     </div>
                 </div>
                 <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                    <a href="{% url 'edit_profile' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-center sm:text-left">
+                    <a href="{% url 'edit_profile' %}" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-medium py-2 px-4 rounded text-center sm:text-left">
                         Edit Profile
                     </a>
                     <a href="{% url 'change_password' %}" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-center sm:text-left">
@@ -46,7 +46,7 @@
                         <p class="text-sm font-medium text-gray-500">Email</p>
                         <p class="text-sm text-gray-900">{{ user.email }}</p>
                         {% if profile.email_verified %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brand-green/20 text-brand-green/80">
                                 ✓ Verified
                             </span>
                         {% else %}
@@ -54,7 +54,7 @@
                                 ⚠ Not Verified
                             </span>
                             <br>
-                            <a href="{% url 'resend_verification' %}" class="text-blue-600 hover:text-blue-800 text-xs">
+                            <a href="{% url 'resend_verification' %}" class="text-brand-purple hover:text-brand-purple/80 text-xs">
                                 Resend verification email
                             </a>
                         {% endif %}
