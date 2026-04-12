@@ -18,12 +18,17 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from users import views as user_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Override specific allauth URLs to redirect to custom templates
+    path('accounts/login/', user_views.allauth_login_redirect, name='allauth_login_redirect'),
+    path('accounts/signup/', user_views.allauth_signup_redirect, name='allauth_signup_redirect'),
+    path('accounts/logout/', user_views.allauth_logout_redirect, name='allauth_logout_redirect'),
+    path('users/', include('users.urls')),
     path('accounts/', include('allauth.urls')),
     path('', include('core.urls')),
-    path('users/', include('users.urls')),
     path('analytics/', include('analytics.urls')),
 ]
 

@@ -67,6 +67,10 @@ AUTHENTICATION_BACKENDS = [
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
+# Redirect authentication to custom templates
+LOGIN_URL = '/users/login/'
+ACCOUNT_SIGNUP_REDIRECT_URL = '/users/signup/'
+
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'APP': {

@@ -3,6 +3,8 @@ from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
+from django.views.generic import RedirectView
+from django.urls import reverse
 from .forms import CustomUserCreationForm, ProfileUpdateForm
 from .models import Profile
 from .utils import send_verification_email, send_password_change_notification
@@ -41,6 +43,11 @@ def signup(request):
                     messages.success(request, 'Account created successfully!')
                 
                 login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                
+                # Handle redirect to next URL if provided
+                next_url = request.POST.get('next')
+                if next_url:
+                    return redirect(next_url)
                 return redirect('home')
                 
             except Exception as e:
@@ -60,6 +67,11 @@ def user_login(request):
             user = form.get_user()
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             messages.success(request, 'Welcome back!')
+            
+            # Handle redirect to next URL if provided
+            next_url = request.POST.get('next')
+            if next_url:
+                return redirect(next_url)
             return redirect('home')
     else:
         form = AuthenticationForm()
@@ -174,3 +186,31 @@ def resend_verification_email(request):
     """
     messages.info(request, 'Email verification is currently disabled. Your account is fully active.')
     return redirect('profile')
+
+
+# Redirect views for django-allauth URLs
+def allauth_login_redirect(request):
+    """
+    Redirect django-allauth login URLs to custom login template
+    """
+    next_url = request.GET.get('next', '')
+    if next_url:
+        return redirect(f'/users/login/?next={next_url}')
+    return redirect('login')
+
+
+def allauth_signup_redirect(request):
+    """
+    Redirect django-allauth signup URLs to custom signup template
+    """
+    next_url = request.GET.get('next', '')
+    if next_url:
+        return redirect(f'/users/signup/?next={next_url}')
+    return redirect('signup')
+
+
+def allauth_logout_redirect(request):
+    """
+    Redirect django-allauth logout URLs to custom logout template
+    """
+    return redirect('logout')
