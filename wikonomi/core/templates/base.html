@@ -55,9 +55,30 @@
                         <a href="{% url 'profile' %}" class="text-gray-700 hover:text-brand-purple font-medium text-sm sm:text-base">
                             {{ user.username }}
                         </a>
-                        <a href="{% url 'add_price' %}" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold py-1.5 px-3 sm:py-2 sm:px-4 rounded text-sm sm:text-base whitespace-nowrap">
-                            Add Price
-                        </a>
+                        <div class="relative">
+                            <button onclick="toggleAddDropdown()" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold py-1.5 px-3 sm:py-2 sm:px-4 rounded text-sm sm:text-base whitespace-nowrap flex items-center">
+                                Add
+                                <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div id="add-dropdown" class="hidden absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                                <div class="py-1">
+                                    <a href="{% url 'add_price' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
+                                        <svg class="h-4 w-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        Add Prices
+                                    </a>
+                                    <a href="{% url 'add_business' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
+                                        <svg class="h-4 w-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                        </svg>
+                                        Add Business
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     {% else %}
                         <a href="{% url 'signup' %}" class="text-gray-700 hover:text-brand-purple font-medium text-sm sm:text-base">
                             Sign Up
@@ -100,6 +121,21 @@
             localStorage.setItem('cookieConsent', 'true');
             document.getElementById('cookie-consent').classList.add('translate-y-full');
         }
+
+        function toggleAddDropdown() {
+            const dropdown = document.getElementById('add-dropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('add-dropdown');
+            const button = event.target.closest('button[onclick="toggleAddDropdown()"]');
+            
+            if (!dropdown.contains(event.target) && !button) {
+                dropdown.classList.add('hidden');
+            }
+        });
 
         document.addEventListener('DOMContentLoaded', function() {
             if (!localStorage.getItem('cookieConsent')) {

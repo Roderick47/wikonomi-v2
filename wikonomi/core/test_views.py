@@ -549,3 +549,197 @@ class PriceReportEditTest(TestCase):
         url = reverse('edit_price_report', args=[self.price_report.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 302)  # Redirect to login
+
+
+class BusinessCreateViewTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.existing_business = Business.objects.create(name='Existing Business', slug='existing-business')
+        self.url = reverse('add_business')
+
+    def test_get_business_create_page_renders_template(self):
+        """Test that the business creation page renders correctly"""
+        self.client.login(username='testuser', password='testpass')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'business_create.html')
+
+    def test_get_context_data_includes_businesses(self):
+        """Test that the view context includes all existing businesses"""
+        self.client.login(username='testuser', password='testpass')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('businesses', response.context)
+        self.assertIn(self.existing_business, response.context['businesses'])
+
+    def test_business_create_with_valid_data(self):
+        """Test creating a business with valid data"""
+        self.client.login(username='testuser', password='testpass')
+        data = {
+            'name': 'New Test Business',
+            'details': 'This is a test business description'
+        }
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 302)  # Redirect to business detail page
+        
+        # Verify business was created
+        new_business = Business.objects.get(name='New Test Business')
+        self.assertEqual(new_business.details, 'This is a test business description')
+        self.assertEqual(new_business.slug, 'new-test-business')
+
+    def test_business_creates_unique_slug(self):
+        """Test that unique slugs are generated for businesses with similar names"""
+        self.client.login(username='testuser', password='testpass')
+        
+        # Create first business
+        data1 = {'name': 'Unique Business Name'}
+        response1 = self.client.post(self.url, data1)
+        self.assertEqual(response1.status_code, 302)
+        
+        # Create second business with similar name that would generate same slug
+        data2 = {'name': 'Unique Business Name'}  # Same name, should be prevented
+        response2 = self.client.post(self.url, data2)
+        self.assertEqual(response2.status_code, 200)  # Form should be redisplayed with errors
+        
+        # Verify only one business exists
+        businesses = Business.objects.filter(name='Unique Business Name')
+        self.assertEqual(businesses.count(), 1)
+        business1 = businesses.first()
+        self.assertEqual(business1.slug, 'unique-business-name')
+
+    def test_business_slug_generation_with_different_names(self):
+        """Test that different business names generate appropriate slugs"""
+        self.client.login(username='testuser', password='testpass')
+        
+        # Create business with special characters
+        data = {'name': 'Test & Business Co.'}
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 302)
+        
+        new_business = Business.objects.get(name='Test & Business Co.')
+        self.assertEqual(new_business.slug, 'test-business-co')
+
+    def test_business_duplicate_prevention_with_normalization(self):
+        """Test that similar business names are prevented"""
+        self.client.login(username='testuser', password='testpass')
+        
+        # Try to create business with similar name to existing one
+        data = {
+            'name': 'Existing Business',  # Same as existing
+            'details': 'Duplicate business'
+        }
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 200)  # Form should be redisplayed with errors
+        
+        # Verify no new business was created
+        businesses = Business.objects.filter(name='Existing Business')
+        self.assertEqual(businesses.count(), 1)  # Only the original exists
+
+    def test_business_duplicate_prevention_with_similar_names(self):
+        """Test prevention of very similar business names"""
+        self.client.login(username='testuser', password='testpass')
+        
+        # Try to create business with similar name
+        data = {
+            'name': 'Existing Business Ltd',  # Very similar to existing
+            'details': 'Similar business'
+        }
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 200)  # Form should be redisplayed with errors
+        
+        # Check error message
+        self.assertContains(response, 'A business with a similar name already exists')
+
+    def test_business_create_with_special_characters_slug(self):
+        """Test slug generation with special characters"""
+        self.client.login(username='testuser', password='testpass')
+        data = {
+            'name': 'Test Business & Co. (Papua New Guinea)!'
+        }
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 302)
+        
+        new_business = Business.objects.get(name='Test Business & Co. (Papua New Guinea)!')
+        self.assertEqual(new_business.slug, 'test-business-co-papua-new-guinea')
+
+    def test_business_create_without_authentication(self):
+        """Test that business creation works without authentication"""
+        data = {
+            'name': 'Anonymous Business',
+            'details': 'Created without login'
+        }
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 302)  # Should still work
+        
+        # Verify business was created
+        new_business = Business.objects.get(name='Anonymous Business')
+        self.assertEqual(new_business.details, 'Created without login')
+
+    def test_business_create_empty_name_fails(self):
+        """Test that creating a business without a name fails"""
+        self.client.login(username='testuser', password='testpass')
+        data = {
+            'name': '',  # Empty name
+            'details': 'Business with no name'
+        }
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 200)  # Form should be redisplayed
+        
+        # Verify no business was created
+        self.assertFalse(Business.objects.filter(details='Business with no name').exists())
+
+    def test_business_create_redirects_to_detail_page(self):
+        """Test that successful business creation redirects to detail page"""
+        self.client.login(username='testuser', password='testpass')
+        data = {
+            'name': 'Redirect Test Business'
+        }
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 302)
+        
+        # Get the created business and verify redirect URL
+        new_business = Business.objects.get(name='Redirect Test Business')
+        expected_url = reverse('business_detail', kwargs={'pk': new_business.pk})
+        self.assertRedirects(response, expected_url)
+
+    def test_business_create_with_minimal_data(self):
+        """Test creating a business with only required fields"""
+        self.client.login(username='testuser', password='testpass')
+        data = {
+            'name': 'Minimal Business'
+            # No details field
+        }
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 302)
+        
+        new_business = Business.objects.get(name='Minimal Business')
+        self.assertEqual(new_business.details, '')  # Should be empty string
+
+    def test_business_create_case_insensitive_duplicate(self):
+        """Test that case variations of existing business names are prevented"""
+        self.client.login(username='testuser', password='testpass')
+        
+        # Try to create business with different case
+        data = {
+            'name': 'existing business',  # Lowercase version
+            'details': 'Case variation test'
+        }
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 200)  # Form should be redisplayed with errors
+        
+        # Check error message
+        self.assertContains(response, 'A business with a similar name already exists')
+
+    def test_business_create_with_whitespace_slug(self):
+        """Test slug generation with extra whitespace"""
+        self.client.login(username='testuser', password='testpass')
+        data = {
+            'name': '  Test Business  With  Spaces  '
+        }
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 302)
+        
+        # Django forms strip whitespace, so the saved name will be trimmed
+        new_business = Business.objects.get(name='Test Business  With  Spaces')
+        self.assertEqual(new_business.slug, 'test-business-with-spaces')

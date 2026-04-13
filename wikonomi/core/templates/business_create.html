@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<style>
+    .business-image-preview {
+        max-width: 200px;
+        max-height: 200px;
+        object-fit: cover;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto mt-8">
+    <div class="bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                        Add a New Business
+                    </h3>
+                    <div class="mt-2 text-sm text-gray-500">
+                        <p>Help the community by adding a new business to the database.</p>
+                    </div>
+                </div>
+            </div>
+            <form method="POST" class="mt-5 space-y-6" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                {% if form.errors %}
+                <div class="bg-red-50 border border-red-200 text-red-600 rounded-md p-4 mb-4">
+                    <p class="font-medium">Please correct the errors below.</p>
+                    <ul class="list-disc pl-5 mt-2">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                    <div class="sm:col-span-6">
+                        <label for="business_search" class="block text-sm font-medium text-gray-700">Business Name</label>
+                        <div class="mt-1 flex rounded-md shadow-sm">
+                            <input type="text" name="name" id="business_search" list="business_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm border-gray-300" placeholder="Type a business name..." required>
+                            <datalist id="business_list">
+                                {% for business in businesses %}
+                                    <option value="{{ business.name }}"></option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <p class="mt-2 text-sm text-gray-500">Enter the name of the business you want to add.</p>
+                    </div>
+
+                    <div class="sm:col-span-6">
+                        <label for="{{ form.details.id_for_label }}" class="block text-sm font-medium text-gray-700">Business Details (Optional)</label>
+                        <div class="mt-1">
+                            {{ form.details }}
+                        </div>
+                        <p class="mt-2 text-sm text-gray-500">Add any additional information about this business such as opening hours, contact information, services offered, etc.</p>
+                    </div>
+                    
+                    <div class="sm:col-span-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Business Image (Optional)</label>
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md relative cursor-pointer hover:bg-gray-50" onclick="document.getElementById('id_image').click()" id="image-drop-zone">
+                            <div class="space-y-1 text-center" id="image-upload-content">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <div class="flex text-sm text-gray-600 justify-center">
+                                    <span class="relative rounded-md font-medium text-brand-purple hover:text-brand-blue focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-brand-purple/50">
+                                        <span>Upload a file</span>
+                                        {{ form.image }}
+                                    </span>
+                                    <p class="pl-1">or drag and drop</p>
+                                </div>
+                                <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                            </div>
+                            <img id="image-preview" class="hidden absolute inset-0 w-full h-full object-contain rounded-md" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-5 flex justify-end">
+                    <a href="{% url 'home' %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
+                        Cancel
+                    </a>
+                    <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-purple hover:bg-brand-purple/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
+                        Save Business
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Image preview logic
+    const imageInput = document.getElementById('id_image');
+    if (imageInput) {
+        async function compressImage(file, maxWidth, maxHeight, quality) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = event => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        let w = img.width;
+                        let h = img.height;
+                        if (w > maxWidth || h > maxHeight) {
+                            const ratio = Math.min(maxWidth / w, maxHeight / h);
+                            w *= ratio;
+                            h *= ratio;
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        canvas.toBlob(blob => {
+                            if (!blob) return resolve(file);
+                            const compressedFile = new File([blob], file.name, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            });
+                            resolve(compressedFile.size < file.size ? compressedFile : file);
+                        }, 'image/jpeg', quality);
+                    };
+                    img.onerror = () => resolve(file);
+                };
+                reader.onerror = () => resolve(file);
+            });
+        }
+
+        imageInput.addEventListener('change', async function(event) {
+            if (event.target.files && event.target.files[0]) {
+                let file = event.target.files[0];
+                if (file.type.startsWith('image/')) {
+                    const compressedFile = await compressImage(file, 1920, 1920, 0.8);
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(compressedFile);
+                    imageInput.files = dataTransfer.files;
+
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('image-upload-content').classList.add('opacity-0');
+                        const preview = document.getElementById('image-preview');
+                        preview.src = e.target.result;
+                        preview.classList.remove('hidden');
+                    }
+                    reader.readAsDataURL(compressedFile);
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

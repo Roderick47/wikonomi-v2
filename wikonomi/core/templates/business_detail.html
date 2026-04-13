@@ -51,6 +51,24 @@
                     </a>
                 </div>
             </div>
+            
+            <!-- Business Image Section -->
+            {% if business.image %}
+            <div class="mt-6">
+                <a href="{{ business.image.url }}" target="_blank" class="inline-block group" title="Click to view full size">
+                    <div class="relative">
+                        <img src="{{ business.image.url }}" alt="{{ business.name }}" 
+                            class="w-32 h-32 sm:w-48 sm:h-48 object-cover rounded-lg shadow-sm border border-gray-200 group-hover:opacity-90 transition-opacity">
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-10 rounded-lg">
+                            <svg class="h-8 w-8 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-400 italic">Click to view full size</p>
+                </a>
+            </div>
+            {% endif %}
             <div class="mt-4 flex items-center space-x-6">
                 <div class="flex items-center">
                     <svg class="h-5 w-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

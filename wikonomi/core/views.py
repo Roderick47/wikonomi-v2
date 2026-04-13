@@ -18,7 +18,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django import forms
 from django.views.decorators.cache import cache_page
-from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService
+from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher
 
 class PriceReportForm(forms.ModelForm):
     class Meta:
@@ -1277,6 +1277,45 @@ def bulk_upload(request):
             return redirect('home')
     
     return render(request, 'bulk_upload.html', context)
+
+
+class BusinessCreateView(CreateView):
+    model = Business
+    form_class = BusinessForm
+    template_name = 'business_create.html'
+    
+    def get_success_url(self):
+        return reverse('business_detail', kwargs={'pk': self.object.pk})
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['businesses'] = Business.objects.all().order_by('name')
+        return context
+        
+    def form_valid(self, form):
+        # Use business normalization service to avoid duplicates
+        business_name = form.cleaned_data['name']
+        existing_business, _, similarity = BusinessMatcher.find_best_match(business_name)
+        
+        if existing_business and similarity >= 0.8:
+            form.add_error('name', f'A business with a similar name already exists: "{existing_business.name}". Please use a different name or edit the existing business.')
+            return self.form_invalid(form)
+        
+        # Generate unique slug
+        slug = slugify(business_name)
+        original_slug = slug
+        counter = 1
+        while Business.objects.filter(slug=slug).exists():
+            slug = f"{original_slug}-{counter}"
+            counter += 1
+        form.instance.slug = slug
+        
+        # Save the business
+        response = super().form_valid(form)
+        
+        return response
+
+business_create = BusinessCreateView.as_view()
 
 
 @login_required
