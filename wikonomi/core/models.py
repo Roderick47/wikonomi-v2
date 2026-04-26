@@ -674,7 +674,7 @@ class PriceReport(models.Model):
     longitude = models.FloatField(null=True, blank=True)
     
     observed_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now=True, db_index=True)
     notes = models.TextField(blank=True)
 
     # H3 for fast "same vicinity" comparison
@@ -692,7 +692,16 @@ class PriceReport(models.Model):
     ocr_processed = models.BooleanField(default=True)
 
     class Meta:
-        ordering = ['-observed_at']
+        ordering = ['-updated_at', '-observed_at']
+
+    @property
+    def is_updated(self):
+        """Check if report has been updated after initial creation."""
+        # Use 1 minute threshold to account for slight differences in auto_now/auto_now_add on creation
+        if self.updated_at and self.observed_at:
+            from datetime import timedelta
+            return self.updated_at > (self.observed_at + timedelta(minutes=1))
+        return False
 
     def __str__(self):
         return f"{self.price} {self.currency} — {self.product}"

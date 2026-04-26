@@ -116,6 +116,12 @@
         </div>
     </div>
 
+    <!-- Global Toast Notification -->
+    <div id="global-toast" class="fixed bottom-4 right-4 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-[100] flex items-center space-x-2">
+        <span id="toast-icon"></span>
+        <span id="toast-message"></span>
+    </div>
+
     <script>
         function acceptCookies() {
             localStorage.setItem('cookieConsent', 'true');
@@ -144,6 +150,67 @@
                 }, 1000);
             }
         });
+
+        // Global Sharing Functionality
+        async function sharePriceReport(event, data) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            const { title, text, url } = data;
+            const shareData = {
+                title: title || 'Check out this price on Wikonomi',
+                text: text || `Check out the price for ${title} on Wikonomi!`,
+                url: url || window.location.href
+            };
+
+            if (navigator.share) {
+                try {
+                    await navigator.share(shareData);
+                    showToast('Shared successfully!', 'success');
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.error('Error sharing:', err);
+                        copyToClipboard(shareData.url);
+                    }
+                }
+            } else {
+                copyToClipboard(shareData.url);
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Link copied to clipboard!', 'info');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                showToast('Failed to copy link', 'error');
+            });
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('global-toast');
+            const messageEl = document.getElementById('toast-message');
+            const iconEl = document.getElementById('toast-icon');
+            
+            messageEl.textContent = message;
+            
+            // Set icons based on type
+            if (type === 'success') {
+                iconEl.innerHTML = '<svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>';
+            } else if (type === 'error') {
+                iconEl.innerHTML = '<svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>';
+            } else {
+                iconEl.innerHTML = '<svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
     </script>
 </body>
 </html>

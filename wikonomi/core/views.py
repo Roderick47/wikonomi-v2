@@ -197,7 +197,7 @@ def _get_prices_queryset(request):
         except (ValueError, TypeError):
             qs = qs.order_by('-observed_at')
     else:
-        qs = qs.order_by('-observed_at')
+        qs = qs.order_by('-updated_at', '-observed_at')
         
     return qs, sort, user_lat, user_lng
 
@@ -349,8 +349,10 @@ def load_more_prices(request):
             'profile_picture_url': price.user.profile.profile_picture.url if hasattr(price.user, 'profile') and price.user.profile.profile_picture else None,
             'image_url': price.image.url if price.image else None,
             'observed_at': price.observed_at.strftime('%Y-%m-%d %H:%M'),
+            'updated_at': price.updated_at.strftime('%Y-%m-%d %H:%M'),
+            'is_updated': price.is_updated,
             'has_location': bool(price.latitude and price.longitude),
-            'timesince': f"{rounded_timesince_js(price.observed_at)} ago"
+            'timesince': f"{rounded_timesince_js(price.updated_at if price.is_updated else price.observed_at)} ago"
         }
         # Add distance if available
         if hasattr(price, 'distance_km'):

@@ -243,6 +243,13 @@
                         </div>
                         {% endif %}
                     </div>
+                    <div class="flex flex-col items-end space-y-2">
+                         <button onclick="sharePriceReport(event, {title: '{{ report.product.name }}', text: 'Checked {{ report.product.name }} at {{ report.business.name|default:"Unknown" }} for {{ report.currency }} {{ report.price|intcomma }} on Wikonomi.', url: window.location.origin + '{% url 'price_detail' report.pk %}'})" class="p-2 text-gray-400 hover:text-brand-purple transition-colors rounded-full hover:bg-brand-purple/10" title="Share">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-4 sm:px-6 mt-4">
                     <div class="flex items-center justify-between">
@@ -258,7 +265,13 @@
                             {% endif %}
                             <div class="text-xs text-gray-500">
                                 <span class="font-medium">{{ report.user.username }}</span>
-                                <span class="text-gray-400"> • {{ report.observed_at|rounded_timesince }}</span>
+                                <span class="text-gray-400"> • 
+                                    {% if report.is_updated %}
+                                        <span class="text-brand-purple font-semibold">Updated</span> {{ report.updated_at|rounded_timesince }}
+                                    {% else %}
+                                        {{ report.observed_at|rounded_timesince }}
+                                    {% endif %}
+                                </span>
                             </div>
                         </div>
                         {% if report.latitude and report.longitude %}
@@ -433,6 +446,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                         ${item.business_name ? `<div class="mt-2 text-sm text-gray-700 font-medium">@ ${item.business_name}</div>` : ''}
                     </div>
+                    <div class="flex flex-col items-end space-y-2">
+                        <button onclick="sharePriceReport(event, {title: '${item.product_name}', text: 'Checked ${item.product_name} at ${item.business_name || "Unknown"} for ${item.currency} ${formattedPrice} on Wikonomi.', url: window.location.origin + '/price/${item.id}/'})" class="p-2 text-gray-400 hover:text-brand-purple transition-colors rounded-full hover:bg-brand-purple/10" title="Share">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-4 sm:px-6 mt-4">
                     <div class="flex items-center justify-between">
@@ -440,7 +460,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             ${profilePictureHtml}
                             <div class="text-xs text-gray-500">
                                 <span class="font-medium">${item.username}</span>
-                                <span class="text-gray-400"> &bull; ${item.timesince}</span>
+                                <span class="text-gray-400"> &bull; ${item.is_updated ? '<span class="text-brand-purple font-semibold">Updated</span> ' : ''}${item.timesince}</span>
                             </div>
                         </div>
                         ${locationHtml}
