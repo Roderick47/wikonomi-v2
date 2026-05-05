@@ -30,7 +30,18 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*']
+# Restrict ALLOWED_HOSTS to specific domains for security
+# Use wildcard only in development for flexibility
+if DEBUG:
+    ALLOWED_HOSTS = ['*']  # Development: allow any host for local testing
+else:
+    # Production: restrict to known domains
+    ALLOWED_HOSTS = [
+        'wikonomi.com',
+        'www.wikonomi.com',
+        'localhost',  # For local testing with production settings
+        '127.0.0.1',  # For local testing with production settings
+    ]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'

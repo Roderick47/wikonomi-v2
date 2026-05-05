@@ -5,6 +5,12 @@ from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.views.generic import RedirectView
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.core.exceptions import ValidationError
+from PIL import Image
+import io
+import os
 from .forms import CustomUserCreationForm, ProfileUpdateForm
 from .models import Profile
 from .utils import send_verification_email, send_password_change_notification
@@ -16,28 +22,22 @@ def signup(request):
         if form.is_valid():
             try:
                 user = form.save()
-                print(f"DEBUG: User created successfully: {user.username}")
                 
                 profile, created = Profile.objects.get_or_create(user=user)
-                print(f"DEBUG: Profile {'created' if created else 'retrieved'} for user: {user.username}")
                 
                 # Send verification email - DISABLED
                 if False and settings.ACCOUNT_VERIFICATION_REQUIRED:
                     try:
-                        print(f"DEBUG: Attempting to send verification email to {user.email}")
-                        print(f"DEBUG: Email settings - Host: {settings.EMAIL_HOST}, User: {settings.EMAIL_HOST_USER}")
-                        
                         email_sent = send_verification_email(request, user, profile)
-                        print(f"DEBUG: Email sending result: {email_sent}")
                         
                         if email_sent:
                             messages.info(request, 'Account created successfully! Please check your email to verify your account.')
                         else:
                             messages.warning(request, 'Account created but we couldn\'t send a verification email. Please contact support.')
                     except Exception as e:
-                        print(f"DEBUG: Email sending failed with error: {str(e)}")
-                        import traceback
-                        traceback.print_exc()
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.error(f'Email sending failed: {str(e)}')
                         messages.error(request, f'Account created but email sending failed: {str(e)}')
                 else:
                     messages.success(request, 'Account created successfully!')
@@ -46,14 +46,14 @@ def signup(request):
                 
                 # Handle redirect to next URL if provided
                 next_url = request.POST.get('next')
-                if next_url:
+                if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts=[request.get_host()], require_https=request.is_secure()):
                     return redirect(next_url)
                 return redirect('home')
                 
             except Exception as e:
-                print(f"DEBUG: User creation failed: {str(e)}")
-                import traceback
-                traceback.print_exc()
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f'User creation failed: {str(e)}')
                 messages.error(request, f'Account creation failed: {str(e)}')
                 return render(request, 'users/signup.html', {'form': form})
     else:
@@ -70,7 +70,7 @@ def user_login(request):
             
             # Handle redirect to next URL if provided
             next_url = request.POST.get('next')
-            if next_url:
+            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts=[request.get_host()], require_https=request.is_secure()):
                 return redirect(next_url)
             return redirect('home')
     else:
@@ -87,11 +87,67 @@ def edit_profile(request):
     profile, created = Profile.objects.get_or_create(user=request.user)
     
     if request.method == 'POST':
-        # Handle profile picture upload
+        # Handle profile picture upload with validation
         if 'profile_picture' in request.FILES:
-            profile.profile_picture = request.FILES['profile_picture']
-            profile.save()
-            messages.success(request, 'Profile picture updated successfully!')
+            uploaded_file = request.FILES['profile_picture']
+            
+            # Validate file size (max 5MB)
+            max_size = 5 * 1024 * 1024  # 5MB
+            if uploaded_file.size > max_size:
+                messages.error(request, 'Profile picture must be smaller than 5MB.')
+                return render(request, 'users/edit_profile.html', {'profile': profile})
+            
+            # Validate file type
+            allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+            if uploaded_file.content_type not in allowed_types:
+                messages.error(request, 'Profile picture must be a valid image file (JPEG, PNG, GIF, or WebP).')
+                return render(request, 'users/edit_profile.html', {'profile': profile})
+            
+            # Validate image content
+            try:
+                # Open and validate the image
+                image = Image.open(uploaded_file)
+                
+                # Verify it's actually an image
+                image.verify()
+                
+                # Re-open after verify (verify() closes the file)
+                image = Image.open(uploaded_file)
+                
+                # Convert to RGB if necessary (for JPEG compatibility)
+                if image.mode in ('RGBA', 'LA', 'P'):
+                    image = image.convert('RGB')
+                
+                # Resize if too large (max 800x800)
+                max_dimension = 800
+                if image.width > max_dimension or image.height > max_dimension:
+                    image.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
+                
+                # Save to memory buffer
+                buffer = io.BytesIO()
+                image.save(buffer, format='JPEG', quality=85, optimize=True)
+                buffer.seek(0)
+                
+                # Create new InMemoryUploadedFile with processed image
+                processed_file = InMemoryUploadedFile(
+                    buffer,
+                    'profile_picture',
+                    f'{uploaded_file.name.split(".")[0]}.jpg',
+                    'image/jpeg',
+                    buffer.tell(),
+                    None
+                )
+                
+                profile.profile_picture = processed_file
+                profile.save()
+                messages.success(request, 'Profile picture updated successfully!')
+                
+            except (IOError, ValidationError, Image.UnidentifiedImageError) as e:
+                messages.error(request, 'Invalid image file. Please upload a valid image.')
+                return render(request, 'users/edit_profile.html', {'profile': profile})
+            except Exception as e:
+                messages.error(request, f'Error processing image: {str(e)}')
+                return render(request, 'users/edit_profile.html', {'profile': profile})
         
         # Update user profile information
         user = request.user

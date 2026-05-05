@@ -29,10 +29,13 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
 # Security settings
+# SECURE_SSL_REDIRECT is disabled because Render handles SSL termination at the proxy level
+# The proxy handles HTTPS->HTTP conversion, so enabling this would cause infinite redirects
+# If using a different deployment setup where Django handles HTTPS directly, set to True
 SECURE_SSL_REDIRECT = False  # Render handles SSL at the proxy level
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SESSION_COOKIE_SECURE = False  # Set to False for Render proxy
-CSRF_COOKIE_SECURE = False   # Set to False for Render proxy
+SESSION_COOKIE_SECURE = True   # Enable secure cookies for production
+CSRF_COOKIE_SECURE = True      # Enable secure cookies for production
 TRUST_PROXY_HEADERS = True
 
 # Google OAuth2 settings

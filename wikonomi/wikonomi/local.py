@@ -37,6 +37,6 @@ SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 
-print("🚀 Local development settings loaded")
-print("📦 Using SQLite database")
-print("📧 Using console email backend")
+print("Local development settings loaded")
+print("Using SQLite database")
+print("Using console email backend")
