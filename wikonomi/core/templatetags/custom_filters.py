@@ -1,6 +1,8 @@
+from datetime import datetime, timedelta
+import mimetypes
+
 from django import template
 from django.utils.timesince import timesince
-from datetime import datetime, timedelta
 
 register = template.Library()
 
@@ -93,6 +95,17 @@ def absolute_url(value, base_url="https://www.wikonomi.com"):
         return url
 
     return f"{base_url.rstrip('/')}/{url.lstrip('/')}"
+
+
+@register.filter
+def image_mime_type(image_field):
+    """Return a best-effort MIME type for uploaded social preview images."""
+    if not image_field:
+        return "image/jpeg"
+
+    name = getattr(image_field, "name", "") or str(image_field)
+    mime_type, _ = mimetypes.guess_type(name)
+    return mime_type or "image/jpeg"
 
 
 @register.filter

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load custom_filters cache %}
+{% load custom_filters cache humanize %}
 
 {% block page_title %}{{ report.product|get_attr:"name"|default:"Unknown Product" }} — PGK {{ report.price }} at {{ report.business|get_attr:"name"|default:"Unknown Business" }} | Wikonomi{% endblock %}
 
@@ -12,30 +12,26 @@
 <meta property="og:url" content="{{ base_url }}/price/{{ report.id }}/">
 <meta property="og:title" content="{{ report.product|get_attr:"name"|default:"Unknown Product" }} — PGK {{ report.price }} at {{ report.business|get_attr:"name"|default:"Unknown Business" }}">
 <meta property="og:description" content="Reported at {{ report.business|get_attr:"name"|default:"Unknown Business" }} on {{ reported_date|date:'N j, Y' }}. {{ report.notes|default:'Compare prices across PNG on Wikonomi.' }}">
-{% if report.photo %}
-<meta property="og:image" content="{{ report.photo.url|absolute_url:base_url }}">
-<meta property="og:image:secure_url" content="{{ report.photo.url|absolute_url:base_url }}">
-<meta property="og:image:type" content="image/jpeg">
-{% elif report.image %}
+{% if report.image %}
 <meta property="og:image" content="{{ report.image.url|absolute_url:base_url }}">
 <meta property="og:image:secure_url" content="{{ report.image.url|absolute_url:base_url }}">
-<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:type" content="{{ report.image|image_mime_type }}">
 {% else %}
 <meta property="og:image" content="{{ default_image }}">
 <meta property="og:image:secure_url" content="{{ default_image }}">
 <meta property="og:image:type" content="image/jpeg">
 {% endif %}
 <meta property="og:image:alt" content="{{ report.product|get_attr:"name"|default:"Unknown Product" }} at {{ report.business|get_attr:"name"|default:"Unknown Business" }}">
+{% if not report.image %}
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+{% endif %}
 <meta property="og:locale" content="en_PG">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@wikonomi">
 <meta name="twitter:title" content="{{ report.product|get_attr:"name"|default:"Unknown Product" }} — PGK {{ report.price }} at {{ report.business|get_attr:"name"|default:"Unknown Business" }}">
 <meta name="twitter:description" content="Reported at {{ report.business|get_attr:"name"|default:"Unknown Business" }} on {{ reported_date|date:'N j, Y' }}. {{ report.notes|default:'Compare prices across PNG on Wikonomi.' }}">
-{% if report.photo %}
-<meta name="twitter:image" content="{{ report.photo.url|absolute_url:base_url }}">
-{% elif report.image %}
+{% if report.image %}
 <meta name="twitter:image" content="{{ report.image.url|absolute_url:base_url }}">
 {% else %}
 <meta name="twitter:image" content="{{ default_image }}">
@@ -81,7 +77,7 @@
                                         {% if is_watching %}⭐ Watching{% else %}☆ Watch{% endif %}
                                     </span>
                                 </button>
-                                <button onclick="sharePriceReport(event, {title: '{{ report.product.name }}', text: 'Checked {{ report.product.name }} at {{ report.business.name|default:"Unknown" }} for {{ report.currency }} {{ report.price|intcomma }} on Wikonomi.', url: window.location.href})"
+                                <button onclick="sharePriceReport(event, {title: '{{ report.product.name|escapejs }}', text: 'Checked {{ report.product.name|escapejs }} at {{ report.business.name|default:"Unknown"|escapejs }} for {{ report.currency|escapejs }} {{ report.price|intcomma|escapejs }} on Wikonomi.', url: window.location.href})"
                                     class="inline-flex items-center px-2 py-1 text-xs sm:text-sm rounded border border-gray-300 bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors" title="Share">
                                     <svg class="h-3 w-3 sm:h-4 sm:w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
@@ -422,7 +418,7 @@
         }).addTo(map);
 
         L.marker([lat, lng]).addTo(map)
-            .bindPopup("<b>{{ report.business.name|default:'Location' }}</b><br/>{{ report.product.name }}").openPopup();
+            .bindPopup("<b>{{ report.business.name|default:'Location'|escape|escapejs }}</b><br/>{{ report.product.name|escape|escapejs }}").openPopup();
     });
 </script>
 {% endif %}
