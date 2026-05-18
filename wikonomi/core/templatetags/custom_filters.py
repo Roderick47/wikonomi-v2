@@ -94,3 +94,14 @@ def absolute_url(value, base_url="https://www.wikonomi.com"):
 
     return f"{base_url.rstrip('/')}/{url.lstrip('/')}"
 
+
+@register.filter
+def get_attr(obj, attr):
+    """
+    Safely get an attribute from an object, returning None if the object is None.
+    Example: {{ report.product|get_attr:"name" }}
+    """
+    if obj is None:
+        return None
+    return getattr(obj, attr, None)
+

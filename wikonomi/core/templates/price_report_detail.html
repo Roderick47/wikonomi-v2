@@ -1,52 +1,46 @@
 {% extends 'base.html' %}
 {% load custom_filters cache %}
 
-{% block page_title %}{{ price.product.name|default:report.product.name }} — PGK {{ price.price|default:report.price }} at {{ price.business.name|default:report.business.name }} | Wikonomi{% endblock %}
+{% block page_title %}{{ report.product|get_attr:"name"|default:"Unknown Product" }} — PGK {{ report.price }} at {{ report.business|get_attr:"name"|default:"Unknown Business" }} | Wikonomi{% endblock %}
 
 {% block og_tags %}
 {% with base_url="https://www.wikonomi.com" default_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
-{% with price_obj=price|default:report %}
-{% with business_name=price_obj.business.name|default:"Unknown Business" reported_date=price_obj.reported_at|default:price_obj.observed_at %}
-<link rel="canonical" href="{{ base_url }}/price/{{ price_obj.id }}/">
+{% with reported_date=report.reported_at|default:report.observed_at %}
+<link rel="canonical" href="{{ base_url }}/price/{{ report.id }}/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Wikonomi">
-<meta property="og:url" content="{{ base_url }}/price/{{ price_obj.id }}/">
-<meta property="og:title" content="{{ price_obj.product.name }} — PGK {{ price_obj.price }} at {{ business_name }}">
-<meta property="og:description" content="Reported at {{ business_name }} on {{ reported_date|date:'N j, Y' }}. {{ price_obj.notes|default:'Compare prices across PNG on Wikonomi.' }}">
-{% if price_obj.photo %}
-<meta property="og:image" content="{{ price_obj.photo.url|absolute_url:base_url }}">
-<meta property="og:image:secure_url" content="{{ price_obj.photo.url|absolute_url:base_url }}">
+<meta property="og:url" content="{{ base_url }}/price/{{ report.id }}/">
+<meta property="og:title" content="{{ report.product|get_attr:"name"|default:"Unknown Product" }} — PGK {{ report.price }} at {{ report.business|get_attr:"name"|default:"Unknown Business" }}">
+<meta property="og:description" content="Reported at {{ report.business|get_attr:"name"|default:"Unknown Business" }} on {{ reported_date|date:'N j, Y' }}. {{ report.notes|default:'Compare prices across PNG on Wikonomi.' }}">
+{% if report.photo %}
+<meta property="og:image" content="{{ report.photo.url|absolute_url:base_url }}">
+<meta property="og:image:secure_url" content="{{ report.photo.url|absolute_url:base_url }}">
 <meta property="og:image:type" content="image/jpeg">
-{% elif price_obj.image %}
-<meta property="og:image" content="{{ price_obj.image.url|absolute_url:base_url }}">
-<meta property="og:image:secure_url" content="{{ price_obj.image.url|absolute_url:base_url }}">
+{% elif report.image %}
+<meta property="og:image" content="{{ report.image.url|absolute_url:base_url }}">
+<meta property="og:image:secure_url" content="{{ report.image.url|absolute_url:base_url }}">
 <meta property="og:image:type" content="image/jpeg">
 {% else %}
 <meta property="og:image" content="{{ default_image }}">
 <meta property="og:image:secure_url" content="{{ default_image }}">
 <meta property="og:image:type" content="image/jpeg">
-{% elif price_obj.image %}
-<meta property="og:image" content="{{ price_obj.image.url|absolute_url:base_url }}">
-{% else %}
-<meta property="og:image" content="{{ default_image }}">
 {% endif %}
-<meta property="og:image:alt" content="{{ price_obj.product.name }} at {{ business_name }}">
+<meta property="og:image:alt" content="{{ report.product|get_attr:"name"|default:"Unknown Product" }} at {{ report.business|get_attr:"name"|default:"Unknown Business" }}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="en_PG">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@wikonomi">
-<meta name="twitter:title" content="{{ price_obj.product.name }} — PGK {{ price_obj.price }} at {{ business_name }}">
-<meta name="twitter:description" content="Reported at {{ business_name }} on {{ reported_date|date:'N j, Y' }}. {{ price_obj.notes|default:'Compare prices across PNG on Wikonomi.' }}">
-{% if price_obj.photo %}
-<meta name="twitter:image" content="{{ price_obj.photo.url|absolute_url:base_url }}">
-{% elif price_obj.image %}
-<meta name="twitter:image" content="{{ price_obj.image.url|absolute_url:base_url }}">
+<meta name="twitter:title" content="{{ report.product|get_attr:"name"|default:"Unknown Product" }} — PGK {{ report.price }} at {{ report.business|get_attr:"name"|default:"Unknown Business" }}">
+<meta name="twitter:description" content="Reported at {{ report.business|get_attr:"name"|default:"Unknown Business" }} on {{ reported_date|date:'N j, Y' }}. {{ report.notes|default:'Compare prices across PNG on Wikonomi.' }}">
+{% if report.photo %}
+<meta name="twitter:image" content="{{ report.photo.url|absolute_url:base_url }}">
+{% elif report.image %}
+<meta name="twitter:image" content="{{ report.image.url|absolute_url:base_url }}">
 {% else %}
 <meta name="twitter:image" content="{{ default_image }}">
 {% endif %}
-<meta name="twitter:image:alt" content="{{ price_obj.product.name }} at {{ business_name }}">
-{% endwith %}
+<meta name="twitter:image:alt" content="{{ report.product|get_attr:"name"|default:"Unknown Product" }} at {{ report.business|get_attr:"name"|default:"Unknown Business" }}">
 {% endwith %}
 {% endwith %}
 {% endblock %}
