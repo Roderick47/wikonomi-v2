@@ -82,3 +82,15 @@ def rounded_timesince_js(value):
     
     return time_str
 
+@register.filter
+def absolute_url(value, base_url="https://www.wikonomi.com"):
+    """Return an absolute URL for social preview images."""
+    if not value:
+        return ""
+
+    url = str(value)
+    if url.startswith(("https://", "http://")):
+        return url
+
+    return f"{base_url.rstrip('/')}/{url.lstrip('/')}"
+
