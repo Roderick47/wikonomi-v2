@@ -25,6 +25,10 @@
 <meta property="og:image" content="{{ default_image }}">
 <meta property="og:image:secure_url" content="{{ default_image }}">
 <meta property="og:image:type" content="image/jpeg">
+{% elif price_obj.image %}
+<meta property="og:image" content="{{ price_obj.image.url|absolute_url:base_url }}">
+{% else %}
+<meta property="og:image" content="{{ default_image }}">
 {% endif %}
 <meta property="og:image:alt" content="{{ price_obj.product.name }} at {{ business_name }}">
 <meta property="og:image:width" content="1200">
