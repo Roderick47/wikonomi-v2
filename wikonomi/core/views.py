@@ -556,6 +556,12 @@ class BusinessEditView(UpdateView):
         return reverse_lazy('business_detail', kwargs={'pk': self.object.pk})
     
     def form_valid(self, form):
+        clear_image = self.request.POST.get('clear_image')
+        if clear_image in ('1', 'true', 'True', 'on') and 'image' not in self.request.FILES:
+            if self.object.image:
+                self.object.image.delete(save=False)
+            form.instance.image = None
+
         messages.success(self.request, 'Business updated successfully!')
         return super().form_valid(form)
 

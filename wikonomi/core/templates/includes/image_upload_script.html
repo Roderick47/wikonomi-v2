@@ -1,0 +1,136 @@
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const imageInput = document.getElementById('id_image');
+        const imageDropZone = document.getElementById('image-drop-zone');
+        const imageUploadContent = document.getElementById('image-upload-content');
+        const imagePreviewWrap = document.getElementById('image-preview-wrap');
+        const imagePreview = document.getElementById('image-preview');
+        const imageClearBtn = document.getElementById('image-clear-btn');
+        const clearImageField = document.getElementById('clear_image');
+
+        window.openFilePicker = function(useCamera) {
+            if (imageInput) {
+                if (useCamera) {
+                    imageInput.setAttribute('capture', 'environment');
+                } else {
+                    imageInput.removeAttribute('capture');
+                }
+                imageInput.click();
+            }
+        };
+
+        window.clearImage = function(e) {
+            if (e && typeof e.stopPropagation === 'function') {
+                e.stopPropagation();
+            }
+            if (clearImageField) {
+                clearImageField.value = '1';
+            }
+            if (imageInput) {
+                imageInput.value = '';
+            }
+            if (imagePreview && imagePreviewWrap) {
+                imagePreview.src = '';
+                imagePreviewWrap.classList.add('hidden');
+            }
+            if (imageUploadContent) {
+                imageUploadContent.classList.remove('hidden');
+            }
+        };
+
+        if (imageClearBtn) {
+            imageClearBtn.addEventListener('click', function(e) {
+                window.clearImage(e);
+            });
+        }
+
+        if (imageDropZone) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                imageDropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                imageDropZone.addEventListener(eventName, () => {
+                    imageDropZone.classList.add('border-brand-purple', 'bg-brand-purple/5');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                imageDropZone.addEventListener(eventName, () => {
+                    imageDropZone.classList.remove('border-brand-purple', 'bg-brand-purple/5');
+                }, false);
+            });
+
+            imageDropZone.addEventListener('drop', function(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+
+                if (files && files.length > 0 && imageInput) {
+                    imageInput.files = files;
+                    imageInput.dispatchEvent(new Event('change'));
+                }
+            }, false);
+        }
+
+        if (imageInput) {
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files && e.target.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    if (clearImageField) {
+                        clearImageField.value = '0';
+                    }
+                    compressImage(file, 800, 600, 0.7).then(compressedDataUrl => {
+                        if (imagePreview && imagePreviewWrap) {
+                            imagePreview.src = compressedDataUrl;
+                            imagePreviewWrap.classList.remove('hidden');
+                        }
+                        if (imageUploadContent) {
+                            imageUploadContent.classList.add('hidden');
+                        }
+                    });
+                }
+            });
+        }
+
+        function compressImage(file, maxWidth, maxHeight, quality) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = event => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height *= maxWidth / width;
+                                width = maxWidth;
+                            }
+                        } else if (height > maxHeight) {
+                            width *= maxHeight / height;
+                            height = maxHeight;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.onerror = () => resolve(URL.createObjectURL(file));
+                };
+                reader.onerror = () => resolve('');
+            });
+        }
+    });
+</script>
