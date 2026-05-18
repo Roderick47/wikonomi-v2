@@ -1,6 +1,28 @@
 {% extends 'base.html' %}
 {% load custom_filters cache %}
 
+{% block page_title %}Wikonomi — PNG Price Comparison{% endblock %}
+
+{% block og_tags %}
+{% with base_url="https://www.wikonomi.com" og_title="Wikonomi — Compare Prices Across PNG" og_description="Papua New Guinea's community-driven price comparison platform. See what shops near you are charging today." og_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
+<link rel="canonical" href="{{ base_url }}/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Wikonomi">
+<meta property="og:url" content="{{ base_url }}/">
+<meta property="og:title" content="{{ og_title }}">
+<meta property="og:description" content="{{ og_description }}">
+<meta property="og:image" content="{{ og_image }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_PG">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@wikonomi">
+<meta name="twitter:title" content="{{ og_title }}">
+<meta name="twitter:description" content="{{ og_description }}">
+<meta name="twitter:image" content="{{ og_image }}">
+{% endwith %}
+{% endblock %}
+
 {% block extra_head %}
 <style>
     #map {
