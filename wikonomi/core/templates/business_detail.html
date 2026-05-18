@@ -1,6 +1,48 @@
 {% extends 'base.html' %}
 {% load custom_filters %}
 
+{% block page_title %}{{ business.name }} | Wikonomi{% endblock %}
+
+{% block og_tags %}
+{% with base_url="https://www.wikonomi.com" default_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
+<link rel="canonical" href="{{ base_url }}/business/{{ business.id }}/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Wikonomi">
+<meta property="og:url" content="{{ base_url }}/business/{{ business.id }}/">
+<meta property="og:title" content="{{ business.name }} — Prices at {{ business.name }} | Wikonomi">
+<meta property="og:description" content="Browse reported prices at {{ business.name }} in PNG. Find the best deals near you on Wikonomi.">
+{% if business.logo %}
+<meta property="og:image" content="{{ business.logo.url|absolute_url:base_url }}">
+<meta property="og:image:secure_url" content="{{ business.logo.url|absolute_url:base_url }}">
+<meta property="og:image:type" content="image/jpeg">
+{% elif business.image %}
+<meta property="og:image" content="{{ business.image.url|absolute_url:base_url }}">
+<meta property="og:image:secure_url" content="{{ business.image.url|absolute_url:base_url }}">
+<meta property="og:image:type" content="image/jpeg">
+{% else %}
+<meta property="og:image" content="{{ default_image }}">
+<meta property="og:image:secure_url" content="{{ default_image }}">
+<meta property="og:image:type" content="image/jpeg">
+{% endif %}
+<meta property="og:image:alt" content="{{ business.name }} on Wikonomi">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_PG">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@wikonomi">
+<meta name="twitter:title" content="{{ business.name }} — Prices at {{ business.name }} | Wikonomi">
+<meta name="twitter:description" content="Browse reported prices at {{ business.name }} in PNG. Find the best deals near you on Wikonomi.">
+{% if business.logo %}
+<meta name="twitter:image" content="{{ business.logo.url|absolute_url:base_url }}">
+{% elif business.image %}
+<meta name="twitter:image" content="{{ business.image.url|absolute_url:base_url }}">
+{% else %}
+<meta name="twitter:image" content="{{ default_image }}">
+{% endif %}
+<meta name="twitter:image:alt" content="{{ business.name }} on Wikonomi">
+{% endwith %}
+{% endblock %}
+
 {% block extra_head %}
 <style>
     #map {

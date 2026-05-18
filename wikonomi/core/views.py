@@ -467,6 +467,7 @@ class PriceReportDetailView(DetailView):
             price_analysis = None
 
         context['price_analysis'] = price_analysis
+        context['price'] = report
         
         # Get nearby prices if the report has coordinates
         if report.latitude and report.longitude:
