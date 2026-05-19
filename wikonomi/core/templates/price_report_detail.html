@@ -506,3 +506,42 @@
     });
 </script>
 {% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    const ratingContainer = document.querySelector('[data-star-rating]');
+    if (!ratingContainer || !csrftoken) return;
+
+    const buttons = ratingContainer.querySelectorAll('.star-btn');
+    const avgNode = document.getElementById('product-rating-avg');
+    const setStars = (active) => {
+        buttons.forEach((btn, index) => {
+            btn.classList.toggle('text-amber-400', index < active);
+            btn.classList.toggle('text-gray-300', index >= active);
+        });
+    };
+
+    buttons.forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            const rating = Number(btn.dataset.value);
+            setStars(rating);
+            const body = new URLSearchParams({
+                product_id: ratingContainer.dataset.productId,
+                rating: rating
+            });
+            const response = await fetch("{% url 'submit_star_rating' %}", {
+                method: 'POST',
+                headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'},
+                body
+            });
+            if (response.ok) {
+                const data = await response.json();
+                if (data.avg_rating !== null) avgNode.textContent = Number(data.avg_rating).toFixed(1);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

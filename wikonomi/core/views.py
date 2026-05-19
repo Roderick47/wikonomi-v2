@@ -255,9 +255,15 @@ def _get_business_queryset(request):
         
         # Convert back to queryset and order
         business_ids = [b.id for b in businesses]
-        return Business.objects.filter(id__in=business_ids).order_by('name')
+        return Business.objects.filter(id__in=business_ids).annotate(
+            avg_rating=Avg('reviews__rating'),
+            rating_count=Count('reviews__rating')
+        ).order_by('name')
     
-    return Business.objects.none()
+    return Business.objects.none().annotate(
+        avg_rating=Avg('reviews__rating'),
+        rating_count=Count('reviews__rating')
+    )
 
 def home(request):
     query = request.GET.get('q', '').strip()
@@ -399,7 +405,8 @@ def load_more_prices(request):
                 'id': business.id,
                 'name': business.name,
                 'image_url': business.image.url if business.image else None,
-                'price_reports_count': business.price_reports.count()
+                'price_reports_count': business.price_reports.count(),
+                'avg_rating': business.avg_rating
             })
         response_data['businesses'] = businesses_data
     
