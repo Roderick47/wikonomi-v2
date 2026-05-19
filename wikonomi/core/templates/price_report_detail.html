@@ -111,28 +111,6 @@
                             <br>Last edited by {{ report.last_edited_by.username }} on {{ report.updated_at|date:"F j, Y, P" }}
                         {% endif %}
                     </p>
-                    <div class="mt-4 grid sm:grid-cols-2 gap-4">
-                        {% if user.is_authenticated %}
-                        <form method="post" action="{% url 'submit_review' %}" class="p-3 bg-gray-50 rounded-lg">
-                            {% csrf_token %}
-                            <input type="hidden" name="product_id" value="{{ report.product.id }}">
-                            <p class="text-sm font-semibold mb-2">Rate product</p>
-                            {{ review_form.rating }}
-                            {{ review_form.review_text }}
-                            <button type="submit" class="mt-2 px-3 py-1.5 bg-brand-purple text-white rounded text-sm">Submit</button>
-                        </form>
-                        {% if report.business %}
-                        <form method="post" action="{% url 'submit_review' %}" class="p-3 bg-gray-50 rounded-lg">
-                            {% csrf_token %}
-                            <input type="hidden" name="business_id" value="{{ report.business.id }}">
-                            <p class="text-sm font-semibold mb-2">Rate business</p>
-                            {{ review_form.rating }}
-                            {{ review_form.review_text }}
-                            <button type="submit" class="mt-2 px-3 py-1.5 bg-brand-purple text-white rounded text-sm">Submit</button>
-                        </form>
-                        {% endif %}
-                        {% endif %}
-                    </div>
                 </div>
                 <div class="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-start gap-3 shrink-0">
                     {% if user.is_authenticated %}

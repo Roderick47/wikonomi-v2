@@ -153,30 +153,6 @@
     </div>
     {% endif %}
 
-    <div class="bg-white shadow rounded-lg mb-8">
-        <div class="px-4 py-5 sm:p-6">
-            <h2 class="text-lg font-medium text-gray-900 mb-2">Ratings & Reviews</h2>
-            <p class="text-sm text-gray-600 mb-4">Average rating: <strong>{% if business_avg_rating %}{{ business_avg_rating|floatformat:1 }}/5{% else %}-{% endif %}</strong> ({{ business_rating_count }} ratings)</p>
-            {% if user.is_authenticated %}
-            <form method="post" action="{% url 'submit_review' %}" class="space-y-3 mb-6">
-                {% csrf_token %}
-                <input type="hidden" name="business_id" value="{{ business.id }}">
-                {{ review_form.rating }}
-                {{ review_form.review_text }}
-                <button type="submit" class="px-4 py-2 bg-brand-purple text-white rounded-md text-sm">Submit Review</button>
-            </form>
-            {% endif %}
-            {% for review in business_reviews %}
-                <div class="border-t py-3">
-                    <p class="text-sm font-medium">{{ review.user.username }} {% if review.rating %}• ⭐ {{ review.rating }}/5{% endif %}</p>
-                    {% if review.review_text %}<p class="text-sm text-gray-700 mt-1">{{ review.review_text }}</p>{% endif %}
-                </div>
-            {% empty %}
-                <p class="text-sm text-gray-500">No reviews yet.</p>
-            {% endfor %}
-        </div>
-    </div>
-
     <!-- Map Section -->
     {% if reports_with_location %}
     <div class="bg-white shadow rounded-lg mb-8">
