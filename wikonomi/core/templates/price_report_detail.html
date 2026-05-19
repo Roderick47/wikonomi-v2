@@ -111,6 +111,41 @@
                             <br>Last edited by {{ report.last_edited_by.username }} on {{ report.updated_at|date:"F j, Y, P" }}
                         {% endif %}
                     </p>
+                    <div class="mt-4">
+                        <div class="mb-3">
+                            <p class="text-sm text-gray-600 mb-1">Price rating</p>
+                            <div class="flex items-center gap-1" data-star-rating data-product-id="{{ report.product.id }}">
+                                {% for star in "12345" %}
+                                <button type="button" class="star-btn text-2xl leading-none text-gray-300 hover:text-amber-400" data-value="{{ forloop.counter }}">★</button>
+                                {% endfor %}
+                                <span class="ml-2 text-sm text-gray-600">
+                                    <span id="product-rating-avg">{% if product_avg_rating %}{{ product_avg_rating|floatformat:1 }}{% else %}0.0{% endif %}</span>/5
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 grid sm:grid-cols-2 gap-4">
+                        {% if user.is_authenticated %}
+                        <form method="post" action="{% url 'submit_review' %}" class="p-3 bg-gray-50 rounded-lg">
+                            {% csrf_token %}
+                            <input type="hidden" name="product_id" value="{{ report.product.id }}">
+                            <p class="text-sm font-semibold mb-2">Rate product</p>
+                            {{ review_form.rating }}
+                            {{ review_form.review_text }}
+                            <button type="submit" class="mt-2 px-3 py-1.5 bg-brand-purple text-white rounded text-sm">Submit</button>
+                        </form>
+                        {% if report.business %}
+                        <form method="post" action="{% url 'submit_review' %}" class="p-3 bg-gray-50 rounded-lg">
+                            {% csrf_token %}
+                            <input type="hidden" name="business_id" value="{{ report.business.id }}">
+                            <p class="text-sm font-semibold mb-2">Rate business</p>
+                            {{ review_form.rating }}
+                            {{ review_form.review_text }}
+                            <button type="submit" class="mt-2 px-3 py-1.5 bg-brand-purple text-white rounded text-sm">Submit</button>
+                        </form>
+                        {% endif %}
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-start gap-3 shrink-0">
                     {% if user.is_authenticated %}
@@ -482,5 +517,44 @@
             });
         }
     });
+</script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    const ratingContainer = document.querySelector('[data-star-rating]');
+    if (!ratingContainer || !csrftoken) return;
+
+    const buttons = ratingContainer.querySelectorAll('.star-btn');
+    const avgNode = document.getElementById('product-rating-avg');
+    const setStars = (active) => {
+        buttons.forEach((btn, index) => {
+            btn.classList.toggle('text-amber-400', index < active);
+            btn.classList.toggle('text-gray-300', index >= active);
+        });
+    };
+
+    buttons.forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            const rating = Number(btn.dataset.value);
+            setStars(rating);
+            const body = new URLSearchParams({
+                product_id: ratingContainer.dataset.productId,
+                rating: rating
+            });
+            const response = await fetch("{% url 'submit_star_rating' %}", {
+                method: 'POST',
+                headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'},
+                body
+            });
+            if (response.ok) {
+                const data = await response.json();
+                if (data.avg_rating !== null) avgNode.textContent = Number(data.avg_rating).toFixed(1);
+            }
+        });
+    });
+});
 </script>
 {% endblock %}

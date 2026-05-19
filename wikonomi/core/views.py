@@ -18,7 +18,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django import forms
 from django.views.decorators.cache import cache_page
-from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher
+from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, Review
 
 class PriceReportForm(forms.ModelForm):
     class Meta:
@@ -42,6 +42,25 @@ class BusinessForm(forms.ModelForm):
             'details': forms.Textarea(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'rows': 4, 'placeholder': 'Add any additional information about this business...'}),
             'image': forms.FileInput(attrs={'class': 'hidden', 'accept': 'image/*'}),
         }
+
+
+class ReviewForm(forms.ModelForm):
+    class Meta:
+        model = Review
+        fields = ['rating', 'review_text']
+        widgets = {
+            'rating': forms.Select(
+                choices=[('', 'No rating')] + [(i, f'{i} star{"s" if i != 1 else ""}') for i in range(1, 6)],
+                attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 sm:text-sm'}
+            ),
+            'review_text': forms.Textarea(attrs={'rows': 3, 'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 sm:text-sm', 'placeholder': 'Write an optional review...'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not cleaned_data.get('rating') and not (cleaned_data.get('review_text') or '').strip():
+            raise forms.ValidationError("Please provide at least a rating or a review.")
+        return cleaned_data
 
 class PriceReportCreateView(CreateView):
     model = PriceReport
@@ -236,9 +255,15 @@ def _get_business_queryset(request):
         
         # Convert back to queryset and order
         business_ids = [b.id for b in businesses]
-        return Business.objects.filter(id__in=business_ids).order_by('name')
+        return Business.objects.filter(id__in=business_ids).annotate(
+            avg_rating=Avg('reviews__rating'),
+            rating_count=Count('reviews__rating')
+        ).order_by('name')
     
-    return Business.objects.none()
+    return Business.objects.none().annotate(
+        avg_rating=Avg('reviews__rating'),
+        rating_count=Count('reviews__rating')
+    )
 
 def home(request):
     query = request.GET.get('q', '').strip()
@@ -248,7 +273,12 @@ def home(request):
     
     # Get price reports
     latest_prices, sort, user_lat, user_lng = _get_prices_queryset(request)
-    latest_prices = latest_prices[:20]
+    latest_prices = latest_prices.annotate(
+        product_avg_rating=Avg('product__reviews__rating'),
+        product_rating_count=Count('product__reviews__rating'),
+        business_avg_rating=Avg('business__reviews__rating'),
+        business_rating_count=Count('business__reviews__rating'),
+    )[:20]
     
     # Get businesses if there's a search query
     businesses = []
@@ -375,7 +405,8 @@ def load_more_prices(request):
                 'id': business.id,
                 'name': business.name,
                 'image_url': business.image.url if business.image else None,
-                'price_reports_count': business.price_reports.count()
+                'price_reports_count': business.price_reports.count(),
+                'avg_rating': business.avg_rating
             })
         response_data['businesses'] = businesses_data
     
@@ -497,6 +528,11 @@ class PriceReportDetailView(DetailView):
             context['is_watching'] = False
             context['can_vote_delete'] = False
             context['can_delete'] = False
+        context['product_reviews'] = Review.objects.filter(product=report.product).select_related('user')[:10]
+        context['business_reviews'] = Review.objects.filter(business=report.business).select_related('user')[:10] if report.business else []
+        context['review_form'] = ReviewForm()
+        context['product_avg_rating'] = Review.objects.filter(product=report.product, rating__isnull=False).aggregate(avg=Avg('rating'))['avg']
+        context['product_rating_count'] = Review.objects.filter(product=report.product, rating__isnull=False).count()
             
         return context
 
@@ -538,6 +574,10 @@ class BusinessDetailView(DetailView):
         context['products_data'] = products_data
         context['total_reports'] = price_reports.count()
         context['reports_with_location_count'] = reports_with_location.count()
+        context['business_reviews'] = Review.objects.filter(business=business).select_related('user')[:15]
+        context['review_form'] = ReviewForm()
+        context['business_avg_rating'] = Review.objects.filter(business=business, rating__isnull=False).aggregate(avg=Avg('rating'))['avg']
+        context['business_rating_count'] = Review.objects.filter(business=business, rating__isnull=False).count()
         
         return context
 
@@ -947,6 +987,76 @@ def delete_price_report(request, pk):
     report.delete()
     messages.success(request, 'Price report has been deleted.')
     return redirect('home')
+
+
+@login_required
+@require_POST
+def submit_review(request):
+    product_id = request.POST.get('product_id')
+    business_id = request.POST.get('business_id')
+    product = Product.objects.filter(pk=product_id).first() if product_id else None
+    business = Business.objects.filter(pk=business_id).first() if business_id else None
+
+    if not product and not business:
+        messages.error(request, 'Invalid review target.')
+        return redirect(request.META.get('HTTP_REFERER', 'home'))
+
+    form = ReviewForm(request.POST)
+    if form.is_valid():
+        Review.objects.update_or_create(
+            user=request.user,
+            product=product,
+            business=business,
+            defaults={
+                'rating': form.cleaned_data.get('rating') or None,
+                'review_text': form.cleaned_data.get('review_text', '').strip()
+            }
+        )
+        messages.success(request, 'Your review has been saved.')
+    else:
+        messages.error(request, 'Please provide at least a rating or a review.')
+    return redirect(request.META.get('HTTP_REFERER', 'home'))
+
+
+@login_required
+@require_POST
+def submit_star_rating(request):
+    product_id = request.POST.get('product_id')
+    business_id = request.POST.get('business_id')
+    rating = request.POST.get('rating')
+
+    try:
+        rating = int(rating)
+    except (TypeError, ValueError):
+        return JsonResponse({'ok': False, 'error': 'Invalid rating'}, status=400)
+
+    if rating < 1 or rating > 5:
+        return JsonResponse({'ok': False, 'error': 'Rating must be 1-5'}, status=400)
+
+    product = Product.objects.filter(pk=product_id).first() if product_id else None
+    business = Business.objects.filter(pk=business_id).first() if business_id else None
+    if not product and not business:
+        return JsonResponse({'ok': False, 'error': 'Invalid target'}, status=400)
+
+    Review.objects.update_or_create(
+        user=request.user,
+        product=product,
+        business=business,
+        defaults={'rating': rating}
+    )
+
+    aggregate_filter = {'rating__isnull': False}
+    if product:
+        aggregate_filter['product'] = product
+    else:
+        aggregate_filter['business'] = business
+
+    stats = Review.objects.filter(**aggregate_filter).aggregate(avg=Avg('rating'), count=Count('rating'))
+    return JsonResponse({
+        'ok': True,
+        'avg_rating': round(float(stats['avg']), 1) if stats['avg'] is not None else None,
+        'rating_count': stats['count']
+    })
 
 
 # ── Bulk CSV Upload ──────────────────────────────────────────────────────────

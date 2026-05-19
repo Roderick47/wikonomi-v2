@@ -7,6 +7,7 @@ from django.dispatch import receiver
 from django_resized import ResizedImageField
 from django.core.cache import cache
 from django.utils.text import slugify
+from django.core.validators import MinValueValidator, MaxValueValidator
 from difflib import SequenceMatcher
 import re
 
@@ -775,6 +776,37 @@ class ProductWatchlist(models.Model):
 
     def __str__(self):
         return f"{self.user.username} watching {self.product.name}"
+
+
+class Review(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True, related_name='reviews')
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, null=True, blank=True, related_name='reviews')
+    rating = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
+    review_text = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'product', 'business'], name='uniq_review_per_user_target')
+        ]
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if not self.product and not self.business:
+            raise ValidationError("A review must target a product or business.")
+        if self.rating is None and not self.review_text.strip():
+            raise ValidationError("Provide at least a rating or review text.")
+
+    def __str__(self):
+        target = self.business.name if self.business else (self.product.name if self.product else "Unknown")
+        return f"Review by {self.user.username} for {target}"
 
 # Signal to track watchlist additions
 @receiver(post_save, sender=ProductWatchlist)

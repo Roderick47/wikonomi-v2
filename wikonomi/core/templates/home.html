@@ -222,9 +222,7 @@
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-purple/10 text-brand-purple">
                             View Prices
                         </span>
-                        <div class="text-xs text-gray-400">
-                            {{ business.price_reports.count }} price report{{ business.price_reports.count|pluralize }}
-                        </div>
+                        <div class="text-xs text-amber-600 font-medium">★ {{ business.avg_rating|default:"0.0"|floatformat:1 }}/5</div>
                     </div>
                 </div>
             </a>
@@ -266,6 +264,7 @@
                             @ {{ report.business.name }}
                         </div>
                         {% endif %}
+                        <div class="mt-2 text-xs text-amber-600 font-semibold">★ {{ report.product_avg_rating|default:"0.0"|floatformat:1 }}/5</div>
                     </div>
                     <div class="flex flex-col items-end space-y-2">
                          <button onclick="sharePriceReport(event, {title: '{{ report.product.name }}', text: 'Checked {{ report.product.name }} at {{ report.business.name|default:"Unknown" }} for {{ report.currency }} {{ report.price|intcomma }} on Wikonomi.', url: window.location.origin + '{% url 'price_detail' report.pk %}'})" class="p-2 text-gray-400 hover:text-brand-purple transition-colors rounded-full hover:bg-brand-purple/10" title="Share">
@@ -527,8 +526,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-purple/10 text-brand-purple">
                         View Prices
                     </span>
-                    <div class="text-xs text-gray-400">
-                        ${business.price_reports_count} price report${business.price_reports_count !== 1 ? 's' : ''}
+                    <div class="text-xs text-amber-600 font-medium">
+                        ★ ${business.avg_rating ? Number(business.avg_rating).toFixed(1) : '0.0'}/5
                     </div>
                 </div>
             </div>
