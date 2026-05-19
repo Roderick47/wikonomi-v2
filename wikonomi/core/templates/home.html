@@ -264,7 +264,10 @@
                             @ {{ report.business.name }}
                         </div>
                         {% endif %}
-                        <div class="mt-2 text-xs text-amber-600 font-semibold">★ {{ report.product_avg_rating|default:"0.0"|floatformat:1 }}/5</div>
+                        <div class="mt-2 text-xs text-gray-500 space-y-1">
+                            <div>Product: ⭐ {{ report.product_avg_rating|default:"-"|floatformat:1 }} ({{ report.product_rating_count }})</div>
+                            {% if report.business %}<div>Business: ⭐ {{ report.business_avg_rating|default:"-"|floatformat:1 }} ({{ report.business_rating_count }})</div>{% endif %}
+                        </div>
                     </div>
                     <div class="flex flex-col items-end space-y-2">
                          <button onclick="sharePriceReport(event, {title: '{{ report.product.name }}', text: 'Checked {{ report.product.name }} at {{ report.business.name|default:"Unknown" }} for {{ report.currency }} {{ report.price|intcomma }} on Wikonomi.', url: window.location.origin + '{% url 'price_detail' report.pk %}'})" class="p-2 text-gray-400 hover:text-brand-purple transition-colors rounded-full hover:bg-brand-purple/10" title="Share">

@@ -531,8 +531,6 @@ class PriceReportDetailView(DetailView):
         context['product_reviews'] = Review.objects.filter(product=report.product).select_related('user')[:10]
         context['business_reviews'] = Review.objects.filter(business=report.business).select_related('user')[:10] if report.business else []
         context['review_form'] = ReviewForm()
-        context['product_avg_rating'] = Review.objects.filter(product=report.product, rating__isnull=False).aggregate(avg=Avg('rating'))['avg']
-        context['product_rating_count'] = Review.objects.filter(product=report.product, rating__isnull=False).count()
             
         return context
 
@@ -1016,47 +1014,6 @@ def submit_review(request):
     else:
         messages.error(request, 'Please provide at least a rating or a review.')
     return redirect(request.META.get('HTTP_REFERER', 'home'))
-
-
-@login_required
-@require_POST
-def submit_star_rating(request):
-    product_id = request.POST.get('product_id')
-    business_id = request.POST.get('business_id')
-    rating = request.POST.get('rating')
-
-    try:
-        rating = int(rating)
-    except (TypeError, ValueError):
-        return JsonResponse({'ok': False, 'error': 'Invalid rating'}, status=400)
-
-    if rating < 1 or rating > 5:
-        return JsonResponse({'ok': False, 'error': 'Rating must be 1-5'}, status=400)
-
-    product = Product.objects.filter(pk=product_id).first() if product_id else None
-    business = Business.objects.filter(pk=business_id).first() if business_id else None
-    if not product and not business:
-        return JsonResponse({'ok': False, 'error': 'Invalid target'}, status=400)
-
-    Review.objects.update_or_create(
-        user=request.user,
-        product=product,
-        business=business,
-        defaults={'rating': rating}
-    )
-
-    aggregate_filter = {'rating__isnull': False}
-    if product:
-        aggregate_filter['product'] = product
-    else:
-        aggregate_filter['business'] = business
-
-    stats = Review.objects.filter(**aggregate_filter).aggregate(avg=Avg('rating'), count=Count('rating'))
-    return JsonResponse({
-        'ok': True,
-        'avg_rating': round(float(stats['avg']), 1) if stats['avg'] is not None else None,
-        'rating_count': stats['count']
-    })
 
 
 # ── Bulk CSV Upload ──────────────────────────────────────────────────────────

@@ -111,19 +111,6 @@
                             <br>Last edited by {{ report.last_edited_by.username }} on {{ report.updated_at|date:"F j, Y, P" }}
                         {% endif %}
                     </p>
-                    <div class="mt-4">
-                        <div class="mb-3">
-                            <p class="text-sm text-gray-600 mb-1">Price rating</p>
-                            <div class="flex items-center gap-1" data-star-rating data-product-id="{{ report.product.id }}">
-                                {% for star in "12345" %}
-                                <button type="button" class="star-btn text-2xl leading-none text-gray-300 hover:text-amber-400" data-value="{{ forloop.counter }}">★</button>
-                                {% endfor %}
-                                <span class="ml-2 text-sm text-gray-600">
-                                    <span id="product-rating-avg">{% if product_avg_rating %}{{ product_avg_rating|floatformat:1 }}{% else %}0.0{% endif %}</span>/5
-                                </span>
-                            </div>
-                        </div>
-                    </div>
                     <div class="mt-4 grid sm:grid-cols-2 gap-4">
                         {% if user.is_authenticated %}
                         <form method="post" action="{% url 'submit_review' %}" class="p-3 bg-gray-50 rounded-lg">
