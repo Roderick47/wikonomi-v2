@@ -13,12 +13,13 @@ from django.utils import timezone
 from datetime import timedelta
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.cache import cache
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django import forms
 from django.views.decorators.cache import cache_page
-from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher
+from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, PriceLike, create_like_threshold_notification
 
 
 def _get_matched_product_ids(query):
@@ -258,6 +259,10 @@ def home(request):
     # Get price reports
     latest_prices, sort, user_lat, user_lng = _get_prices_queryset(request)
     latest_prices = latest_prices[:20]
+    if request.user.is_authenticated:
+        liked_ids = set(PriceLike.objects.filter(user=request.user, price_report__in=latest_prices).values_list('price_report_id', flat=True))
+        for report in latest_prices:
+            report.is_liked_by_user = report.id in liked_ids
     
     # Get businesses if there's a search query
     businesses = []
@@ -363,6 +368,11 @@ def load_more_prices(request):
             'has_location': bool(price.latitude and price.longitude),
             'timesince': f"{rounded_timesince_js(price.updated_at if price.is_updated else price.observed_at)} ago"
         }
+        item_data['likes_count'] = price.likes.count()
+        item_data['is_liked_by_user'] = request.user.is_authenticated and PriceLike.objects.filter(
+            user=request.user,
+            price_report=price
+        ).exists()
         # Add distance if available
         if hasattr(price, 'distance_km'):
             item_data['distance_km'] = round(price.distance_km, 1)
@@ -496,6 +506,7 @@ class PriceReportDetailView(DetailView):
                 user=self.request.user,
                 product=report.product
             ).exists()
+            context['is_liked'] = PriceLike.objects.filter(user=self.request.user, price_report=report).exists()
             # Deletion permission context
             if report.marked_for_deletion:
                 context['can_vote_delete'] = report.can_vote_delete(self.request.user)
@@ -505,6 +516,7 @@ class PriceReportDetailView(DetailView):
                 context['can_delete'] = False
         else:
             context['is_watching'] = False
+            context['is_liked'] = False
             context['can_vote_delete'] = False
             context['can_delete'] = False
             
@@ -808,6 +820,35 @@ def notifications_view(request):
     unread_count = notifications.filter(is_read=False).count()
     notifications.filter(is_read=False).update(is_read=True)
     return render(request, 'notifications.html', {'notifications': notifications, 'unread_count': unread_count})
+
+
+@login_required
+@require_POST
+def toggle_price_like(request, pk):
+    report = get_object_or_404(PriceReport, pk=pk)
+    like, created = PriceLike.objects.get_or_create(user=request.user, price_report=report)
+    liked = created
+    if not created:
+        like.delete()
+        liked = False
+
+    likes_count = report.likes.count()
+    if liked and request.user != report.user and likes_count in PriceLike.LIKE_NOTIFICATION_THRESHOLDS:
+        create_like_threshold_notification(report, likes_count)
+    if hasattr(cache, 'delete_pattern'):
+        cache.delete_pattern('views.decorators.cache.cache_page.*load_more_prices*')
+    else:
+        cache.clear()
+    return JsonResponse({'liked': liked, 'likes_count': likes_count})
+
+
+@login_required
+@require_POST
+def mute_notification(request, pk):
+    notification = get_object_or_404(Notification, pk=pk, user=request.user)
+    notification.muted = True
+    notification.save(update_fields=['muted'])
+    return JsonResponse({'status': 'ok'})
 
 @login_required
 def shopping_lists_view(request):

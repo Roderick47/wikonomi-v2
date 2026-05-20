@@ -88,6 +88,9 @@
                                     <svg class="h-3 w-3 sm:h-4 sm:w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                     <span id="list-btn-text">Add to List</span>
                                 </button>
+                                <button id="like-btn" data-price-id="{{ report.id }}" class="inline-flex items-center px-2 py-1 text-xs sm:text-sm rounded border transition-colors {% if is_liked %}bg-blue-50 text-blue-700 border-blue-200{% else %}bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200{% endif %}">
+                                    👍 <span id="like-count" class="ml-1">{{ report.likes.count }}</span>
+                                </button>
                             </div>
                         {% endif %}
                     </div>
@@ -479,6 +482,20 @@
                     }
                 })
                 .catch(error => console.error('Error adding to list:', error));
+            });
+        }
+
+        const likeBtn = document.getElementById('like-btn');
+        if (likeBtn) {
+            likeBtn.addEventListener('click', function() {
+                const priceId = this.getAttribute('data-price-id');
+                fetch(`/price/${priceId}/like/`, {
+                    method: 'POST',
+                    headers: {'X-CSRFToken': '{{ csrf_token }}'}
+                }).then(response => response.json()).then(data => {
+                    document.getElementById('like-count').innerText = data.likes_count;
+                    likeBtn.className = `inline-flex items-center px-2 py-1 text-xs sm:text-sm rounded border transition-colors ${data.liked ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200'}`;
+                });
             });
         }
     });

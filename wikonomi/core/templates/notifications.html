@@ -11,9 +11,10 @@
         {% if notifications %}
             <ul class="divide-y divide-gray-200">
                 {% for n in notifications %}
-                <li>
-                    <a href="{% url 'price_detail' n.price_report.id %}" class="block p-4 sm:p-6 hover:bg-gray-50 transition-colors {% if not n.is_read %}bg-brand-purple/5 border-l-4 border-brand-purple{% endif %}">
-                        <div class="flex flex-col gap-1.5">
+                <li id="notification-{{ n.id }}">
+                    <div class="block p-4 sm:p-6 hover:bg-gray-50 transition-colors {% if not n.is_read %}bg-brand-purple/5 border-l-4 border-brand-purple{% endif %}">
+                        <a href="{% url 'price_detail' n.price_report.id %}" class="block">
+                        <div class="flex flex-col gap-1.5 mb-2">
                             <div class="text-sm sm:text-base font-semibold text-gray-900 leading-tight">
                                 {{ n.message }}
                             </div>
@@ -21,8 +22,11 @@
                                 <svg class="h-3.5 w-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 {{ n.created_at|rounded_timesince }}
                             </div>
-                        </div>
-                    </a>
+                        </div></a>
+                        <button onclick="muteNotification({{ n.id }})" {% if n.muted %}disabled{% endif %} class="text-xs px-2 py-1 rounded border {% if n.muted %}bg-gray-100 text-gray-400 border-gray-200{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-100{% endif %}">
+                            {% if n.muted %}Notifications Off{% else %}Stop notifications like this{% endif %}
+                        </button>
+                    </div>
                 </li>
                 {% endfor %}
             </ul>
@@ -33,4 +37,16 @@
         {% endif %}
     </div>
 </div>
+<script>
+function muteNotification(id) {
+    fetch(`/notifications/${id}/mute/`, {method: 'POST', headers: {'X-CSRFToken': '{{ csrf_token }}'}})
+        .then(r => r.json()).then(() => {
+            const item = document.getElementById(`notification-${id}`);
+            const btn = item.querySelector('button');
+            btn.textContent = 'Notifications Off';
+            btn.disabled = true;
+            btn.className = 'text-xs px-2 py-1 rounded border bg-gray-100 text-gray-400 border-gray-200';
+        });
+}
+</script>
 {% endblock %}
