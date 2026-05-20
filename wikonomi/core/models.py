@@ -792,6 +792,7 @@ class Notification(models.Model):
     price_report = models.ForeignKey(PriceReport, on_delete=models.CASCADE)
     message = models.CharField(max_length=255)
     is_read = models.BooleanField(default=False)
+    muted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -799,6 +800,39 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notification for {self.user.username}: {self.message}"
+
+
+class PriceLike(models.Model):
+    LIKE_NOTIFICATION_THRESHOLDS = [1, 5, 10, 50, 100, 200, 500, 1000]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='price_likes')
+    price_report = models.ForeignKey(PriceReport, on_delete=models.CASCADE, related_name='likes')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'price_report')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} liked price report #{self.price_report_id}"
+
+
+def create_like_threshold_notification(price_report, threshold):
+    owner = price_report.user
+    template = f"Your price post for {price_report.product.name} reached {threshold} like{'s' if threshold != 1 else ''}."
+    if Notification.objects.filter(
+        user=owner,
+        price_report=price_report,
+        muted=True,
+        message__startswith=f"Your price post for {price_report.product.name} reached"
+    ).exists():
+        return
+    Notification.objects.get_or_create(
+        user=owner,
+        product=price_report.product,
+        price_report=price_report,
+        message=template,
+    )
 
 @receiver(post_save, sender=PriceHistory)
 def create_price_change_notification(sender, instance, created, **kwargs):
