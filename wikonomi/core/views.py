@@ -835,10 +835,6 @@ def toggle_price_like(request, pk):
     likes_count = report.likes.count()
     if liked and request.user != report.user and likes_count in PriceLike.LIKE_NOTIFICATION_THRESHOLDS:
         create_like_threshold_notification(report, likes_count)
-    if hasattr(cache, 'delete_pattern'):
-        cache.delete_pattern('views.decorators.cache.cache_page.*load_more_prices*')
-    else:
-        cache.clear()
     return JsonResponse({'liked': liked, 'likes_count': likes_count})
 
 
