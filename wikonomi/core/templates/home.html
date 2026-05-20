@@ -242,7 +242,6 @@
     {% endif %}
     
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="price-feed">
-        {% cache 120 home_feed_content request.GET.urlencode %}
         {% for report in latest_prices %}
         <a href="{% url 'price_detail' report.pk %}" class="block bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <div class="p-6">
@@ -320,7 +319,6 @@
             {% endif %}
         </div>
         {% endfor %}
-        {% endcache %}
     </div>
     
     <!-- Loading indicator -->
