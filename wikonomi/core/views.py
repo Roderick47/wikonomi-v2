@@ -20,6 +20,37 @@ from django import forms
 from django.views.decorators.cache import cache_page
 from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher
 
+
+def _get_matched_product_ids(query):
+    """
+    Return matched product IDs for a search query.
+
+    Uses independent ID queries instead of queryset unions so this stays
+    compatible across database backends and avoids brittle compound SQL.
+    """
+    if not query:
+        return set()
+
+    query_signature = ProductAlias.create_normalized_signature(query)
+
+    exact_ids = set(
+        Product.objects.filter(name__icontains=query).values_list('id', flat=True)
+    )
+    alias_ids = set(
+        Product.objects.filter(
+            aliases__alias_name__icontains=query,
+            aliases__is_active=True
+        ).values_list('id', flat=True)
+    )
+    signature_ids = set(
+        Product.objects.filter(
+            aliases__signature=query_signature,
+            aliases__is_active=True
+        ).values_list('id', flat=True)
+    )
+
+    return exact_ids | alias_ids | signature_ids
+
 class PriceReportForm(forms.ModelForm):
     class Meta:
         model = PriceReport
@@ -149,36 +180,19 @@ def _get_prices_queryset(request):
     
     if query:
         # Enhanced search using product normalization
-        # 1. Try exact product matches first
-        exact_products = Product.objects.filter(name__icontains=query).distinct()
-        
-        # 2. Try alias matches
-        alias_products = Product.objects.filter(
-            aliases__alias_name__icontains=query,
-            aliases__is_active=True
-        ).distinct()
-        
-        # 3. Try signature-based matching for pattern variations
-        query_signature = ProductAlias.create_normalized_signature(query)
-        signature_products = Product.objects.filter(
-            aliases__signature=query_signature,
-            aliases__is_active=True
-        ).distinct()
-        
-        # Combine all matched products
-        matched_products = (exact_products | alias_products | signature_products).distinct()
+        matched_product_ids = _get_matched_product_ids(query)
         
         # Build search query
         search_query = Q()
         
-        if matched_products.exists():
-            search_query |= Q(product__in=matched_products)
+        if matched_product_ids:
+            search_query |= Q(product_id__in=matched_product_ids)
         
         # Also search business names
         search_query |= Q(business__name__icontains=query)
         
         # If no products matched, fall back to basic text search
-        if not matched_products.exists():
+        if not matched_product_ids:
             search_query |= Q(product__name__icontains=query)
         
         qs = qs.filter(search_query)
@@ -212,23 +226,12 @@ def _get_business_queryset(request):
         # Also return businesses that have products matching the search
         if query:
             # Find products matching the query (using same logic as price search)
-            exact_products = Product.objects.filter(name__icontains=query).distinct()
-            alias_products = Product.objects.filter(
-                aliases__alias_name__icontains=query,
-                aliases__is_active=True
-            ).distinct()
-            query_signature = ProductAlias.create_normalized_signature(query)
-            signature_products = Product.objects.filter(
-                aliases__signature=query_signature,
-                aliases__is_active=True
-            ).distinct()
-            
-            matched_products = (exact_products | alias_products | signature_products).distinct()
+            matched_product_ids = _get_matched_product_ids(query)
             
             # Get businesses that have price reports for these products
-            if matched_products.exists():
+            if matched_product_ids:
                 businesses_with_matched_products = set(Business.objects.filter(
-                    price_reports__product__in=matched_products
+                    price_reports__product_id__in=matched_product_ids
                 ).distinct())
                 
                 # Combine and deduplicate
@@ -237,13 +240,13 @@ def _get_business_queryset(request):
         # Convert back to queryset and order
         business_ids = [b.id for b in businesses]
         return Business.objects.filter(id__in=business_ids).annotate(
-            avg_rating=Avg('reviews__rating'),
-            rating_count=Count('reviews__rating')
+            avg_rating=Avg('price_reports__price'),
+            rating_count=Count('price_reports')
         ).order_by('name')
     
     return Business.objects.none().annotate(
-        avg_rating=Avg('reviews__rating'),
-        rating_count=Count('reviews__rating')
+        avg_rating=Avg('price_reports__price'),
+        rating_count=Count('price_reports')
     )
 
 def home(request):
