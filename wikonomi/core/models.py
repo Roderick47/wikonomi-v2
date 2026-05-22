@@ -6,9 +6,13 @@ from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django_resized import ResizedImageField
 from django.core.cache import cache
+from django.core.files.base import ContentFile
 from django.utils.text import slugify
 from difflib import SequenceMatcher
+from io import BytesIO
 import re
+
+from PIL import Image, ImageOps
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -753,8 +757,37 @@ class PriceHistory(models.Model):
         return f"Price change for {self.price_report.product}: {self.old_price} → {self.new_price}"
 
 # Auto H3 population
+
+
+def _normalize_uploaded_image_orientation(instance, field_name):
+    """Normalize image orientation based on EXIF so rendered images are upright."""
+    image_field = getattr(instance, field_name, None)
+    if not image_field:
+        return
+
+    try:
+        image_field.open('rb')
+        image = Image.open(image_field)
+        normalized = ImageOps.exif_transpose(image)
+
+        if normalized.mode not in ('RGB', 'L'):
+            normalized = normalized.convert('RGB')
+
+        buffer = BytesIO()
+        normalized.save(buffer, format='JPEG', quality=75, optimize=True)
+        buffer.seek(0)
+
+        original_name = getattr(image_field, 'name', 'image.jpg') or 'image.jpg'
+        normalized_name = original_name.rsplit('.', 1)[0] + '.jpg'
+        getattr(instance, field_name).save(normalized_name, ContentFile(buffer.read()), save=False)
+    except Exception:
+        # Keep original image if processing fails for any reason.
+        return
+
 @receiver(pre_save, sender=PriceReport)
 def populate_h3_index(sender, instance, **kwargs):
+    _normalize_uploaded_image_orientation(instance, "image")
+
     lat = getattr(instance, 'latitude', None)
     lng = getattr(instance, 'longitude', None)
     if lat is not None and lng is not None:
