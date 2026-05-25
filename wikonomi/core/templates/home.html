@@ -281,15 +281,16 @@
                 <div class="bg-gray-50 px-4 py-4 sm:px-6 mt-4">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
-                            {% if report.user.profile.profile_picture %}
-                                <img src="{{ report.user.profile.profile_picture.url }}" alt="{{ report.user.username }}'s profile picture" class="h-6 w-6 rounded-full object-cover">
-                            {% else %}
-                                <div class="h-6 w-6 rounded-full bg-gray-300 flex items-center justify-center">
+                            <div class="relative h-6 w-6">
+                                {% if report.user.profile.profile_picture %}
+                                    <img src="{{ report.user.profile.profile_picture.url }}" alt="{{ report.user.username }}'s profile picture" class="h-6 w-6 rounded-full object-cover" onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
+                                {% endif %}
+                                <div class="h-6 w-6 rounded-full bg-gray-300 flex items-center justify-center {% if report.user.profile.profile_picture %}hidden{% endif %}">
                                     <svg class="h-4 w-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
                                     </svg>
                                 </div>
-                            {% endif %}
+                            </div>
                             <div class="text-xs text-gray-500">
                                 <span class="font-medium">{{ report.user.username }}</span>
                                 <span class="text-gray-400"> • 
@@ -439,12 +440,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // Format price with commas
         const formattedPrice = Number(item.price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         
-        const profilePictureHtml = item.profile_picture_url 
-            ? `<img src="${item.profile_picture_url}" alt="${item.username}'s profile picture" class="h-6 w-6 rounded-full object-cover">`
-            : `<div class="h-6 w-6 rounded-full bg-gray-300 flex items-center justify-center">
-                <svg class="h-4 w-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                </svg>
+        const profilePictureHtml = `
+            <div class="relative h-6 w-6">
+                ${item.profile_picture_url 
+                    ? `<img src="${item.profile_picture_url}" alt="${item.username}'s profile picture" class="h-6 w-6 rounded-full object-cover" onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">`
+                    : ''}
+                <div class="h-6 w-6 rounded-full bg-gray-300 flex items-center justify-center ${item.profile_picture_url ? 'hidden' : ''}">
+                    <svg class="h-4 w-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                    </svg>
+                </div>
             </div>`;
         
         const locationHtml = item.has_location 
