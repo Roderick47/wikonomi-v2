@@ -544,7 +544,40 @@
 
 {% block extra_scripts %}
 <script>
+async function postPriceComment(parentId = null) {
+    const input = parentId
+        ? document.getElementById(`price-reply-${parentId}`)
+        : document.getElementById('price-comment-body');
+    if (!input) return;
+
+    const body = input.value.trim();
+    if (!body) return;
+
+    const response = await fetch('/comments/add/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            target: 'price',
+            target_id: {{ report.id }},
+            parent_id: parentId,
+            body
+        })
+    });
+
+    if (response.ok) {
+        input.value = '';
+        location.reload();
+    } else {
+        console.error('Failed to post comment', response.status);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('price-comment-submit')?.addEventListener('click', () => postPriceComment());
+
     const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
     const ratingContainer = document.querySelector('[data-star-rating]');
     if (!ratingContainer || !csrftoken) return;
