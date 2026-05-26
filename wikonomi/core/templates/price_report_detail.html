@@ -331,13 +331,43 @@
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-900">Nearby Prices for {{ report.product.name }}</h3>
             {% if nearby_prices %}
-                <a href="{% url 'nearby_prices_detail' report.pk %}" 
-                   class="inline-flex items-center px-4 py-2 bg-brand-purple hover:bg-brand-purple/90 text-white font-medium rounded-md transition-colors">
-                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
-                    </svg>
-                    View all nearby prices
+            <a href="{% url 'nearby_prices_detail' report.pk %}"
+               class="inline-flex items-center px-4 py-2 bg-brand-purple hover:bg-brand-purple/90 text-white font-medium rounded-md transition-colors">
+                <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                </svg>
+                View all nearby prices
+            </a>
+            {% endif %}
+        </div>
+
+        {% if nearby_prices %}
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {% for nearby in nearby_prices %}
+                <a href="{% url 'price_detail' nearby.id %}" class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 flex flex-col hover:shadow-md transition-shadow cursor-pointer block">
+                    <div class="px-4 py-4 flex-grow">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if nearby.price < report.price %}bg-brand-green/20 text-brand-green/80{% elif nearby.price > report.price %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ nearby.currency }} {{ nearby.price|intcomma }}
+                            </span>
+                            <span class="text-xs text-gray-500">{{ nearby.observed_at|rounded_timesince }}</span>
+                        </div>
+                        {% if nearby.business %}
+                        <p class="text-sm font-medium text-gray-900 text-left">{{ nearby.business.name }}</p>
+                        {% else %}
+                        <p class="text-sm font-medium text-gray-500 text-left italic">Location pinned</p>
+                        {% endif %}
+                    </div>
                 </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-gray-50 rounded-lg p-6 text-center border border-gray-200">
+                <p class="text-gray-500">No other prices for this product have been reported in this vicinity yet.</p>
+            </div>
+        {% endif %}
+    </div>
+    {% endcache %}
     {% endif %}
 
     <div class="mt-8 bg-white shadow rounded-lg">
@@ -371,36 +401,6 @@
             </div>
         </div>
     </div>
-</div>
-        
-        {% if nearby_prices %}
-            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {% for nearby in nearby_prices %}
-                <a href="{% url 'price_detail' nearby.id %}" class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 flex flex-col hover:shadow-md transition-shadow cursor-pointer block">
-                    <div class="px-4 py-4 flex-grow">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if nearby.price < report.price %}bg-brand-green/20 text-brand-green/80{% elif nearby.price > report.price %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
-                                {{ nearby.currency }} {{ nearby.price|intcomma }}
-                            </span>
-                            <span class="text-xs text-gray-500">{{ nearby.observed_at|rounded_timesince }}</span>
-                        </div>
-                        {% if nearby.business %}
-                        <p class="text-sm font-medium text-gray-900 text-left">{{ nearby.business.name }}</p>
-                        {% else %}
-                        <p class="text-sm font-medium text-gray-500 text-left italic">Location pinned</p>
-                        {% endif %}
-                    </div>
-                </a>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="bg-gray-50 rounded-lg p-6 text-center border border-gray-200">
-                <p class="text-gray-500">No other prices for this product have been reported in this vicinity yet.</p>
-            </div>
-        {% endif %}
-    </div>
-    {% endcache %}
-    {% endif %}
 
     <!-- Price History Section -->
     {% cache 300 price_history_section report.id %}
