@@ -75,6 +75,13 @@
                     </div>
                     
                     <div class="sm:col-span-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" name="deletion_notifications_enabled" class="rounded border-gray-300 text-brand-purple focus:ring-brand-purple" {% if profile.deletion_notifications_enabled %}checked{% endif %}>
+                            <span class="ml-2 text-sm text-gray-700">Receive notifications when a price report is marked for deletion</span>
+                        </label>
+                    </div>
+
+                    <div class="sm:col-span-2">
                         <label class="block text-sm font-medium text-gray-700">Username</label>
                         <div class="mt-1">
                             <input type="text" 

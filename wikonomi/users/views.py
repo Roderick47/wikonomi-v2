@@ -155,6 +155,8 @@ def edit_profile(request):
         user.last_name = request.POST.get('last_name', '')
         user.email = request.POST.get('email', '')
         user.save()
+        profile.deletion_notifications_enabled = request.POST.get('deletion_notifications_enabled') == 'on'
+        profile.save(update_fields=['deletion_notifications_enabled'])
         
         messages.success(request, 'Profile updated successfully!')
         return redirect('profile')

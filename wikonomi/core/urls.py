@@ -23,6 +23,7 @@ urlpatterns = [
     path('price/<int:pk>/unmark-deletion/', views.unmark_for_deletion, name='unmark_for_deletion'),
     path('price/<int:pk>/vote-delete/', views.vote_delete_price, name='vote_delete_price'),
     path('price/<int:pk>/delete/', views.delete_price_report, name='delete_price_report'),
+    path('comments/add/', views.add_comment, name='add_comment'),
     path('about/', views.about_view, name='about'),
     path('api/map-prices/', views.api_map_prices, name='api_map_prices'),
     path('bulk-upload/', views.bulk_upload, name='bulk_upload'),
