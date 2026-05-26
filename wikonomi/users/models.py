@@ -20,6 +20,7 @@ class Profile(models.Model):
     email_verified = models.BooleanField(default=False)
     email_verification_token = models.UUIDField(default=uuid.uuid4, editable=False)
     email_verification_sent_at = models.DateTimeField(null=True, blank=True)
+    deletion_notifications_enabled = models.BooleanField(default=True)
     
     def generate_verification_token(self):
         self.email_verification_token = uuid.uuid4()

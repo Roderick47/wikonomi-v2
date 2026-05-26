@@ -17,9 +17,10 @@ from django.core.cache import cache
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.contrib.auth.models import User
 from django import forms
 from django.views.decorators.cache import cache_page
-from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, PriceLike, create_like_threshold_notification
+from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, PriceLike, create_like_threshold_notification, Comment
 
 
 def _get_matched_product_ids(query):
@@ -519,6 +520,7 @@ class PriceReportDetailView(DetailView):
             context['is_liked'] = False
             context['can_vote_delete'] = False
             context['can_delete'] = False
+        context['comments'] = report.comments.filter(parent__isnull=True).select_related('user').prefetch_related('replies__user')
             
         return context
 
@@ -560,6 +562,7 @@ class BusinessDetailView(DetailView):
         context['products_data'] = products_data
         context['total_reports'] = price_reports.count()
         context['reports_with_location_count'] = reports_with_location.count()
+        context['comments'] = business.comments.filter(parent__isnull=True).select_related('user').prefetch_related('replies__user')
         
         return context
 
@@ -934,9 +937,60 @@ def mark_for_deletion(request, pk):
     report.marked_for_deletion_at = timezone.now()
     report.deletion_reason = reason
     report.save()
+    recipients = User.objects.exclude(pk=request.user.pk).exclude(pk=report.user_id)
+    for recipient in recipients:
+        if hasattr(recipient, 'profile') and recipient.profile.deletion_notifications_enabled:
+            Notification.objects.create(
+                user=recipient,
+                product=report.product,
+                price_report=report,
+                notification_type=Notification.TYPE_DELETION_MARK,
+                message=f"{request.user.username} marked a price report for deletion: {report.product.name}."
+            )
     
     messages.success(request, 'Price report marked for deletion. Another user must confirm to delete it.')
     return redirect('price_detail', pk=pk)
+
+
+@login_required
+@require_POST
+def add_comment(request):
+    data = json.loads(request.body)
+    target = data.get('target')
+    target_id = data.get('target_id')
+    body = (data.get('body') or '').strip()
+    parent_id = data.get('parent_id')
+    if not body or len(body) > 1200:
+        return JsonResponse({'status': 'error'}, status=400)
+
+    comment = Comment(user=request.user, body=body)
+    if target == 'price':
+        comment.price_report = get_object_or_404(PriceReport, pk=target_id)
+    elif target == 'business':
+        comment.business = get_object_or_404(Business, pk=target_id)
+    else:
+        return JsonResponse({'status': 'error'}, status=400)
+    if parent_id:
+        comment.parent = get_object_or_404(Comment, pk=parent_id)
+    comment.save()
+
+    recipients = set()
+    if comment.parent and comment.parent.user_id != request.user.id:
+        recipients.add(comment.parent.user)
+        ntype = Notification.TYPE_REPLY
+        msg = f"{request.user.username} replied to your comment."
+    else:
+        owner = comment.price_report.user if comment.price_report else None
+        if owner and owner.id != request.user.id:
+            recipients.add(owner)
+        ntype = Notification.TYPE_COMMENT
+        msg = f"{request.user.username} commented on your post."
+    for recipient in recipients:
+        Notification.objects.create(
+            user=recipient, product=comment.price_report.product if comment.price_report else None,
+            price_report=comment.price_report, business=comment.business, notification_type=ntype, message=msg
+        )
+    return JsonResponse({'status': 'ok', 'id': comment.id, 'body': comment.body, 'username': comment.user.username})
 
 @login_required
 @require_POST
