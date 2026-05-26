@@ -820,9 +820,22 @@ def track_watchlist_analytics(sender, instance, created, **kwargs):
             pass  # Analytics app not yet installed
 
 class Notification(models.Model):
+    TYPE_GENERAL = 'general'
+    TYPE_COMMENT = 'comment'
+    TYPE_REPLY = 'reply'
+    TYPE_DELETION_MARK = 'deletion_mark'
+    TYPE_CHOICES = [
+        (TYPE_GENERAL, 'General'),
+        (TYPE_COMMENT, 'Comment'),
+        (TYPE_REPLY, 'Reply'),
+        (TYPE_DELETION_MARK, 'Deletion Mark'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='notifications')
-    price_report = models.ForeignKey(PriceReport, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
+    price_report = models.ForeignKey(PriceReport, on_delete=models.CASCADE, null=True, blank=True)
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    notification_type = models.CharField(max_length=32, choices=TYPE_CHOICES, default=TYPE_GENERAL)
     message = models.CharField(max_length=255)
     is_read = models.BooleanField(default=False)
     muted = models.BooleanField(default=False)
@@ -950,3 +963,18 @@ class ShoppingListItem(models.Model):
 
     def __str__(self):
         return self.item_name or (self.product.name if self.product else "Unknown Item")
+
+
+class Comment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
+    price_report = models.ForeignKey(PriceReport, on_delete=models.CASCADE, null=True, blank=True, related_name='comments')
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, null=True, blank=True, related_name='comments')
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
+    body = models.TextField(max_length=1200)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Comment by {self.user.username}"
