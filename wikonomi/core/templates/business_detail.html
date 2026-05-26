@@ -282,4 +282,18 @@
     });
 </script>
 {% endif %}
+<script>
+async function postBusinessComment(parentId = null) {
+    const input = parentId ? document.getElementById(`business-reply-${parentId}`) : document.getElementById('business-comment-body');
+    const body = (input?.value || '').trim();
+    if (!body) return;
+    const response = await fetch('/comments/add/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+        body: JSON.stringify({target: 'business', target_id: {{ business.id }}, parent_id: parentId, body})
+    });
+    if (response.ok) window.location.reload();
+}
+document.getElementById('business-comment-submit')?.addEventListener('click', () => postBusinessComment());
+</script>
 {% endblock %}
