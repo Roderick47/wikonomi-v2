@@ -550,8 +550,8 @@ async function postPriceComment(parentId = null) {
         : document.getElementById('price-comment-body');
     if (!input) return;
 
-    const body = input.value.trim();
-    if (!body) return;
+    const commentBody = input.value.trim();
+    if (!commentBody) return;
 
     const response = await fetch('/comments/add/', {
         method: 'POST',
@@ -563,7 +563,7 @@ async function postPriceComment(parentId = null) {
             target: 'price',
             target_id: {{ report.id }},
             parent_id: parentId,
-            body
+            body: commentBody
         })
     });
 
@@ -571,7 +571,8 @@ async function postPriceComment(parentId = null) {
         input.value = '';
         location.reload();
     } else {
-        console.error('Failed to post comment', response.status);
+        const err = await response.text();
+        console.error('Failed to post comment', response.status, err);
     }
 }
 
