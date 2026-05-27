@@ -15,3 +15,15 @@
 .wk-comments__highlight { background:#fff7ed; transition: background 1.8s ease; }
 .wk-comments__edit textarea { width:100%; border:1px solid #d1d5db; border-radius:6px; padding:.5rem; min-height:72px; }
 .wk-comments__edit button { margin-right:.4rem; margin-top:.4rem; }
+.wk-comments__avatar { width: 28px; height: 28px; border-radius: 9999px; object-fit: cover; }
+.wk-comments__avatar--sm { width: 20px; height: 20px; }
+.wk-comments__replies { margin-top: .5rem; margin-left: 1rem; border-left: 2px solid #f3f4f6; padding-left: .75rem; }
+.wk-comments__reply-item { margin: .4rem 0; font-size: .9rem; color: #374151; display:grid; grid-template-columns:20px auto auto; gap:.3rem .5rem; align-items:center; }
+.wk-comments__reply-item p { grid-column: 2 / -1; margin: .2rem 0 .4rem; }
+.wk-comments__item--skeleton { opacity: .8; }
+.wk-skeleton { display:inline-block; background: linear-gradient(90deg,#f3f4f6 25%,#e5e7eb 37%,#f3f4f6 63%); background-size: 400% 100%; animation: wk-shimmer 1.2s infinite; border-radius: 6px; }
+.wk-skeleton--avatar { width: 28px; height: 28px; border-radius: 9999px; }
+.wk-skeleton--line { width: 180px; height: 14px; }
+.wk-skeleton--block { width: 100%; height: 48px; margin-top: .4rem; }
+.wk-comments__mini-skeleton { width: 140px; height: 14px; margin-top: .5rem; }
+@keyframes wk-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
