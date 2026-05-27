@@ -30,6 +30,7 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('', include('core.urls')),
     path('analytics/', include('analytics.urls')),
+    path('api/comments/', include('comments.urls')),
 ]
 
 # Serve media files during development
