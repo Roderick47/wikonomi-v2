@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.fields import GenericRelation
 from taggit.managers import TaggableManager
 import h3
 from django.db.models.signals import pre_save, post_save
@@ -30,6 +31,7 @@ class Product(models.Model):
     tags = TaggableManager()
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    comments = GenericRelation('comments.Comment', related_query_name='product')
 
     def __str__(self):
         return self.name
@@ -336,6 +338,7 @@ class Business(models.Model):
     details = models.TextField(blank=True, null=True, help_text="Additional information about the business")
     image = ResizedImageField(upload_to='business_images/', null=True, blank=True, size=[1000, 1000], quality=75, force_format='JPEG')
     created_at = models.DateTimeField(auto_now_add=True)
+    comments = GenericRelation('comments.Comment', related_query_name='business')
 
     def __str__(self):
         return self.name
@@ -673,6 +676,7 @@ class PriceReport(models.Model):
     currency = models.CharField(max_length=3, default='PGK')
     
     image = ResizedImageField(upload_to='price_report_images/', null=True, blank=True, size=[1000, 1000], quality=75, force_format='JPEG')
+    comments = GenericRelation('comments.Comment', related_query_name='price_report')
     
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
@@ -966,7 +970,7 @@ class ShoppingListItem(models.Model):
 
 
 class Comment(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='legacy_comments')
     price_report = models.ForeignKey(PriceReport, on_delete=models.CASCADE, null=True, blank=True, related_name='comments')
     business = models.ForeignKey(Business, on_delete=models.CASCADE, null=True, blank=True, related_name='comments')
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
