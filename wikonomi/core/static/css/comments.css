@@ -7,3 +7,11 @@
 .wk-comments__actions { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.4rem; }
 .wk-comments__actions button { font-size:.8rem; color:#4f46e5; background:none; border:0; padding:0; cursor:pointer; }
 .wk-comments__empty { color:#6b7280; font-size:.9rem; }
+.wk-comments__menu { margin-top:.4rem; display:flex; gap:.5rem; flex-wrap:wrap; }
+.wk-comments__menu button { font-size:.8rem; background:#f3f4f6; border:1px solid #e5e7eb; border-radius:6px; padding:.2rem .5rem; }
+.wk-comments__modal { position:fixed; inset:0; background:rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center; z-index:30; }
+.wk-comments__modal-content { background:#fff; padding:1rem; border-radius:8px; min-width:260px; display:flex; flex-direction:column; gap:.5rem; }
+.wk-comments__toast { background:#ecfeff; color:#155e75; border:1px solid #67e8f9; padding:.5rem .75rem; border-radius:6px; margin-bottom:.6rem; }
+.wk-comments__highlight { background:#fff7ed; transition: background 1.8s ease; }
+.wk-comments__edit textarea { width:100%; border:1px solid #d1d5db; border-radius:6px; padding:.5rem; min-height:72px; }
+.wk-comments__edit button { margin-right:.4rem; margin-top:.4rem; }
