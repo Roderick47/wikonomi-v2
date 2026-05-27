@@ -378,6 +378,8 @@
                 data-object-id="{{ report.id }}"
                 data-is-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}"
                 data-current-user-id="{{ user.id|default:'' }}"
+                data-is-staff="{% if user.is_staff %}true{% else %}false{% endif %}"
+                data-can-pin-comments="{% if user.is_staff or user.id == report.user_id %}true{% else %}false{% endif %}"
             ></div>
         </div>
     </div>
