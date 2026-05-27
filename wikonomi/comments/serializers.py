@@ -1,0 +1,58 @@
+from django.utils import timezone
+from rest_framework import serializers
+
+from .models import Comment
+
+
+class AuthorSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    username = serializers.CharField()
+    profile_picture = serializers.SerializerMethodField()
+
+    def get_profile_picture(self, obj):
+        profile = getattr(obj, 'profile', None)
+        picture = getattr(profile, 'profile_picture', None)
+        if not picture:
+            return None
+        try:
+            return picture.url
+        except Exception:
+            return None
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SerializerMethodField()
+    user_has_liked = serializers.SerializerMethodField()
+    time_ago = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = [
+            'id', 'content_type', 'object_id', 'parent', 'body', 'is_edited', 'is_deleted',
+            'is_pinned', 'is_flagged', 'like_count', 'reply_count', 'created_at', 'updated_at',
+            'author', 'user_has_liked', 'time_ago'
+        ]
+        read_only_fields = [
+            'is_edited', 'is_deleted', 'is_pinned', 'is_flagged', 'like_count', 'reply_count',
+            'created_at', 'updated_at', 'author', 'user_has_liked', 'time_ago'
+        ]
+
+    def get_author(self, obj):
+        return AuthorSerializer(obj.user).data
+
+    def get_user_has_liked(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.likes.filter(user=request.user).exists()
+
+    def get_time_ago(self, obj):
+        delta = timezone.now() - obj.created_at
+        secs = int(delta.total_seconds())
+        if secs < 60:
+            return 'just now'
+        if secs < 3600:
+            return f'{secs // 60}m ago'
+        if secs < 86400:
+            return f'{secs // 3600}h ago'
+        return f'{secs // 86400}d ago'
