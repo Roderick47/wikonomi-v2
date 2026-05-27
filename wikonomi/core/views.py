@@ -523,6 +523,7 @@ class PriceReportDetailView(DetailView):
             context['can_vote_delete'] = False
             context['can_delete'] = False
         context['comments'] = report.comments.filter(parent__isnull=True).select_related('user').prefetch_related('replies__user')
+        context['comment_content_type_id'] = ContentType.objects.get_for_model(report).id
             
         return context
 
@@ -565,6 +566,7 @@ class BusinessDetailView(DetailView):
         context['total_reports'] = price_reports.count()
         context['reports_with_location_count'] = reports_with_location.count()
         context['comments'] = business.comments.filter(parent__isnull=True).select_related('user').prefetch_related('replies__user')
+        context['comment_content_type_id'] = ContentType.objects.get_for_model(business).id
         
         return context
 

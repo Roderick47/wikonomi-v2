@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load custom_filters %}
+{% load custom_filters static %}
 
 {% block page_title %}{{ business.name }} | Wikonomi{% endblock %}
 
@@ -239,8 +239,17 @@
         </div>
     </div>
 
-<div class="bg-white shadow rounded-lg mt-8"><div class="p-6"><h3 class="text-lg font-semibold text-gray-900 mb-4">Comments</h3>{% if user.is_authenticated %}<div class="mb-4"><textarea id="comment-body" class="w-full border border-gray-300 rounded-md p-2" rows="3" placeholder="Add a comment..."></textarea><button onclick="postComment()" class="mt-2 px-4 py-2 bg-brand-purple text-white rounded">Post</button></div>{% endif %}<div id="comment-list">{% for c in comments %}<div class="mb-4 border-b pb-3"><p class="text-sm"><span class="font-semibold">{{ c.user.username }}</span> {{ c.body }}</p><div class="ml-4 mt-2">{% for r in c.replies.all %}<p class="text-sm text-gray-700"><span class="font-semibold">{{ r.user.username }}</span> {{ r.body }}</p>{% endfor %}</div>{% if user.is_authenticated %}<div class="mt-2"><input id="reply-{{ c.id }}" class="border border-gray-300 rounded p-1 text-sm" placeholder="Reply..."><button onclick="postComment({{ c.id }})" class="ml-2 text-sm text-brand-purple">Reply</button></div>{% endif %}</div>{% empty %}<p class="text-sm text-gray-500">No comments yet.</p>{% endfor %}</div></div></div>
-<script>function postComment(parentId=null){const body=parentId?document.getElementById(`reply-${parentId}`).value:document.getElementById('comment-body').value;fetch('/comments/add/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},body:JSON.stringify({target:'business',target_id:{{ business.id }},parent_id:parentId,body})}).then(r=>r.json()).then(()=>location.reload());}</script>
+<div class="bg-white shadow rounded-lg mt-8">
+    <div class="p-6">
+        <div
+            id="wk-comment-section"
+            data-content-type="{{ comment_content_type_id }}"
+            data-object-id="{{ business.id }}"
+            data-is-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}"
+            data-current-user-id="{{ user.id|default:'' }}"
+        ></div>
+    </div>
+</div>
 
 {% if reports_with_location %}
 <!-- Initialize Leaflet Map -->
@@ -282,18 +291,6 @@
     });
 </script>
 {% endif %}
-<script>
-async function postBusinessComment(parentId = null) {
-    const input = parentId ? document.getElementById(`business-reply-${parentId}`) : document.getElementById('business-comment-body');
-    const body = (input?.value || '').trim();
-    if (!body) return;
-    const response = await fetch('/comments/add/', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
-        body: JSON.stringify({target: 'business', target_id: {{ business.id }}, parent_id: parentId, body})
-    });
-    if (response.ok) window.location.reload();
-}
-document.getElementById('business-comment-submit')?.addEventListener('click', () => postBusinessComment());
-</script>
+<link rel="stylesheet" href="{% static 'css/comments.css' %}">
+<script src="{% static 'js/comments.js' %}"></script>
 {% endblock %}
