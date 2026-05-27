@@ -1,5 +1,6 @@
 from django.utils import timezone
 from rest_framework import serializers
+import bleach
 
 from .models import Comment
 
@@ -36,6 +37,14 @@ class CommentSerializer(serializers.ModelSerializer):
             'is_edited', 'is_deleted', 'is_pinned', 'is_flagged', 'like_count', 'reply_count',
             'created_at', 'updated_at', 'author', 'user_has_liked', 'time_ago'
         ]
+
+    def validate_body(self, value):
+        cleaned = bleach.clean(value or '', tags=[], attributes={}, strip=True).strip()
+        if not cleaned:
+            raise serializers.ValidationError('Comment body cannot be empty.')
+        if len(cleaned) > 2000:
+            raise serializers.ValidationError('Comment body must be 2000 characters or fewer.')
+        return cleaned
 
     def get_author(self, obj):
         return AuthorSerializer(obj.user).data

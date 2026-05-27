@@ -11,7 +11,7 @@ class Comment(models.Model):
     content_object = GenericForeignKey('content_type', 'object_id')
 
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
-    body = models.TextField(max_length=1200)
+    body = models.TextField(max_length=2000)
 
     is_edited = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
