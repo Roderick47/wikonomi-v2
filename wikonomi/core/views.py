@@ -18,9 +18,11 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 from django import forms
 from django.views.decorators.cache import cache_page
-from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, PriceLike, create_like_threshold_notification, Comment
+from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, PriceLike, create_like_threshold_notification
+from comments.models import Comment
 
 
 def _get_matched_product_ids(query):
@@ -965,13 +967,22 @@ def add_comment(request):
 
     comment = Comment(user=request.user, body=body)
     if target == 'price':
-        comment.price_report = get_object_or_404(PriceReport, pk=target_id)
+        target_obj = get_object_or_404(PriceReport, pk=target_id)
     elif target == 'business':
-        comment.business = get_object_or_404(Business, pk=target_id)
+        target_obj = get_object_or_404(Business, pk=target_id)
     else:
         return JsonResponse({'status': 'error'}, status=400)
+
+    comment.content_type = ContentType.objects.get_for_model(target_obj.__class__)
+    comment.object_id = target_obj.id
+
     if parent_id:
-        comment.parent = get_object_or_404(Comment, pk=parent_id)
+        parent = get_object_or_404(Comment, pk=parent_id)
+        if parent.parent_id:
+            return JsonResponse({'status': 'error', 'message': 'Maximum nesting depth is 1'}, status=400)
+        if parent.content_type_id != comment.content_type_id or parent.object_id != comment.object_id:
+            return JsonResponse({'status': 'error', 'message': 'Parent mismatch'}, status=400)
+        comment.parent = parent
     comment.save()
 
     recipients = set()
@@ -980,15 +991,15 @@ def add_comment(request):
         ntype = Notification.TYPE_REPLY
         msg = f"{request.user.username} replied to your comment."
     else:
-        owner = comment.price_report.user if comment.price_report else None
+        owner = target_obj.user if isinstance(target_obj, PriceReport) else None
         if owner and owner.id != request.user.id:
             recipients.add(owner)
         ntype = Notification.TYPE_COMMENT
         msg = f"{request.user.username} commented on your post."
     for recipient in recipients:
         Notification.objects.create(
-            user=recipient, product=comment.price_report.product if comment.price_report else None,
-            price_report=comment.price_report, business=comment.business, notification_type=ntype, message=msg
+            user=recipient, product=target_obj.product if isinstance(target_obj, PriceReport) else None,
+            price_report=target_obj if isinstance(target_obj, PriceReport) else None, business=target_obj if isinstance(target_obj, Business) else None, notification_type=ntype, message=msg
         )
     return JsonResponse({'status': 'ok', 'id': comment.id, 'body': comment.body, 'username': comment.user.username})
 
