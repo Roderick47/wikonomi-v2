@@ -27,7 +27,7 @@ class RepliesPagination(CursorPagination):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    queryset = Comment.objects.select_related('user', 'content_type', 'parent').all()
+    queryset = Comment.objects.select_related('user', 'content_type', 'parent').prefetch_related('likes').all()
     permission_classes = [IsAuthenticatedForWrite, IsAuthorOrStaffForModify]
 
     def get_throttles(self):
@@ -69,7 +69,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='replies')
     def replies(self, request, pk=None):
         parent = self.get_object()
-        qs = parent.replies.select_related('user').order_by('created_at', 'id')
+        qs = parent.replies.select_related('user').prefetch_related('likes').order_by('created_at', 'id')
         paginator = RepliesPagination()
         page = paginator.paginate_queryset(qs, request, view=self)
         serializer = self.get_serializer(page, many=True)
@@ -104,6 +104,12 @@ class CommentViewSet(viewsets.ModelViewSet):
         comment = self.get_object()
         if not CanPinComment().has_object_permission(request, self, comment):
             raise PermissionDenied('Not allowed to pin this comment.')
+        if not comment.is_pinned:
+            Comment.objects.filter(
+                content_type=comment.content_type,
+                object_id=comment.object_id,
+                is_pinned=True,
+            ).exclude(pk=comment.pk).update(is_pinned=False)
         comment.is_pinned = not comment.is_pinned
         comment.save(update_fields=['is_pinned', 'updated_at'])
         return Response({'is_pinned': comment.is_pinned})
