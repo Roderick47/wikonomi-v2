@@ -173,8 +173,8 @@
     if (action === 'load-more-replies') return loadReplies(id, true);
     if (action === 'more') { state.openMenuId = state.openMenuId === id ? null : id; return render(); }
     if (action === 'reply') { state.openReplyFormId = state.openReplyFormId === id ? null : id; if (state.openReplyFormId) state.focusTarget = `[data-input="reply"][data-id="${id}"]`; return render(); }
-    if (action === 'compose') { const body = (root.querySelector('[data-input="compose"]')?.value || '').trim(); if (!body) { setError('compose', 'Comment is required.'); return render(); } clearError('compose'); const res = await api('', { method: 'POST', body: JSON.stringify({ content_type: Number(ct), object_id: Number(oid), body }) }); if (res.ok) loadComments(); }
-    if (action === 'send-reply') { const body = (root.querySelector(`[data-input="reply"][data-id="${id}"]`)?.value || '').trim(); if (!body) { setError(`reply-${id}`, 'Reply is required.'); return render(); } clearError(`reply-${id}`); const res = await api(`${id}/reply/`, { method: 'POST', body: JSON.stringify({ body }) }); if (res.ok) { state.openReplyFormId = null; loadComments(); } }
+    if (action === 'compose') { const body = (root.querySelector('[data-input="compose"]')?.value || '').trim(); if (!body) { setError('compose', 'Comment is required.'); return render(); } clearError('compose'); const res = await api('', { method: 'POST', body: JSON.stringify({ content_type: Number(ct), object_id: Number(oid), body }) }); if (res.ok) { root.querySelector('[data-input="compose"]').value = ''; loadComments(); } else { flashToast('Failed to save comment.'); } }
+    if (action === 'send-reply') { const body = (root.querySelector(`[data-input="reply"][data-id="${id}"]`)?.value || '').trim(); if (!body) { setError(`reply-${id}`, 'Reply is required.'); return render(); } clearError(`reply-${id}`); const res = await api(`${id}/reply/`, { method: 'POST', body: JSON.stringify({ body }) }); if (res.ok) { state.openReplyFormId = null; loadComments(); } else { flashToast('Failed to save reply.'); } }
   });
 
   root.addEventListener('change', (e) => {

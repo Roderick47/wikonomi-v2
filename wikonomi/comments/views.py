@@ -58,6 +58,9 @@ class CommentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
 
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
     def perform_update(self, serializer):
         serializer.save(is_edited=True)
 
