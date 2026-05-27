@@ -1,0 +1,9 @@
+.wk-comments { margin-top: 1rem; }
+.wk-comments__header { display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; }
+.wk-comments__compose textarea, .wk-comments__reply textarea { width:100%; border:1px solid #d1d5db; border-radius:6px; padding:.5rem; min-height:72px; }
+.wk-comments__compose button, .wk-comments__reply button, .wk-comments__load-more { margin-top:.5rem; background:#6d28d9; color:white; border:0; border-radius:6px; padding:.4rem .75rem; }
+.wk-comments__item { border-bottom:1px solid #eee; padding:.75rem 0; }
+.wk-comments__meta { font-size:.875rem; color:#4b5563; display:flex; gap:.5rem; align-items:center; }
+.wk-comments__actions { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.4rem; }
+.wk-comments__actions button { font-size:.8rem; color:#4f46e5; background:none; border:0; padding:0; cursor:pointer; }
+.wk-comments__empty { color:#6b7280; font-size:.9rem; }

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load custom_filters cache humanize %}
+{% load custom_filters cache humanize static %}
 
 {% block page_title %}{{ report.product|get_attr:"name"|default:"Unknown Product" }} — PGK {{ report.price }} at {{ report.business|get_attr:"name"|default:"Unknown Business" }} | Wikonomi
 
@@ -372,33 +372,13 @@
 
     <div class="mt-8 bg-white shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Comments</h2>
-            {% if user.is_authenticated %}
-            <div class="mb-5">
-                <textarea id="price-comment-body" rows="3" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue" placeholder="Add a comment..."></textarea>
-                <button id="price-comment-submit" class="mt-2 px-4 py-2 bg-brand-purple hover:bg-brand-purple/90 text-white text-sm rounded">Post Comment</button>
-            </div>
-            {% endif %}
-            <div class="space-y-4">
-                {% for c in comments %}
-                <div class="border-b border-gray-100 pb-3">
-                    <p class="text-sm text-gray-800"><span class="font-semibold">{{ c.user.username }}</span> {{ c.body }}</p>
-                    <div class="mt-2 ml-4 space-y-2">
-                        {% for r in c.replies.all %}
-                        <p class="text-sm text-gray-700"><span class="font-semibold">{{ r.user.username }}</span> {{ r.body }}</p>
-                        {% endfor %}
-                    </div>
-                    {% if user.is_authenticated %}
-                    <div class="mt-2 ml-4 flex gap-2">
-                        <input id="price-reply-{{ c.id }}" class="flex-1 border border-gray-300 rounded p-1.5 text-sm" placeholder="Reply...">
-                        <button class="text-sm text-brand-purple hover:text-brand-purple/80" onclick="postPriceComment({{ c.id }})">Reply</button>
-                    </div>
-                    {% endif %}
-                </div>
-                {% empty %}
-                <p class="text-sm text-gray-500">No comments yet.</p>
-                {% endfor %}
-            </div>
+            <div
+                id="wk-comment-section"
+                data-content-type="{{ comment_content_type_id }}"
+                data-object-id="{{ report.id }}"
+                data-is-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}"
+                data-current-user-id="{{ user.id|default:'' }}"
+            ></div>
         </div>
     </div>
 
@@ -543,42 +523,10 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<link rel="stylesheet" href="{% static 'css/comments.css' %}">
+<script src="{% static 'js/comments.js' %}"></script>
 <script>
-async function postPriceComment(parentId = null) {
-    const input = parentId
-        ? document.getElementById(`price-reply-${parentId}`)
-        : document.getElementById('price-comment-body');
-    if (!input) return;
-
-    const commentBody = input.value.trim();
-    if (!commentBody) return;
-
-    const response = await fetch('/comments/add/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({
-            target: 'price',
-            target_id: {{ report.id }},
-            parent_id: parentId,
-            body: commentBody
-        })
-    });
-
-    if (response.ok) {
-        input.value = '';
-        location.reload();
-    } else {
-        const err = await response.text();
-        console.error('Failed to post comment', response.status, err);
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('price-comment-submit')?.addEventListener('click', () => postPriceComment());
-
     const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
     const ratingContainer = document.querySelector('[data-star-rating]');
     if (!ratingContainer || !csrftoken) return;
