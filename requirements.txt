@@ -1,4 +1,6 @@
-Django>=5.0
+Django>=5.0,<6.0
+djangorestframework
+bleach
 psycopg2-binary
 django-taggit
 h3
