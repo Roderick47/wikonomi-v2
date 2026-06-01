@@ -93,17 +93,17 @@
                 </span>
                 <button type="button" id="map-toggle-btn" onclick="toggleMapView()" class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
                     <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0121 18.382V7.618a1 1 0 01-1.447-.894L15 4m0 13V4m0 0L9 7"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
-                    Show Map
+                    Hide Map
                 </button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Map Section (initially hidden) -->
-<div id="map-container" class="hidden mt-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<!-- Map Section -->
+<div id="map-container" class="mt-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="bg-white shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Price Locations</h3>
@@ -364,6 +364,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Show location status if we have coordinates
     if (userLat && userLng) {
         document.getElementById('location-status').classList.remove('hidden');
+    }
+
+    // Render the map immediately on first page load so visitors can see
+    // where prices are around Port Moresby without opening it manually.
+    if (!mapInitialized) {
+        setTimeout(initPriceMap, 100);
+        mapInitialized = true;
     }
     
     function loadMorePrices() {
@@ -645,10 +652,10 @@ function initPriceMap() {
         const searchQuery = new URLSearchParams(window.location.search).get('q') || '';
         const currentSort = new URLSearchParams(window.location.search).get('sort') || 'recent';
         
-        // Default center (Papua New Guinea region)
-        let centerLat = -6.5;
-        let centerLng = 147.0;
-        let zoomLevel = 6;
+        // Default center (Port Moresby)
+        let centerLat = -9.4438;
+        let centerLng = 147.1803;
+        let zoomLevel = 12;
         
         if (userLat && userLng) {
             centerLat = parseFloat(userLat);
