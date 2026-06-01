@@ -138,6 +138,27 @@ class PriceReportCreateViewTest(TestCase):
         self.assertIn('tag3', tags)
 
 
+class PriceReportDetailCommentsAssetTest(TestCase):
+    def test_comment_assets_are_rendered_on_price_detail(self):
+        user = User.objects.create_user(username='commentowner', password='testpass')
+        product = Product.objects.create(name='Commented Product', slug='commented-product', created_by=user)
+        business = Business.objects.create(name='Commented Business')
+        report = PriceReport.objects.create(
+            product=product,
+            business=business,
+            user=user,
+            price=Decimal('7.50'),
+            currency='PGK',
+        )
+
+        response = self.client.get(reverse('price_detail', kwargs={'pk': report.pk}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="wk-comment-section"')
+        self.assertContains(response, 'css/comments.css')
+        self.assertContains(response, 'js/comments.js')
+
+
 class SearchFunctionalityTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='testuser', password='testpass')
