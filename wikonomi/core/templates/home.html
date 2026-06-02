@@ -31,6 +31,10 @@
         height: 400px;
         z-index: 10;
     }
+    .search-filter-sticky.is-stuck {
+        border-bottom-color: rgb(229 231 235);
+        box-shadow: 0 10px 18px -18px rgba(17, 24, 39, 0.75);
+    }
     @keyframes textShimmer {
         0% { background-position: -200% 0; }
         50% { background-position: 200% 0; }
@@ -67,17 +71,21 @@
             </a>
         </div>
     </div>
-    <div class="mt-8 max-w-xl mx-auto">
-        <form method="GET" action="{% url 'home' %}" id="search-form" class="space-y-4">
-            <div class="flex gap-2">
-                <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search for products or businesses..." class="shadow-sm focus:ring-brand-purple/50 focus:border-brand-blue block w-full sm:text-sm border-gray-300 rounded-md p-3 border">
-                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-brand-purple hover:bg-brand-purple/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
+</div>
+
+<!-- Sticky Search & Filter Section -->
+<div id="search-filter-container" class="search-filter-sticky sticky z-40 -mx-4 px-4 py-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 bg-gray-50/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/85 border-b border-transparent transition-[box-shadow,border-color] duration-200" style="top: var(--navbar-height, 4rem);">
+    <div class="max-w-xl mx-auto">
+        <form method="GET" action="{% url 'home' %}" id="search-form" class="space-y-3">
+            <div class="flex flex-col gap-2 sm:flex-row">
+                <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search for products or businesses..." class="min-w-0 flex-1 shadow-sm focus:ring-brand-purple/50 focus:border-brand-blue block w-full sm:text-sm border-gray-300 rounded-md p-3 border">
+                <button type="submit" class="inline-flex w-full items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-brand-purple hover:bg-brand-purple/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50 sm:w-auto">
                     Search
                 </button>
             </div>
-            <div class="flex flex-wrap gap-2 items-center">
+            <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                 <label for="sort" class="text-sm text-gray-600">Sort by:</label>
-                <select name="sort" id="sort" onchange="handleSortChange(this.value)" class="shadow-sm focus:ring-brand-purple/50 focus:border-brand-blue text-sm border-gray-300 rounded-md p-2 border">
+                <select name="sort" id="sort" onchange="handleSortChange(this.value)" class="w-full shadow-sm focus:ring-brand-purple/50 focus:border-brand-blue text-sm border-gray-300 rounded-md p-2 border sm:w-auto">
                     <option value="recent" {% if current_sort == 'recent' %}selected{% endif %}>Most Recent</option>
                     <option value="price_asc" {% if current_sort == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
                     <option value="price_desc" {% if current_sort == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
@@ -85,13 +93,13 @@
                 </select>
                 <input type="hidden" name="lat" id="user-lat" value="{{ request.GET.lat }}">
                 <input type="hidden" name="lng" id="user-lng" value="{{ request.GET.lng }}">
-                <span id="location-status" class="text-xs text-gray-500 hidden">
+                <span id="location-status" class="text-xs text-gray-500 hidden sm:ml-1">
                     <svg class="inline h-3 w-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
                     </svg>
                     Using your location
                 </span>
-                <button type="button" id="map-toggle-btn" onclick="toggleMapView()" class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
+                <button type="button" id="map-toggle-btn" onclick="toggleMapView()" class="inline-flex w-full items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50 sm:w-auto">
                     <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
@@ -372,6 +380,17 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(initPriceMap, 100);
         mapInitialized = true;
     }
+
+    const stickySearchFilter = document.getElementById('search-filter-container');
+    function updateStickySearchFilterState() {
+        if (!stickySearchFilter) return;
+        const navHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--navbar-height')) || 64;
+        stickySearchFilter.classList.toggle('is-stuck', stickySearchFilter.getBoundingClientRect().top <= navHeight + 1);
+    }
+
+    updateStickySearchFilterState();
+    window.addEventListener('scroll', updateStickySearchFilterState, { passive: true });
+    window.addEventListener('resize', updateStickySearchFilterState);
     
     function loadMorePrices() {
         if (isLoading || !hasMore) return;
