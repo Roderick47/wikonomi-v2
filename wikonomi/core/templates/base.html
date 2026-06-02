@@ -52,7 +52,7 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-gray-50 text-gray-800">
-    <nav class="bg-white shadow sticky top-0 z-50">
+    <nav id="site-navbar" class="bg-white shadow sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex">
@@ -148,6 +148,16 @@
             localStorage.setItem('cookieConsent', 'true');
             document.getElementById('cookie-consent').classList.add('translate-y-full');
         }
+
+        function updateNavbarHeight() {
+            const navbar = document.getElementById('site-navbar');
+            if (!navbar) return;
+            document.documentElement.style.setProperty('--navbar-height', `${navbar.offsetHeight}px`);
+        }
+
+        updateNavbarHeight();
+        window.addEventListener('resize', updateNavbarHeight);
+        window.addEventListener('orientationchange', updateNavbarHeight);
 
         function toggleAddDropdown() {
             const dropdown = document.getElementById('add-dropdown');
