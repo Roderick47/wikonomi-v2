@@ -45,6 +45,10 @@
 
                 <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                     <div class="sm:col-span-6">
+                        {% include 'includes/image_upload_widget.html' with image_label="Business Image (Optional)" %}
+                    </div>
+
+                    <div class="sm:col-span-6">
                         <label for="business_search" class="block text-sm font-medium text-gray-700">Business Name</label>
                         <div class="mt-1 flex rounded-md shadow-sm">
                             <input type="text" name="name" id="business_search" list="business_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm border-gray-300" placeholder="Type a business name..." required>
@@ -65,9 +69,6 @@
                         <p class="mt-2 text-sm text-gray-500">Add any additional information about this business such as opening hours, contact information, services offered, etc.</p>
                     </div>
                     
-                    <div class="sm:col-span-6">
-                        {% include 'includes/image_upload_widget.html' with image_label="Business Image (Optional)" %}
-                    </div>
                 </div>
 
                 <div class="pt-5 flex justify-end">
