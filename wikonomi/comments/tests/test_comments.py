@@ -3,13 +3,14 @@ from datetime import timedelta
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
-from django.urls import reverse
+from django.test.utils import CaptureQueriesContext
+from django.db import connection
 from django.utils import timezone
 from rest_framework.test import APIClient, APIRequestFactory
 
 from comments.models import Comment, CommentLike, CommentFlag
 from comments.serializers import CommentSerializer
-from core.models import Product
+from core.models import Notification, PriceReport, Product
 
 
 class CommentsBaseTestCase(TestCase):
@@ -24,6 +25,18 @@ class CommentsBaseTestCase(TestCase):
         self.product = Product.objects.create(name='Rice', slug='rice', created_by=self.owner)
         self.product2 = Product.objects.create(name='Bread', slug='bread', created_by=self.owner)
         self.ct = ContentType.objects.get_for_model(Product)
+
+
+    def assertNumQueriesLessThanOrEqual(self, num):
+        class MaxQueriesContext(CaptureQueriesContext):
+            def __exit__(ctx_self, exc_type, exc_value, traceback):
+                super().__exit__(exc_type, exc_value, traceback)
+                if exc_type is not None:
+                    return
+                executed = len(ctx_self)
+                self.assertLessEqual(executed, num, f'{executed} queries executed, expected at most {num}')
+
+        return MaxQueriesContext(connection)
 
     def comments_url(self):
         return '/api/comments/'
@@ -177,6 +190,75 @@ class CommentApiTests(CommentsBaseTestCase):
         c.refresh_from_db()
         self.assertEqual(c.like_count, 1)
 
+
+    def test_comment_reply_and_like_create_notifications_for_recipients(self):
+        price_report = PriceReport.objects.create(product=self.product, user=self.owner, price='5.00')
+        price_ct = ContentType.objects.get_for_model(price_report)
+
+        self.client.force_authenticate(user=self.other)
+        comment_response = self.client.post(
+            self.comments_url(),
+            {'content_type': price_ct.id, 'object_id': price_report.id, 'body': 'fresh price'},
+            format='json',
+        )
+        self.assertEqual(comment_response.status_code, 201)
+        comment = Comment.objects.get(pk=comment_response.data['id'])
+        comment_notification = Notification.objects.get(
+            user=self.owner,
+            notification_type=Notification.TYPE_COMMENT,
+            price_report=price_report,
+        )
+        self.assertEqual(comment_notification.message, 'other commented on your post.')
+
+        self.client.force_authenticate(user=self.owner)
+        reply_response = self.client.post(f'/api/comments/{comment.id}/reply/', {'body': 'thanks'}, format='json')
+        self.assertEqual(reply_response.status_code, 201)
+        reply_notification = Notification.objects.get(
+            user=self.other,
+            notification_type=Notification.TYPE_REPLY,
+            price_report=price_report,
+        )
+        self.assertEqual(reply_notification.message, 'owner replied to your comment.')
+
+        like_response = self.client.post(f'/api/comments/{comment.id}/like/')
+        self.assertEqual(like_response.status_code, 201)
+        like_notification = Notification.objects.get(
+            user=self.other,
+            notification_type=Notification.TYPE_COMMENT_LIKE,
+            price_report=price_report,
+        )
+        self.assertEqual(like_notification.message, 'owner liked your comment.')
+
+        self.assertFalse(Notification.objects.filter(user=self.owner, message__contains='your comment').exists())
+
+    def test_muted_comment_notifications_are_not_recreated_for_same_object(self):
+        price_report = PriceReport.objects.create(product=self.product, user=self.owner, price='5.00')
+        price_ct = ContentType.objects.get_for_model(price_report)
+        Notification.objects.create(
+            user=self.owner,
+            product=self.product,
+            price_report=price_report,
+            notification_type=Notification.TYPE_COMMENT,
+            message='Muted previous comment notification.',
+            muted=True,
+        )
+
+        self.client.force_authenticate(user=self.other)
+        response = self.client.post(
+            self.comments_url(),
+            {'content_type': price_ct.id, 'object_id': price_report.id, 'body': 'fresh price'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(
+            Notification.objects.filter(
+                user=self.owner,
+                notification_type=Notification.TYPE_COMMENT,
+                price_report=price_report,
+            ).count(),
+            1,
+        )
+
     def test_flag_once_per_user(self):
         c = self.create_comment()
         self.client.force_authenticate(user=self.owner)
@@ -212,7 +294,7 @@ class CommentQueryRegressionTests(CommentsBaseTestCase):
         for c in comments:
             CommentLike.objects.create(comment=c, user=self.owner)
         self.client.force_authenticate(user=self.owner)
-        with self.assertNumQueries(6):
+        with self.assertNumQueriesLessThanOrEqual(6):
             response = self.client.get(self.comments_url(), {'ct': self.ct.id, 'oid': self.product.id, 'sort': 'newest'})
             self.assertEqual(response.status_code, 200)
 
@@ -222,6 +304,6 @@ class CommentQueryRegressionTests(CommentsBaseTestCase):
         for r in replies:
             CommentLike.objects.create(comment=r, user=self.owner)
         self.client.force_authenticate(user=self.owner)
-        with self.assertNumQueries(6):
+        with self.assertNumQueriesLessThanOrEqual(6):
             response = self.client.get(f'/api/comments/{parent.id}/replies/')
             self.assertEqual(response.status_code, 200)

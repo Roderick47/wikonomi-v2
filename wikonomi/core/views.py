@@ -986,23 +986,6 @@ def add_comment(request):
             return JsonResponse({'status': 'error', 'message': 'Parent mismatch'}, status=400)
         comment.parent = parent
     comment.save()
-
-    recipients = set()
-    if comment.parent and comment.parent.user_id != request.user.id:
-        recipients.add(comment.parent.user)
-        ntype = Notification.TYPE_REPLY
-        msg = f"{request.user.username} replied to your comment."
-    else:
-        owner = target_obj.user if isinstance(target_obj, PriceReport) else None
-        if owner and owner.id != request.user.id:
-            recipients.add(owner)
-        ntype = Notification.TYPE_COMMENT
-        msg = f"{request.user.username} commented on your post."
-    for recipient in recipients:
-        Notification.objects.create(
-            user=recipient, product=target_obj.product if isinstance(target_obj, PriceReport) else None,
-            price_report=target_obj if isinstance(target_obj, PriceReport) else None, business=target_obj if isinstance(target_obj, Business) else None, notification_type=ntype, message=msg
-        )
     return JsonResponse({'status': 'ok', 'id': comment.id, 'body': comment.body, 'username': comment.user.username})
 
 @login_required

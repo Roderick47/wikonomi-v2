@@ -827,11 +827,13 @@ class Notification(models.Model):
     TYPE_GENERAL = 'general'
     TYPE_COMMENT = 'comment'
     TYPE_REPLY = 'reply'
+    TYPE_COMMENT_LIKE = 'comment_like'
     TYPE_DELETION_MARK = 'deletion_mark'
     TYPE_CHOICES = [
         (TYPE_GENERAL, 'General'),
         (TYPE_COMMENT, 'Comment'),
         (TYPE_REPLY, 'Reply'),
+        (TYPE_COMMENT_LIKE, 'Comment Like'),
         (TYPE_DELETION_MARK, 'Deletion Mark'),
     ]
 
