@@ -77,6 +77,21 @@
     attachInfiniteObserver();
   }
 
+  function renderAvatar(author, size = 'md') {
+    const username = esc(author?.username || 'user');
+    const picture = author?.profile_picture;
+    const sizeClass = size === 'sm' ? 'wk-comments__avatar-wrap--sm' : '';
+    const fallbackHiddenClass = picture ? ' wk-comments__avatar-fallback--hidden' : '';
+    return `<span class="wk-comments__avatar-wrap ${sizeClass}">
+      ${picture ? `<img class="wk-comments__avatar" src="${esc(picture)}" alt="${username}'s profile picture" loading="lazy" onerror="this.classList.add('wk-comments__avatar--hidden'); this.nextElementSibling.classList.remove('wk-comments__avatar-fallback--hidden');"/>` : ''}
+      <span class="wk-comments__avatar-fallback${fallbackHiddenClass}" aria-hidden="true">
+        <svg class="wk-comments__avatar-icon" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+        </svg>
+      </span>
+    </span>`;
+  }
+
   function renderComment(c) {
     const showReply = state.openReplyFormId === c.id && isAuthenticated;
     const showMenu = state.openMenuId === c.id;
@@ -85,7 +100,7 @@
     const editErr = errHtml(`edit-${c.id}`, `edit-${c.id}`);
     const replies = repliesCache.get(c.id) || { expanded: false, items: [], cursor: null, isLoading: false, isLoadingMore: false };
     return `<article class="wk-comments__item" role="listitem" id="comment-${c.id}" data-id="${c.id}">
-      <div class="wk-comments__meta"><img class="wk-comments__avatar" src="${esc(c.author?.profile_picture || '/static/img/default_avatar.png')}" alt="" loading="lazy"/><strong>${esc(c.author?.username || 'user')}</strong> <span data-created-at="${esc(c.created_at || '')}">${esc(formatRelativeTime(c.created_at || new Date().toISOString()))}</span> ${c.is_pinned?'<span>📌 Pinned</span>':''}</div>
+      <div class="wk-comments__meta">${renderAvatar(c.author)}<strong>${esc(c.author?.username || 'user')}</strong> <span data-created-at="${esc(c.created_at || '')}">${esc(formatRelativeTime(c.created_at || new Date().toISOString()))}</span> ${c.is_pinned?'<span>📌 Pinned</span>':''}</div>
       ${isEditing ? `<div class="wk-comments__edit"><textarea id="edit-${c.id}" data-input="edit" data-id="${c.id}" ${editErr.inputAttrs}>${esc(state.editBody)}</textarea>${editErr.html}<div><button data-action="save-edit" data-id="${c.id}">Save</button><button data-action="cancel-edit">Cancel</button></div></div>` : `<p class="wk-comments__item-body">${esc(c.body)}</p>`}
       <div class="wk-comments__actions">
         ${isAuthenticated?`<button data-action="reply" data-id="${c.id}">Reply</button>
@@ -106,8 +121,58 @@
   }
 
   function renderReplies(parentId, replies) {
-    const rows = replies.isLoading ? renderSkeletonRows(1) : replies.items.map((r) => `<div class="wk-comments__reply-item"><img class="wk-comments__avatar wk-comments__avatar--sm" src="${esc(r.author?.profile_picture || '/static/img/default_avatar.png')}" alt="" loading="lazy"/><strong>${esc(r.author?.username || 'user')}</strong> <span data-created-at="${esc(r.created_at || '')}">${esc(formatRelativeTime(r.created_at || new Date().toISOString()))}</span><p>${esc(r.body)}</p></div>`).join('');
+    const rows = replies.isLoading ? renderSkeletonRows(1) : replies.items.map((r) => `<div class="wk-comments__reply-item">${renderAvatar(r.author, 'sm')}<strong>${esc(r.author?.username || 'user')}</strong> <span data-created-at="${esc(r.created_at || '')}">${esc(formatRelativeTime(r.created_at || new Date().toISOString()))}</span><p>${esc(r.body)}</p></div>`).join('');
     return `<div class="wk-comments__replies">${rows}${replies.isLoadingMore ? '<div class="wk-comments__mini-skeleton wk-skeleton wk-skeleton--line"></div>' : ''}${replies.cursor ? `<button data-action="load-more-replies" data-id="${parentId}">Load more replies</button>` : ''}</div>`;
+  }
+
+  function renderDeleteModal() {
+    if (!state.deleteTargetId) return '';
+    return `<div class="wk-comments__modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+      <div class="wk-comments__modal">
+        <h4 id="delete-modal-title">Delete comment?</h4>
+        <p>This cannot be undone.</p>
+        <div class="wk-comments__modal-actions">
+          <button data-action="confirm-delete" data-id="${state.deleteTargetId}">Delete</button>
+          <button data-action="cancel-delete">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function renderFlagModal() {
+    if (!state.flagTargetId) return '';
+    const reasons = [
+      ['spam', 'Spam'],
+      ['harassment', 'Harassment'],
+      ['misinformation', 'Misinformation'],
+      ['other', 'Other']
+    ];
+    const options = reasons.map(([value, label]) => `<option value="${value}" ${state.flagReason === value ? 'selected' : ''}>${label}</option>`).join('');
+    return `<div class="wk-comments__modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="flag-modal-title">
+      <div class="wk-comments__modal">
+        <h4 id="flag-modal-title">Flag comment</h4>
+        <label for="flag-reason-select">Reason</label>
+        <select id="flag-reason-select" data-action="flag-reason">${options}</select>
+        <div class="wk-comments__modal-actions">
+          <button data-action="confirm-flag" data-id="${state.flagTargetId}" ${state.isSubmittingFlag ? 'disabled' : ''}>${state.isSubmittingFlag ? 'Submitting…' : 'Submit'}</button>
+          <button data-action="cancel-flag">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    const didCopy = document.execCommand('copy');
+    document.body.removeChild(textArea);
+    return didCopy ? Promise.resolve() : Promise.reject(new Error('Copy failed'));
   }
 
   async function loadComments(append = false) {
@@ -173,12 +238,101 @@
     if (action === 'load-more-replies') return loadReplies(id, true);
     if (action === 'more') { state.openMenuId = state.openMenuId === id ? null : id; return render(); }
     if (action === 'reply') { state.openReplyFormId = state.openReplyFormId === id ? null : id; if (state.openReplyFormId) state.focusTarget = `[data-input="reply"][data-id="${id}"]`; return render(); }
-    if (action === 'compose') { const body = (root.querySelector('[data-input="compose"]')?.value || '').trim(); if (!body) { setError('compose', 'Comment is required.'); return render(); } clearError('compose'); const res = await api('', { method: 'POST', body: JSON.stringify({ content_type: Number(ct), object_id: Number(oid), body }) }); if (res.ok) { root.querySelector('[data-input="compose"]').value = ''; loadComments(); } else { flashToast('Failed to save comment.'); } }
-    if (action === 'send-reply') { const body = (root.querySelector(`[data-input="reply"][data-id="${id}"]`)?.value || '').trim(); if (!body) { setError(`reply-${id}`, 'Reply is required.'); return render(); } clearError(`reply-${id}`); const res = await api(`${id}/reply/`, { method: 'POST', body: JSON.stringify({ body }) }); if (res.ok) { state.openReplyFormId = null; loadComments(); } else { flashToast('Failed to save reply.'); } }
+    if (action === 'compose') { const body = (root.querySelector('[data-input="compose"]')?.value || '').trim(); if (!body) { setError('compose', 'Comment is required.'); return render(); } clearError('compose'); const res = await api('', { method: 'POST', body: JSON.stringify({ content_type: Number(ct), object_id: Number(oid), body }) }); if (res.ok) { root.querySelector('[data-input="compose"]').value = ''; loadComments(); } else { flashToast('Failed to save comment.'); } return; }
+    if (action === 'send-reply') { const body = (root.querySelector(`[data-input="reply"][data-id="${id}"]`)?.value || '').trim(); if (!body) { setError(`reply-${id}`, 'Reply is required.'); return render(); } clearError(`reply-${id}`); const res = await api(`${id}/reply/`, { method: 'POST', body: JSON.stringify({ body }) }); if (res.ok) { state.openReplyFormId = null; loadComments(); } else { flashToast('Failed to save reply.'); } return; }
+    if (action === 'like') {
+      const c = state.comments.find((comment) => comment.id === id);
+      const wasLiked = Boolean(c?.user_has_liked);
+      const res = await api(`${id}/like/`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (c) {
+          c.user_has_liked = data.user_has_liked ?? data.liked ?? !wasLiked;
+          c.like_count = data.like_count ?? Math.max(0, (c.like_count || 0) + (c.user_has_liked ? 1 : -1));
+        }
+        render();
+      } else { flashToast('Failed to update like.'); }
+      return;
+    }
+    if (action === 'copy-link') {
+      state.openMenuId = null;
+      render();
+      try {
+        await copyToClipboard(`${location.origin}${location.pathname}#comment-${id}`);
+        flashToast('Link copied.');
+      } catch {
+        flashToast('Failed to copy link.');
+      }
+      return;
+    }
+    if (action === 'edit') {
+      const c = state.comments.find((comment) => comment.id === id);
+      if (c) {
+        state.editingCommentId = id;
+        state.editBody = c.body;
+        state.openMenuId = null;
+        state.focusTarget = `[data-input="edit"][data-id="${id}"]`;
+        render();
+      }
+      return;
+    }
+    if (action === 'save-edit') {
+      const body = (root.querySelector(`[data-input="edit"][data-id="${id}"]`)?.value || '').trim();
+      if (!body) { setError(`edit-${id}`, 'Comment cannot be empty.'); return render(); }
+      clearError(`edit-${id}`);
+      const res = await api(`${id}/`, { method: 'PATCH', body: JSON.stringify({ body }) });
+      if (res.ok) {
+        const updated = await res.json();
+        const idx = state.comments.findIndex((comment) => comment.id === id);
+        if (idx > -1) state.comments[idx] = updated;
+        state.editingCommentId = null;
+        state.editBody = '';
+        render();
+      } else { flashToast('Failed to save edit.'); }
+      return;
+    }
+    if (action === 'cancel-edit') { state.editingCommentId = null; state.editBody = ''; return render(); }
+    if (action === 'delete') { state.deleteTargetId = id; state.openMenuId = null; return render(); }
+    if (action === 'confirm-delete') {
+      const res = await api(`${id}/`, { method: 'DELETE' });
+      if (res.ok) {
+        state.comments = state.comments.filter((comment) => comment.id !== id);
+        state.deleteTargetId = null;
+        flashToast('Comment deleted.');
+      } else {
+        state.deleteTargetId = null;
+        flashToast('Failed to delete comment.');
+      }
+      return;
+    }
+    if (action === 'cancel-delete') { state.deleteTargetId = null; return render(); }
+    if (action === 'flag') { state.flagTargetId = id; state.openMenuId = null; state.flagReason = 'other'; return render(); }
+    if (action === 'confirm-flag') {
+      state.isSubmittingFlag = true;
+      render();
+      const res = await api(`${id}/flag/`, { method: 'POST', body: JSON.stringify({ reason: state.flagReason }) });
+      state.isSubmittingFlag = false;
+      state.flagTargetId = null;
+      flashToast(res.ok ? 'Comment flagged. Thanks for the report.' : 'Failed to submit flag.');
+      return;
+    }
+    if (action === 'cancel-flag') { state.flagTargetId = null; return render(); }
+    if (action === 'pin') {
+      const res = await api(`${id}/pin/`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.is_pinned) state.comments.forEach((comment) => { comment.is_pinned = false; });
+        const c = state.comments.find((comment) => comment.id === id);
+        if (c) c.is_pinned = data.is_pinned;
+        state.openMenuId = null;
+        render();
+      } else { flashToast('Failed to update pin.'); }
+    }
   });
 
   root.addEventListener('change', (e) => {
     if (e.target.matches('[data-action="sort"]')) { state.sort = e.target.value; state.cursor = null; loadComments(); }
+    if (e.target.matches('[data-action="flag-reason"]')) { state.flagReason = e.target.value; }
   });
 
   setInterval(() => {
