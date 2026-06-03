@@ -77,6 +77,21 @@
     attachInfiniteObserver();
   }
 
+  function renderAvatar(author, size = 'md') {
+    const username = esc(author?.username || 'user');
+    const picture = author?.profile_picture;
+    const sizeClass = size === 'sm' ? 'wk-comments__avatar-wrap--sm' : '';
+    const fallbackHiddenClass = picture ? ' wk-comments__avatar-fallback--hidden' : '';
+    return `<span class="wk-comments__avatar-wrap ${sizeClass}">
+      ${picture ? `<img class="wk-comments__avatar" src="${esc(picture)}" alt="${username}'s profile picture" loading="lazy" onerror="this.classList.add('wk-comments__avatar--hidden'); this.nextElementSibling.classList.remove('wk-comments__avatar-fallback--hidden');"/>` : ''}
+      <span class="wk-comments__avatar-fallback${fallbackHiddenClass}" aria-hidden="true">
+        <svg class="wk-comments__avatar-icon" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+        </svg>
+      </span>
+    </span>`;
+  }
+
   function renderComment(c) {
     const showReply = state.openReplyFormId === c.id && isAuthenticated;
     const showMenu = state.openMenuId === c.id;
@@ -85,7 +100,7 @@
     const editErr = errHtml(`edit-${c.id}`, `edit-${c.id}`);
     const replies = repliesCache.get(c.id) || { expanded: false, items: [], cursor: null, isLoading: false, isLoadingMore: false };
     return `<article class="wk-comments__item" role="listitem" id="comment-${c.id}" data-id="${c.id}">
-      <div class="wk-comments__meta"><img class="wk-comments__avatar" src="${esc(c.author?.profile_picture || '/static/img/default_avatar.png')}" alt="" loading="lazy"/><strong>${esc(c.author?.username || 'user')}</strong> <span data-created-at="${esc(c.created_at || '')}">${esc(formatRelativeTime(c.created_at || new Date().toISOString()))}</span> ${c.is_pinned?'<span>📌 Pinned</span>':''}</div>
+      <div class="wk-comments__meta">${renderAvatar(c.author)}<strong>${esc(c.author?.username || 'user')}</strong> <span data-created-at="${esc(c.created_at || '')}">${esc(formatRelativeTime(c.created_at || new Date().toISOString()))}</span> ${c.is_pinned?'<span>📌 Pinned</span>':''}</div>
       ${isEditing ? `<div class="wk-comments__edit"><textarea id="edit-${c.id}" data-input="edit" data-id="${c.id}" ${editErr.inputAttrs}>${esc(state.editBody)}</textarea>${editErr.html}<div><button data-action="save-edit" data-id="${c.id}">Save</button><button data-action="cancel-edit">Cancel</button></div></div>` : `<p class="wk-comments__item-body">${esc(c.body)}</p>`}
       <div class="wk-comments__actions">
         ${isAuthenticated?`<button data-action="reply" data-id="${c.id}">Reply</button>
@@ -106,7 +121,7 @@
   }
 
   function renderReplies(parentId, replies) {
-    const rows = replies.isLoading ? renderSkeletonRows(1) : replies.items.map((r) => `<div class="wk-comments__reply-item"><img class="wk-comments__avatar wk-comments__avatar--sm" src="${esc(r.author?.profile_picture || '/static/img/default_avatar.png')}" alt="" loading="lazy"/><strong>${esc(r.author?.username || 'user')}</strong> <span data-created-at="${esc(r.created_at || '')}">${esc(formatRelativeTime(r.created_at || new Date().toISOString()))}</span><p>${esc(r.body)}</p></div>`).join('');
+    const rows = replies.isLoading ? renderSkeletonRows(1) : replies.items.map((r) => `<div class="wk-comments__reply-item">${renderAvatar(r.author, 'sm')}<strong>${esc(r.author?.username || 'user')}</strong> <span data-created-at="${esc(r.created_at || '')}">${esc(formatRelativeTime(r.created_at || new Date().toISOString()))}</span><p>${esc(r.body)}</p></div>`).join('');
     return `<div class="wk-comments__replies">${rows}${replies.isLoadingMore ? '<div class="wk-comments__mini-skeleton wk-skeleton wk-skeleton--line"></div>' : ''}${replies.cursor ? `<button data-action="load-more-replies" data-id="${parentId}">Load more replies</button>` : ''}</div>`;
   }
 
