@@ -53,6 +53,9 @@ class CommentSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return False
+        prefetched_likes = getattr(obj, '_prefetched_objects_cache', {}).get('likes')
+        if prefetched_likes is not None:
+            return any(like.user_id == request.user.id for like in prefetched_likes)
         return obj.likes.filter(user=request.user).exists()
 
     def get_time_ago(self, obj):

@@ -1,5 +1,3 @@
-from django.contrib.contenttypes.models import ContentType
-from django.db.models import F
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError, PermissionDenied
@@ -27,8 +25,13 @@ class RepliesPagination(CursorPagination):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    queryset = Comment.objects.select_related('user', 'content_type', 'parent').prefetch_related('likes').all()
+    queryset = Comment.objects.select_related('user', 'user__profile', 'content_type', 'parent').prefetch_related('likes').all()
     permission_classes = [IsAuthenticatedForWrite, IsAuthorOrStaffForModify]
+
+    def get_permissions(self):
+        if self.action == 'pin':
+            return [IsAuthenticated()]
+        return super().get_permissions()
 
     def get_throttles(self):
         if self.action in ['create', 'reply']:
@@ -51,9 +54,18 @@ class CommentViewSet(viewsets.ModelViewSet):
             return qs.order_by('-is_pinned', '-like_count', '-created_at', '-id')
         return qs
 
+    def _pagination_ordering(self):
+        sort = self.request.query_params.get('sort', 'top')
+        if sort == 'newest':
+            return ('-created_at', '-id')
+        if sort == 'oldest':
+            return ('created_at', 'id')
+        return ('-is_pinned', '-like_count', '-created_at', '-id')
+
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         paginator = TopLevelCommentPagination()
+        paginator.ordering = self._pagination_ordering()
         page = paginator.paginate_queryset(queryset, request, view=self)
         serializer = self.get_serializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
@@ -72,8 +84,9 @@ class CommentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='replies')
     def replies(self, request, pk=None):
         parent = self.get_object()
-        qs = parent.replies.select_related('user').prefetch_related('likes').order_by('created_at', 'id')
+        qs = parent.replies.select_related('user', 'user__profile').prefetch_related('likes').order_by('created_at', 'id')
         paginator = RepliesPagination()
+        paginator.ordering = ('created_at', 'id')
         page = paginator.paginate_queryset(qs, request, view=self)
         serializer = self.get_serializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
@@ -88,7 +101,6 @@ class CommentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         comment = serializer.save(user=request.user)
-        Comment.objects.filter(pk=parent.pk).update(reply_count=F('reply_count') + 1)
         return Response(self.get_serializer(comment).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated], url_path='like')
@@ -96,11 +108,11 @@ class CommentViewSet(viewsets.ModelViewSet):
         comment = self.get_object()
         like, created = CommentLike.objects.get_or_create(comment=comment, user=request.user)
         if created:
-            Comment.objects.filter(pk=comment.pk).update(like_count=F('like_count') + 1)
-            return Response({'liked': True}, status=status.HTTP_201_CREATED)
+            comment.refresh_from_db(fields=['like_count'])
+            return Response({'liked': True, 'user_has_liked': True, 'like_count': comment.like_count}, status=status.HTTP_201_CREATED)
         like.delete()
-        Comment.objects.filter(pk=comment.pk, like_count__gt=0).update(like_count=F('like_count') - 1)
-        return Response({'liked': False}, status=status.HTTP_200_OK)
+        comment.refresh_from_db(fields=['like_count'])
+        return Response({'liked': False, 'user_has_liked': False, 'like_count': comment.like_count}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated], url_path='pin')
     def pin(self, request, pk=None):

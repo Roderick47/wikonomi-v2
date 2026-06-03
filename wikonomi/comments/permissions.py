@@ -23,5 +23,6 @@ class CanPinComment(BasePermission):
             return False
         if request.user.is_staff:
             return True
-        owner = getattr(obj.content_object, 'user_id', None)
+        target = obj.content_object
+        owner = getattr(target, 'user_id', None) or getattr(target, 'created_by_id', None)
         return owner == request.user.id
