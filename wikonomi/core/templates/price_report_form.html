@@ -54,6 +54,10 @@
 
                 <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                     <div class="sm:col-span-6">
+                        {% include 'includes/image_upload_widget.html' with image_label="Upload Photo (Optional)" %}
+                    </div>
+
+                    <div class="sm:col-span-6">
                         <label for="product_search" class="block text-sm font-medium text-gray-700">Product</label>
                         <div class="mt-1 flex rounded-md shadow-sm">
                             <input type="text" name="product_name" id="product_search" list="product_list" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="Type a product name...">
@@ -123,10 +127,6 @@
                         
                         {% if form.latitude.errors %}<p class="mt-1 text-red-500 text-xs italic">{{ form.latitude.errors.0 }}</p>{% endif %}
                         {% if form.longitude.errors %}<p class="mt-1 text-red-500 text-xs italic">{{ form.longitude.errors.0 }}</p>{% endif %}
-                    </div>
-                    
-                    <div class="sm:col-span-6">
-                        {% include 'includes/image_upload_widget.html' with image_label="Upload Photo (Optional)" %}
                     </div>
                     
                     <div class="sm:col-span-6">
