@@ -47,7 +47,7 @@
 {% block extra_head %}
 <style>
     #map {
-        height: 400px;
+        height: 420px;
         z-index: 10;
     }
 </style>
@@ -56,7 +56,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
+<div class="max-w-7xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
     <div class="mb-4">
         <a href="{% url 'home' %}" class="text-brand-purple hover:text-brand-purple/80 flex items-center font-medium">
             <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
@@ -64,83 +64,83 @@
         </a>
     </div>
 
-    <div class="bg-white shadow sm:rounded-lg">
+    <!-- Hero header -->
+    <div class="bg-white shadow sm:rounded-lg mb-8">
         <div class="px-4 py-5 sm:px-6">
-            <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-                <div class="flex-grow min-w-0">
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
-                        <h3 class="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
                             {{ report.product.name }}
-                        </h3>
-                        {% if user.is_authenticated %}
-                            <div class="flex flex-wrap gap-2 shrink-0">
-                                <button id="watchlist-btn" data-product-id="{{ report.product.id }}" 
-                                    class="inline-flex items-center px-2 py-1 text-xs sm:text-sm rounded border transition-colors
-                                    {% if is_watching %}bg-brand-purple/10 text-brand-purple border-brand-blue hover:bg-brand-purple/20
-                                    {% else %}bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200{% endif %}">
-                                    <span id="watchlist-icon">
-                                        {% if is_watching %}⭐ Watching{% else %}☆ Watch{% endif %}
-                                    </span>
-                                </button>
-                                <button onclick="sharePriceReport(event, {title: '{{ report.product.name|escapejs }}', text: 'Checked {{ report.product.name|escapejs }} at {{ report.business.name|default:"Unknown"|escapejs }} for {{ report.currency|escapejs }} {{ report.price|intcomma|escapejs }} on Wikonomi.', url: window.location.href})"
-                                    class="inline-flex items-center px-2 py-1 text-xs sm:text-sm rounded border border-gray-300 bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors" title="Share">
-                                    <svg class="h-3 w-3 sm:h-4 sm:w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
-                                    </svg>
-                                    <span>Share</span>
-                                </button>
-                                <button id="add-to-list-btn" data-product-id="{{ report.product.id }}"
-                                    class="inline-flex items-center px-2 py-1 text-xs sm:text-sm rounded border border-gray-300 bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors">
-                                    <svg class="h-3 w-3 sm:h-4 sm:w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                    <span id="list-btn-text">Add to List</span>
-                                </button>
-                                <button id="like-btn" data-price-id="{{ report.id }}" class="inline-flex items-center px-2 py-1 text-xs sm:text-sm rounded border transition-colors {% if is_liked %}bg-blue-50 text-blue-700 border-blue-200{% else %}bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200{% endif %}">
-                                    👍 <span id="like-count" class="ml-1">{{ report.likes.count }}</span>
-                                </button>
-                            </div>
-                        {% endif %}
+                        </h1>
+                        <span class="inline-flex items-center px-4 py-1.5 rounded-lg text-xl sm:text-2xl font-extrabold bg-brand-green text-white shadow-sm whitespace-nowrap">
+                            {{ report.currency }} {{ report.price|intcomma }}
+                        </span>
                     </div>
                     {% if report.business %}
-                    <p class="text-base sm:text-lg text-gray-700">
-                        Found at <a href="{% url 'business_detail' report.business.pk %}" class="font-semibold text-brand-purple hover:text-brand-purple/80">{{ report.business.name }}</a>
+                    <p class="mt-2 text-base sm:text-lg text-gray-700">
+                        at <a href="{% url 'business_detail' report.business.pk %}" class="font-semibold text-brand-purple hover:text-brand-purple/80">{{ report.get_business_display }}</a>
                     </p>
-                    <div class="mt-3">
-                        <a href="{% url 'business_detail' report.business.pk %}" 
-                           class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-brand-purple hover:bg-brand-purple/90 text-white text-sm font-medium rounded-md transition-colors">
-                            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            View Business Details
-                        </a>
-                    </div>
                     {% endif %}
-                    <p class="mt-2 text-xs sm:text-sm text-gray-500">
-                        Reported by {{ report.user.username }} on {{ report.observed_at|date:"F j, Y, P" }}
-                        {% if report.last_edited_by and report.last_edited_by != report.user %}
-                            <br>Last edited by {{ report.last_edited_by.username }} on {{ report.updated_at|date:"F j, Y, P" }}
-                        {% endif %}
-                    </p>
+                    <div class="mt-3 flex items-center gap-2">
+                        <div class="relative h-8 w-8 shrink-0">
+                            {% if report.user.profile.profile_picture %}
+                            <img src="{{ report.user.profile.profile_picture.url }}" alt="{{ report.user.username }}" class="h-8 w-8 rounded-full object-cover border border-gray-200" onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
+                            {% endif %}
+                            <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center {% if report.user.profile.profile_picture %}hidden{% endif %}">
+                                <svg class="h-5 w-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500">
+                            Reported by <span class="font-medium text-gray-700">{{ report.user.username }}</span> on {{ report.observed_at|date:"F j, Y" }}
+                            {% if report.last_edited_by and report.last_edited_by != report.user %}
+                            <span class="block sm:inline sm:ml-1">· Last edited by {{ report.last_edited_by.username }} on {{ report.updated_at|date:"F j, Y" }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
                 </div>
-                <div class="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-start gap-3 shrink-0">
+
+                <!-- Icon toolbar -->
+                <div class="flex items-center gap-1 shrink-0">
+                    <button type="button" onclick="sharePriceReport(event, {title: '{{ report.product.name|escapejs }}', text: 'Checked {{ report.product.name|escapejs }} at {{ report.business.name|default:"Unknown"|escapejs }} for {{ report.currency|escapejs }} {{ report.price|intcomma|escapejs }} on Wikonomi.', url: window.location.href})"
+                        class="p-2.5 text-gray-500 hover:text-brand-purple hover:bg-brand-purple/10 rounded-full transition-colors" title="Share" aria-label="Share">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                    </button>
                     {% if user.is_authenticated %}
-                    <a href="{% url 'edit_price_report' report.pk %}" class="bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-bold py-1.5 px-4 rounded text-sm transition-colors shadow-sm">
-                        Edit Report
-                    </a>
-                    {% endif %}
-                    <div class="bg-brand-green/20 px-4 py-2 rounded-lg border border-brand-green/50 shadow-sm whitespace-nowrap">
-                        <span class="text-brand-green/80 font-bold text-xl sm:text-2xl">{{ report.currency }} {{ report.price|intcomma }}</span>
+                    <button type="button" id="watchlist-btn" data-product-id="{{ report.product.id }}"
+                        class="p-2.5 rounded-full transition-colors {% if is_watching %}text-brand-purple bg-brand-purple/10{% else %}text-gray-500 hover:text-brand-purple hover:bg-brand-purple/10{% endif %}"
+                        title="{% if is_watching %}Watching{% else %}Watch product{% endif %}" aria-label="Watch product">
+                        <span id="watchlist-icon" class="text-lg leading-none">{% if is_watching %}⭐{% else %}☆{% endif %}</span>
+                    </button>
+                    <button type="button" id="add-to-list-btn" data-product-id="{{ report.product.id }}"
+                        class="p-2.5 text-gray-500 hover:text-brand-purple hover:bg-brand-purple/10 rounded-full transition-colors" title="Add to shopping list" aria-label="Add to list">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    </button>
+                    <div class="relative">
+                        <button type="button" id="actions-menu-btn" class="p-2.5 text-gray-500 hover:text-brand-purple hover:bg-brand-purple/10 rounded-full transition-colors" title="More actions" aria-label="More actions" aria-expanded="false" aria-haspopup="true">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+                        </button>
+                        <div id="actions-menu" class="hidden absolute right-0 mt-1 w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                            <a href="{% url 'edit_price_report' report.pk %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Edit report</a>
+                            {% if not report.marked_for_deletion %}
+                            <button type="button" onclick="document.getElementById('deletion-form').classList.remove('hidden'); document.getElementById('actions-menu').classList.add('hidden');" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Mark for deletion</button>
+                            {% endif %}
+                        </div>
                     </div>
+                    {% endif %}
                 </div>
             </div>
 
-            <!-- Deletion Request Section -->
+            <!-- Deletion request banner -->
             {% if report.marked_for_deletion %}
             <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <div class="flex items-start gap-3">
-                    <svg class="h-5 w-5 text-red-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="h-5 w-5 text-red-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                     </svg>
-                    <div class="flex-grow">
+                    <div class="flex-grow min-w-0">
                         <h4 class="text-red-800 font-semibold">Marked for Deletion</h4>
                         <p class="text-red-700 text-sm mt-1">
                             Reported by {{ report.marked_for_deletion_by.username }} on {{ report.marked_for_deletion_at|date:"M d, Y" }}
@@ -151,33 +151,24 @@
                         <p class="text-red-700 text-sm mt-2">
                             <span class="font-medium">{{ report.deletion_votes.count }}</span> user(s) have confirmed this deletion request.
                         </p>
-                        
                         <div class="mt-3 flex flex-wrap gap-2">
                             {% if user.is_authenticated %}
                                 {% if user == report.marked_for_deletion_by or user.is_staff or user.is_superuser %}
                                 <form method="post" action="{% url 'unmark_for_deletion' report.pk %}" class="inline">
                                     {% csrf_token %}
-                                    <button type="submit" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium rounded transition-colors">
-                                        Cancel Deletion Request
-                                    </button>
+                                    <button type="submit" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium rounded transition-colors">Cancel request</button>
                                 </form>
                                 {% endif %}
-                                
                                 {% if can_vote_delete %}
                                 <form method="post" action="{% url 'vote_delete_price' report.pk %}" class="inline">
                                     {% csrf_token %}
-                                    <button type="submit" class="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-medium rounded border border-red-300 transition-colors">
-                                        Confirm & Vote to Delete
-                                    </button>
+                                    <button type="submit" class="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-medium rounded border border-red-300 transition-colors">Confirm &amp; vote to delete</button>
                                 </form>
                                 {% endif %}
-                                
                                 {% if user.is_staff or user.is_superuser or report.deletion_votes.count >= 1 %}
                                 <form method="post" action="{% url 'delete_price_report' report.pk %}" class="inline" onsubmit="return confirm('Are you sure you want to permanently delete this price report?');">
                                     {% csrf_token %}
-                                    <button type="submit" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded transition-colors">
-                                        Delete Now
-                                    </button>
+                                    <button type="submit" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded transition-colors">Delete now</button>
                                 </form>
                                 {% endif %}
                             {% endif %}
@@ -185,186 +176,237 @@
                     </div>
                 </div>
             </div>
-            {% else %}
-                {% if user.is_authenticated %}
-                <div class="mt-4 pt-4 border-t border-gray-200">
-                    <button onclick="document.getElementById('deletion-form').classList.toggle('hidden')" class="text-red-600 hover:text-red-800 text-sm font-medium flex items-center">
-                        <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                        Mark for Deletion
-                    </button>
-                    <div id="deletion-form" class="hidden mt-3 p-3 bg-gray-50 rounded-lg">
-                        <form method="post" action="{% url 'mark_for_deletion' report.pk %}">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">Reason (optional)</label>
-                                <textarea name="reason" id="reason" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Why should this price be deleted? (duplicate, wrong price, etc.)"></textarea>
-                            </div>
-                            <div class="flex gap-2">
-                                <button type="submit" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded transition-colors">
-                                    Submit Deletion Request
-                                </button>
-                                <button type="button" onclick="document.getElementById('deletion-form').classList.add('hidden')" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium rounded transition-colors">
-                                    Cancel
-                                </button>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-2">Another user will need to confirm this request before deletion.</p>
-                        </form>
+            {% elif user.is_authenticated %}
+            <div id="deletion-form" class="hidden mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <form method="post" action="{% url 'mark_for_deletion' report.pk %}">
+                    {% csrf_token %}
+                    <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">Reason for deletion (optional)</label>
+                    <textarea name="reason" id="reason" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Duplicate, wrong price, etc."></textarea>
+                    <div class="flex gap-2 mt-3">
+                        <button type="submit" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded transition-colors">Submit request</button>
+                        <button type="button" onclick="document.getElementById('deletion-form').classList.add('hidden')" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium rounded transition-colors">Cancel</button>
                     </div>
-                </div>
-                {% endif %}
+                    <p class="text-xs text-gray-500 mt-2">Another user must confirm before deletion.</p>
+                </form>
+            </div>
             {% endif %}
         </div>
-        
-        <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
-            <dl class="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
-                
-                {% if report.product.tags.all %}
-                <div class="sm:col-span-2">
-                    <dt class="text-sm font-medium text-gray-500">Tags</dt>
-                    <dd class="mt-1 text-sm text-gray-900 flex flex-wrap gap-2">
-                        {% for tag in report.product.tags.all %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-purple/10 text-brand-purple">
-                            {{ tag.name }}
-                        </span>
-                        {% endfor %}
-                    </dd>
-                </div>
-                {% endif %}
+    </div>
 
-                {% if report.notes %}
-                <div class="sm:col-span-2">
-                    <dt class="text-sm font-medium text-gray-500">Notes</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ report.notes }}</dd>
-                </div>
-                {% endif %}
-
-                {% if report.image %}
-                <div class="sm:col-span-2">
-                    <dt class="text-sm font-medium text-gray-500 mb-2">Attached Photo</dt>
-                    <dd class="mt-1 text-sm text-gray-900">
-                        <a href="{{ report.image.url }}" target="_blank" class="inline-block group" title="Click to view full size">
-                            <div class="relative">
-                                <img src="{{ report.image.url }}" alt="Price Report Image" 
-                                    class="w-32 h-32 sm:w-48 sm:h-48 object-cover rounded-lg shadow-sm border border-gray-200 group-hover:opacity-90 transition-opacity">
-                                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-10 rounded-lg">
-                                    <svg class="h-8 w-8 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <!-- Two-column main content -->
+    <div class="bg-white shadow sm:rounded-lg mb-8">
+        <div class="px-4 py-5 sm:px-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Left: photo + accuracy + metadata -->
+                <div class="space-y-6">
+                    {% if report.image %}
+                    <div>
+                        <h2 class="text-sm font-medium text-gray-500 mb-2">Attached photo</h2>
+                        <a href="{{ report.image.url }}" target="_blank" rel="noopener" class="block group" title="View full size">
+                            <div class="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                                <img src="{{ report.image.url }}" alt="Photo of {{ report.product.name }}"
+                                    class="w-full max-h-[480px] object-contain group-hover:opacity-95 transition-opacity">
+                                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/10 pointer-events-none">
+                                    <svg class="h-10 w-10 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path>
                                     </svg>
                                 </div>
                             </div>
-                            <p class="mt-1 text-xs text-gray-400 italic">Click to view full size</p>
+                            <p class="mt-1 text-xs text-gray-400">Click to view full size</p>
                         </a>
-                    </dd>
-                </div>
-                {% endif %}
-                
-                {% if report.latitude and report.longitude %}
-                <div class="sm:col-span-2">
-                    <dt class="text-sm font-medium text-gray-500 mb-2">Location Map</dt>
-                    <dd class="mt-1 text-sm text-gray-900">
-                        <div id="map" class="rounded-lg border border-gray-300"></div>
-                    </dd>
-                </div>
-                {% endif %}
-            </dl>
-        </div>
-    </div>
+                    </div>
+                    {% else %}
+                    <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center h-48 text-gray-400 text-sm">
+                        No photo attached for this report
+                    </div>
+                    {% endif %}
 
-    {% if price_analysis %}
-    <div class="mt-10 mb-8">
-        <div class="bg-white shadow-sm rounded-lg border border-gray-200">
-            <div class="px-4 py-5 sm:px-6">
-                <h3 class="text-xl font-bold text-gray-900">Price Analysis</h3>
-                <p class="text-sm text-gray-500 mt-1">Based on {{ price_analysis.count }} report(s) for this product name and its aliases.</p>
+                    <!-- Accuracy widget -->
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                        <h2 class="text-sm font-semibold text-gray-900">Is this price accurate?</h2>
+                        <p class="text-xs text-gray-500 mt-1">Help others trust this report.</p>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            {% if user.is_authenticated %}
+                            <button type="button" id="like-btn" data-price-id="{{ report.id }}"
+                                class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold border transition-colors min-h-[44px] {% if is_liked %}bg-brand-green text-white border-brand-green{% else %}bg-white text-gray-800 border-gray-300 hover:border-brand-green hover:text-brand-green{% endif %}">
+                                Yes (<span id="like-count">{{ report.likes.count }}</span>)
+                            </button>
+                            {% if user == report.user %}
+                            <a href="{% url 'edit_price_report' report.pk %}"
+                                class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 bg-white text-gray-800 hover:bg-gray-100 transition-colors min-h-[44px]">
+                                No / update
+                            </a>
+                            {% else %}
+                            <a href="{% url 'add_price' %}?{{ add_price_query }}"
+                                class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold border border-brand-purple/30 bg-white text-brand-purple hover:bg-brand-purple/10 transition-colors min-h-[44px]">
+                                No / update
+                            </a>
+                            {% endif %}
+                            {% else %}
+                            <span class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold bg-white border border-gray-300 text-gray-600 min-h-[44px]">
+                                Yes ({{ report.likes.count }})
+                            </span>
+                            <a href="{% url 'login' %}?next={{ request.path }}"
+                                class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold bg-brand-purple text-white hover:bg-brand-purple/90 transition-colors min-h-[44px]">
+                                Log in to vote
+                            </a>
+                            <a href="{% url 'add_price' %}?{{ add_price_query }}"
+                                class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 bg-white text-gray-800 hover:bg-gray-100 transition-colors min-h-[44px]">
+                                Know a different price?
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
 
-                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="p-3 bg-gray-50 rounded border border-gray-200">
-                        <div class="text-xs text-gray-500">Average</div>
-                        <div class="text-lg font-semibold text-gray-900">{{ price_analysis.currency }} {{ price_analysis.avg_price|floatformat:2|intcomma }}</div>
+                    {% if report.product.tags.all %}
+                    <div>
+                        <h2 class="text-sm font-medium text-gray-500 mb-2">Tags</h2>
+                        <div class="flex flex-wrap gap-2">
+                            {% for tag in report.product.tags.all %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-purple/10 text-brand-purple">{{ tag.name }}</span>
+                            {% endfor %}
+                        </div>
                     </div>
-                    <div class="p-3 bg-gray-50 rounded border border-gray-200">
-                        <div class="text-xs text-gray-500">Min</div>
-                        <div class="text-lg font-semibold text-gray-900">{{ price_analysis.currency }} {{ price_analysis.min_price|floatformat:2|intcomma }}</div>
+                    {% endif %}
+
+                    {% if report.notes %}
+                    <div>
+                        <h2 class="text-sm font-medium text-gray-500 mb-1">Notes</h2>
+                        <p class="text-sm text-gray-900">{{ report.notes }}</p>
                     </div>
-                    <div class="p-3 bg-gray-50 rounded border border-gray-200">
-                        <div class="text-xs text-gray-500">Max</div>
-                        <div class="text-lg font-semibold text-gray-900">{{ price_analysis.currency }} {{ price_analysis.max_price|floatformat:2|intcomma }}</div>
-                    </div>
-                    <div class="p-3 bg-gray-50 rounded border border-gray-200">
-                        <div class="text-xs text-gray-500">Latest change</div>
-                        {% if price_analysis.change_value is not None %}
-                            <div class="text-lg font-semibold {% if price_analysis.change_value > 0 %}text-red-700{% elif price_analysis.change_value < 0 %}text-brand-green/80{% else %}text-gray-900{% endif %}">
-                                {{ price_analysis.change_value|floatformat:2 }} ({{ price_analysis.change_pct|floatformat:1 }}%)
+                    {% endif %}
+                </div>
+
+                <!-- Right: map + store -->
+                <div class="space-y-4">
+                    {% if report.latitude and report.longitude %}
+                    <div>
+                        <h2 class="text-sm font-medium text-gray-500 mb-2">Location</h2>
+                        <div id="map" class="rounded-xl overflow-hidden border border-gray-200 shadow-sm"></div>
+                        <div class="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="min-w-0">
+                                <p class="text-sm text-gray-600">Located at</p>
+                                <p class="font-semibold text-gray-900 truncate">
+                                    {% if report.business %}
+                                    <a href="{% url 'business_detail' report.business.pk %}" class="text-brand-purple hover:text-brand-purple/80">{{ report.get_business_display }}</a>
+                                    {% else %}
+                                    {{ report.get_business_display }}
+                                    {% endif %}
+                                </p>
+                                {% if branch_address %}
+                                <p class="text-sm text-gray-500 mt-1">{{ branch_address }}</p>
+                                {% endif %}
                             </div>
-                        {% else %}
-                            <div class="text-lg font-semibold text-gray-500">—</div>
+                            {% if directions_url %}
+                            <a href="{{ directions_url }}" target="_blank" rel="noopener noreferrer"
+                                class="inline-flex items-center justify-center px-4 py-2 bg-brand-purple hover:bg-brand-purple/90 text-white text-sm font-medium rounded-lg transition-colors shrink-0 min-h-[44px]">
+                                <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                Get directions
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% elif report.business %}
+                    <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <p class="text-sm text-gray-600">Store</p>
+                        <p class="font-semibold text-gray-900 mt-1">
+                            <a href="{% url 'business_detail' report.business.pk %}" class="text-brand-purple hover:text-brand-purple/80">{{ report.get_business_display }}</a>
+                        </p>
+                        {% if branch_address %}
+                        <p class="text-sm text-gray-500 mt-1">{{ branch_address }}</p>
                         {% endif %}
                     </div>
-                </div>
+                    {% endif %}
 
-                {% if price_analysis.trend_7d %}
-                <div class="mt-4 p-3 rounded border {% if price_analysis.trend_7d.direction == 'up' %}border-red-200 bg-red-50{% elif price_analysis.trend_7d.direction == 'down' %}border-brand-green/50 bg-brand-green/10{% else %}border-gray-200 bg-gray-50{% endif %}">
-                    <div class="text-sm font-medium text-gray-900">7-day trend</div>
-                    <div class="text-sm text-gray-700 mt-1">
-                        {% if price_analysis.trend_7d.direction == 'up' %}
-                            Average price is up by {{ price_analysis.trend_7d.pct|floatformat:1 }}% compared to the previous week.
-                        {% elif price_analysis.trend_7d.direction == 'down' %}
-                            Average price is down by {{ price_analysis.trend_7d.pct|floatformat:1 }}% compared to the previous week.
-                        {% else %}
-                            Average price is flat compared to the previous week.
+                    {% if price_analysis %}
+                    <div class="rounded-xl border border-gray-200 p-4">
+                        <h2 class="text-sm font-semibold text-gray-900">Price analysis</h2>
+                        <p class="text-xs text-gray-500 mt-0.5">Based on {{ price_analysis.count }} report(s) for this product.</p>
+                        <div class="mt-3 grid grid-cols-2 gap-3">
+                            <div class="p-2 bg-gray-50 rounded border border-gray-100">
+                                <div class="text-xs text-gray-500">Average</div>
+                                <div class="text-sm font-semibold text-gray-900">{{ price_analysis.currency }} {{ price_analysis.avg_price|floatformat:2|intcomma }}</div>
+                            </div>
+                            <div class="p-2 bg-gray-50 rounded border border-gray-100">
+                                <div class="text-xs text-gray-500">Range</div>
+                                <div class="text-sm font-semibold text-gray-900">{{ price_analysis.currency }} {{ price_analysis.min_price|floatformat:2|intcomma }} – {{ price_analysis.max_price|floatformat:2|intcomma }}</div>
+                            </div>
+                        </div>
+                        {% if price_analysis.trend_7d %}
+                        <p class="text-xs text-gray-600 mt-3">
+                            {% if price_analysis.trend_7d.direction == 'up' %}
+                            7-day trend: up {{ price_analysis.trend_7d.pct|floatformat:1 }}%
+                            {% elif price_analysis.trend_7d.direction == 'down' %}
+                            7-day trend: down {{ price_analysis.trend_7d.pct|floatformat:1 }}%
+                            {% else %}
+                            7-day trend: flat
+                            {% endif %}
+                        </p>
                         {% endif %}
-                        <span class="text-gray-500">(This week avg: {{ price_analysis.currency }} {{ price_analysis.trend_7d.current_week_avg|floatformat:2|intcomma }}, previous week avg: {{ price_analysis.currency }} {{ price_analysis.trend_7d.prev_week_avg|floatformat:2|intcomma }})</span>
                     </div>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
         </div>
     </div>
-    {% endif %}
 
     <!-- Nearby Prices Section -->
     {% if nearby_prices is not None %}
     {% cache 300 nearby_prices_section report.id %}
-    <div class="mt-10 mb-8">
+    <div class="mt-2 mb-8">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-gray-900">Nearby Prices for {{ report.product.name }}</h3>
+            <h3 class="text-xl font-bold text-gray-900">Nearby prices for {{ report.product.name }}</h3>
             {% if nearby_prices %}
             <a href="{% url 'nearby_prices_detail' report.pk %}"
-               class="inline-flex items-center px-4 py-2 bg-brand-purple hover:bg-brand-purple/90 text-white font-medium rounded-md transition-colors">
-                <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
-                </svg>
+               class="inline-flex items-center px-4 py-2 bg-brand-purple hover:bg-brand-purple/90 text-white font-medium rounded-md transition-colors text-sm">
                 View all nearby prices
             </a>
             {% endif %}
         </div>
 
         {% if nearby_prices %}
-            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {% for nearby in nearby_prices %}
-                <a href="{% url 'price_detail' nearby.id %}" class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 flex flex-col hover:shadow-md transition-shadow cursor-pointer block">
-                    <div class="px-4 py-4 flex-grow">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if nearby.price < report.price %}bg-brand-green/20 text-brand-green/80{% elif nearby.price > report.price %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
-                                {{ nearby.currency }} {{ nearby.price|intcomma }}
-                            </span>
-                            <span class="text-xs text-gray-500">{{ nearby.observed_at|rounded_timesince }}</span>
-                        </div>
-                        {% if nearby.business %}
-                        <p class="text-sm font-medium text-gray-900 text-left">{{ nearby.business.name }}</p>
-                        {% else %}
-                        <p class="text-sm font-medium text-gray-500 text-left italic">Location pinned</p>
-                        {% endif %}
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {% for nearby in nearby_prices %}
+            <a href="{% url 'price_detail' nearby.id %}" class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 flex flex-col hover:shadow-md transition-shadow cursor-pointer block">
+                <div class="px-4 py-4 flex-grow">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if nearby.price < report.price %}bg-brand-green/20 text-brand-green/80{% elif nearby.price > report.price %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ nearby.currency }} {{ nearby.price|intcomma }}
+                        </span>
+                        <span class="text-xs text-gray-500">{{ nearby.observed_at|rounded_timesince }}</span>
                     </div>
-                </a>
-                {% endfor %}
-            </div>
+                    {% if nearby.business %}
+                    <p class="text-sm font-medium text-gray-900 text-left">{{ nearby.business.name }}</p>
+                    {% else %}
+                    <p class="text-sm font-medium text-gray-500 text-left italic">Location pinned</p>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
         {% else %}
-            <div class="bg-gray-50 rounded-lg p-6 text-center border border-gray-200">
-                <p class="text-gray-500">No other prices for this product have been reported in this vicinity yet.</p>
+        <div class="bg-white rounded-lg border border-gray-200 p-6 text-center shadow-sm mb-4">
+            <h4 class="text-lg font-semibold text-gray-900">No prices nearby yet</h4>
+            <p class="text-sm text-gray-500 mt-1 max-w-md mx-auto">Be the first to report another price for this product in the area.</p>
+            <a href="{% url 'add_price' %}?{{ add_price_query }}"
+               class="inline-flex items-center mt-4 px-5 py-2.5 bg-brand-purple hover:bg-brand-purple/90 text-white font-medium rounded-lg transition-colors">
+                <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Know a different price? Add it here
+            </a>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
+            {% for i in "123" %}
+            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden animate-pulse">
+                <div class="px-4 py-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="h-6 w-20 bg-gray-200 rounded-full"></span>
+                        <span class="h-4 w-12 bg-gray-100 rounded"></span>
+                    </div>
+                    <span class="block h-4 w-3/4 max-w-[180px] bg-gray-200 rounded"></span>
+                </div>
             </div>
+            {% endfor %}
+        </div>
         {% endif %}
     </div>
     {% endcache %}
@@ -378,6 +420,8 @@
                 data-object-id="{{ report.id }}"
                 data-is-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}"
                 data-current-user-id="{{ user.id|default:'' }}"
+                data-current-user-avatar="{% if user.is_authenticated and user.profile.profile_picture %}{{ user.profile.profile_picture.url }}{% endif %}"
+                data-current-username="{{ user.username|default:'' }}"
                 data-is-staff="{% if user.is_staff %}true{% else %}false{% endif %}"
                 data-can-pin-comments="{% if user.is_staff or user.id == report.user_id %}true{% else %}false{% endif %}"
             ></div>
@@ -393,21 +437,17 @@
             <div class="space-y-3">
                 {% for history in report.price_history.all %}
                 <div class="border-l-4 border-brand-blue pl-4 py-2">
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
                         <div>
-                            <span class="text-sm text-gray-500">
-                                {{ history.changed_at|date:"M d, Y H:i" }}
-                            </span>
+                            <span class="text-sm text-gray-500">{{ history.changed_at|date:"M d, Y H:i" }}</span>
                             {% if history.changed_by %}
-                                <span class="text-sm text-gray-500 ml-2">
-                                    by {{ history.changed_by.username }}
-                                </span>
+                            <span class="text-sm text-gray-500 ml-2">by {{ history.changed_by.username }}</span>
                             {% endif %}
                         </div>
                         <div class="text-sm font-medium">
                             {% if history.old_price %}
-                                <span class="text-gray-500">{{ history.old_price|intcomma }} {{ history.old_currency }}</span>
-                                <span class="mx-2">→</span>
+                            <span class="text-gray-500">{{ history.old_price|intcomma }} {{ history.old_currency }}</span>
+                            <span class="mx-2">→</span>
                             {% endif %}
                             <span class="text-brand-green">{{ history.new_price|intcomma }} {{ history.new_currency }}</span>
                         </div>
@@ -426,49 +466,55 @@
 </div>
 
 {% if report.latitude and report.longitude %}
-<!-- Initialize Leaflet -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const lat = {{ report.latitude }};
         const lng = {{ report.longitude }};
-        
         const map = L.map('map').setView([lat, lng], 15);
-        
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
-
         L.marker([lat, lng]).addTo(map)
-            .bindPopup("<b>{{ report.business.name|default:'Location'|escape|escapejs }}</b><br/>{{ report.product.name|escape|escapejs }}").openPopup();
+            .bindPopup("<b>{{ report.business.name|default:'Location'|escapejs }}</b><br>{{ report.product.name|escapejs }}");
     });
 </script>
 {% endif %}
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        const actionsMenuBtn = document.getElementById('actions-menu-btn');
+        const actionsMenu = document.getElementById('actions-menu');
+        if (actionsMenuBtn && actionsMenu) {
+            actionsMenuBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const open = !actionsMenu.classList.contains('hidden');
+                actionsMenu.classList.toggle('hidden', open);
+                actionsMenuBtn.setAttribute('aria-expanded', open ? 'false' : 'true');
+            });
+            document.addEventListener('click', function() {
+                actionsMenu.classList.add('hidden');
+                actionsMenuBtn.setAttribute('aria-expanded', 'false');
+            });
+        }
+
         const watchlistBtn = document.getElementById('watchlist-btn');
         if (watchlistBtn) {
             watchlistBtn.addEventListener('click', function() {
                 const productId = this.getAttribute('data-product-id');
-                const csrfToken = '{{ csrf_token }}';
-                
                 fetch(`/product/${productId}/watch/`, {
                     method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrfToken,
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
                 })
                 .then(response => response.json())
                 .then(data => {
                     const icon = document.getElementById('watchlist-icon');
                     if (data.watching) {
-                        icon.innerHTML = '⭐ Watching';
-                        watchlistBtn.className = 'inline-flex items-center px-2 py-1 text-sm rounded border transition-colors bg-brand-purple/10 text-brand-purple border-brand-blue hover:bg-brand-purple/20';
+                        icon.textContent = '⭐';
+                        watchlistBtn.className = 'p-2.5 rounded-full transition-colors text-brand-purple bg-brand-purple/10';
                     } else {
-                        icon.innerHTML = '☆ Watch';
-                        watchlistBtn.className = 'inline-flex items-center px-2 py-1 text-sm rounded border transition-colors bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200';
+                        icon.textContent = '☆';
+                        watchlistBtn.className = 'p-2.5 text-gray-500 hover:text-brand-purple hover:bg-brand-purple/10 rounded-full transition-colors';
                     }
                 })
                 .catch(error => console.error('Error toggling watchlist:', error));
@@ -479,25 +525,17 @@
         if (addToListBtn) {
             addToListBtn.addEventListener('click', function() {
                 const productId = this.getAttribute('data-product-id');
-                const csrfToken = '{{ csrf_token }}';
-                
                 fetch('/shopping-list/add/', {
                     method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrfToken,
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
                     body: JSON.stringify({ product_id: productId })
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'added') {
-                        const btnText = document.getElementById('list-btn-text');
-                        btnText.innerHTML = 'Added ✔';
-                        addToListBtn.className = 'inline-flex items-center px-2 py-1 text-sm rounded border transition-colors bg-brand-green/20 text-brand-green/80 border-brand-green/50';
+                        addToListBtn.classList.add('text-brand-green', 'bg-brand-green/10');
                         setTimeout(() => {
-                            btnText.innerHTML = 'Add to List';
-                            addToListBtn.className = 'inline-flex items-center px-2 py-1 text-sm rounded border border-gray-300 bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors';
+                            addToListBtn.classList.remove('text-brand-green', 'bg-brand-green/10');
                         }, 2000);
                     }
                 })
@@ -511,10 +549,10 @@
                 const priceId = this.getAttribute('data-price-id');
                 fetch(`/price/${priceId}/like/`, {
                     method: 'POST',
-                    headers: {'X-CSRFToken': '{{ csrf_token }}'}
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
                 }).then(response => response.json()).then(data => {
-                    document.getElementById('like-count').innerText = data.likes_count;
-                    likeBtn.className = `inline-flex items-center px-2 py-1 text-xs sm:text-sm rounded border transition-colors ${data.liked ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200'}`;
+                    document.getElementById('like-count').textContent = data.likes_count;
+                    likeBtn.className = `inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold border transition-colors min-h-[44px] ${data.liked ? 'bg-brand-green text-white border-brand-green' : 'bg-white text-gray-800 border-gray-300 hover:border-brand-green hover:text-brand-green'}`;
                 });
             });
         }

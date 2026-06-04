@@ -279,6 +279,18 @@
         });
     });
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const productPrefill = urlParams.get('product_name');
+    const businessPrefill = urlParams.get('business_name');
+    if (productPrefill) {
+        const productInput = document.getElementById('product_search');
+        if (productInput) productInput.value = productPrefill;
+    }
+    if (businessPrefill) {
+        const businessInput = document.getElementById('business_search');
+        if (businessInput) businessInput.value = businessPrefill;
+    }
+
 </script>
 {% include 'includes/image_upload_script.html' %}
 {% endblock %}

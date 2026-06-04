@@ -14,6 +14,8 @@
   const currentUserId = Number(root.dataset.currentUserId || 0);
   const canPinComments = root.dataset.canPinComments === 'true';
   const isInfiniteScroll = root.dataset.infiniteScroll === 'true';
+  const currentUserAvatar = root.dataset.currentUserAvatar || '';
+  const currentUsername = root.dataset.currentUsername || 'you';
 
   const csrfToken = (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '';
   const headers = { 'Content-Type': 'application/json' };
@@ -43,6 +45,22 @@
     return { inputAttrs: `aria-invalid="true" aria-describedby="${inputId}-err"`, html: `<p id="${inputId}-err">${esc(msg)}</p>` };
   }
 
+  function renderSortTabs() {
+    const tabs = [
+      ['top', 'Top'],
+      ['newest', 'Newest'],
+      ['oldest', 'Oldest'],
+    ];
+    return `<div class="wk-comments__tabs" role="tablist" aria-label="Sort comments">${tabs.map(([value, label]) => `
+      <button type="button" role="tab" data-action="sort-tab" data-sort="${value}" aria-selected="${state.sort === value ? 'true' : 'false'}" class="wk-comments__tab${state.sort === value ? ' wk-comments__tab--active' : ''}">${label}</button>
+    `).join('')}</div>`;
+  }
+
+  function renderComposeAvatar() {
+    const author = { username: currentUsername, profile_picture: currentUserAvatar };
+    return renderAvatar(author);
+  }
+
   function renderSkeletonRows(n = 3) {
     return Array.from({ length: n }).map(() => `
       <article class="wk-comments__item wk-comments__item--skeleton" aria-hidden="true">
@@ -58,10 +76,9 @@
     const composeErr = errHtml('compose', 'compose-input');
     root.classList.add('wk-comments');
     root.innerHTML = `
-      <div class="wk-comments__header"><h3>Comments (${state.comments.length})</h3>
-      <select data-action="sort"><option value="top" ${state.sort==='top'?'selected':''}>Top</option><option value="newest" ${state.sort==='newest'?'selected':''}>Newest</option><option value="oldest" ${state.sort==='oldest'?'selected':''}>Oldest</option></select></div>
+      <div class="wk-comments__header"><h3>Comments (${state.comments.length})</h3>${renderSortTabs()}</div>
       ${state.toast ? `<div class="wk-comments__toast">${esc(state.toast)}</div>` : ''}
-      ${isAuthenticated ? `<div class="wk-comments__compose"><textarea id="compose-input" data-input="compose" ${composeErr.inputAttrs} placeholder="Add a comment..."></textarea>${composeErr.html}<button data-action="compose">Post</button></div>` : ''}
+      ${isAuthenticated ? `<div class="wk-comments__compose-card"><div class="wk-comments__compose">${renderComposeAvatar()}<div class="wk-comments__compose-body"><textarea id="compose-input" data-input="compose" ${composeErr.inputAttrs} placeholder="Write a comment..."></textarea>${composeErr.html}<div class="wk-comments__compose-actions"><button type="button" data-action="compose" class="wk-comments__post-btn">Post</button></div></div></div></div>` : ''}
       <div class="wk-comments__list" role="list">${items}</div>
       <div aria-live="polite" aria-atomic="true">${state.toast ? esc(state.toast) : ''}</div>
       ${state.isLoadingMore ? `<div class="wk-comments__pagination-skeleton">${renderSkeletonRows(2)}</div>` : ''}
@@ -330,8 +347,19 @@
     }
   });
 
+  root.addEventListener('click', (e) => {
+    const sortTab = e.target.closest('[data-action="sort-tab"]');
+    if (sortTab) {
+      const nextSort = sortTab.dataset.sort;
+      if (nextSort && nextSort !== state.sort) {
+        state.sort = nextSort;
+        state.cursor = null;
+        loadComments();
+      }
+    }
+  });
+
   root.addEventListener('change', (e) => {
-    if (e.target.matches('[data-action="sort"]')) { state.sort = e.target.value; state.cursor = null; loadComments(); }
     if (e.target.matches('[data-action="flag-reason"]')) { state.flagReason = e.target.value; }
   });
 

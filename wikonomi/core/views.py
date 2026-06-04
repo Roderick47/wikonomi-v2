@@ -409,6 +409,16 @@ class PriceReportDetailView(DetailView):
     template_name = 'price_report_detail.html'
     context_object_name = 'report'
 
+    def get_queryset(self):
+        return PriceReport.objects.select_related(
+            'product',
+            'business',
+            'business_branch',
+            'user',
+            'user__profile',
+            'last_edited_by',
+        ).prefetch_related('likes')
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from .utils import get_nearby_prices
@@ -524,7 +534,25 @@ class PriceReportDetailView(DetailView):
             context['can_delete'] = False
         context['comments'] = report.comments.filter(parent__isnull=True).select_related('user').prefetch_related('replies__user')
         context['comment_content_type_id'] = ContentType.objects.get_for_model(report).id
-            
+
+        if report.business_branch and report.business_branch.address:
+            context['branch_address'] = report.business_branch.address
+        else:
+            context['branch_address'] = None
+
+        if report.latitude is not None and report.longitude is not None:
+            context['directions_url'] = (
+                f'https://www.google.com/maps/dir/?api=1&destination={report.latitude},{report.longitude}'
+            )
+        else:
+            context['directions_url'] = None
+
+        from urllib.parse import urlencode
+        add_price_params = {'product_name': report.product.name}
+        if report.business:
+            add_price_params['business_name'] = report.business.name
+        context['add_price_query'] = urlencode(add_price_params)
+
         return context
 
 price_report_detail = PriceReportDetailView.as_view()
