@@ -239,17 +239,21 @@
         </div>
     </div>
 
-<div class="bg-white shadow rounded-lg mt-8">
-    <div class="p-6">
-        <div
-            id="wk-comment-section"
-            data-content-type="{{ comment_content_type_id }}"
-            data-object-id="{{ business.id }}"
-            data-is-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}"
-            data-current-user-id="{{ user.id|default:'' }}"
-            data-is-staff="{% if user.is_staff %}true{% else %}false{% endif %}"
-            data-can-pin-comments="{% if user.is_staff %}true{% else %}false{% endif %}"
-        ></div>
+    <div class="bg-white shadow rounded-lg mt-8">
+        <div class="p-6">
+            <div
+                id="wk-comment-section"
+                data-content-type="{{ comment_content_type_id }}"
+                data-object-id="{{ business.id }}"
+                data-csrf-token="{{ csrf_token }}"
+                data-is-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}"
+                data-current-user-id="{{ user.id|default:'' }}"
+                data-current-user-avatar="{% if user.is_authenticated and user.profile.profile_picture %}{{ user.profile.profile_picture.url }}{% endif %}"
+                data-current-username="{{ user.username|default:'' }}"
+                data-is-staff="{% if user.is_staff %}true{% else %}false{% endif %}"
+                data-can-pin-comments="{% if user.is_staff %}true{% else %}false{% endif %}"
+            ></div>
+        </div>
     </div>
 </div>
 
@@ -293,6 +297,9 @@
     });
 </script>
 {% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
 <link rel="stylesheet" href="{% static 'css/comments.css' %}">
 <script src="{% static 'js/comments.js' %}"></script>
 {% endblock %}

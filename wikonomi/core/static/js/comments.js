@@ -17,11 +17,23 @@
   const currentUserAvatar = root.dataset.currentUserAvatar || '';
   const currentUsername = root.dataset.currentUsername || 'you';
 
-  const csrfToken = (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '';
+  function getCsrfToken() {
+    if (root.dataset.csrfToken) return root.dataset.csrfToken;
+    const input = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (input && input.value) return input.value;
+    const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
+  const csrfToken = getCsrfToken();
   const headers = { 'Content-Type': 'application/json' };
   if (csrfToken) headers['X-CSRFToken'] = csrfToken;
   const esc = (s) => (s || '').replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
-  const api = (path, options = {}) => fetch(`/api/comments/${path}`, { headers, ...options });
+  const api = (path, options = {}) => fetch(`/api/comments/${path}`, {
+    credentials: 'same-origin',
+    headers: { ...headers, ...(options.headers || {}) },
+    ...options,
+  });
   let infiniteObserver = null;
   const repliesCache = new Map();
 
@@ -255,8 +267,48 @@
     if (action === 'load-more-replies') return loadReplies(id, true);
     if (action === 'more') { state.openMenuId = state.openMenuId === id ? null : id; return render(); }
     if (action === 'reply') { state.openReplyFormId = state.openReplyFormId === id ? null : id; if (state.openReplyFormId) state.focusTarget = `[data-input="reply"][data-id="${id}"]`; return render(); }
-    if (action === 'compose') { const body = (root.querySelector('[data-input="compose"]')?.value || '').trim(); if (!body) { setError('compose', 'Comment is required.'); return render(); } clearError('compose'); const res = await api('', { method: 'POST', body: JSON.stringify({ content_type: Number(ct), object_id: Number(oid), body }) }); if (res.ok) { root.querySelector('[data-input="compose"]').value = ''; loadComments(); } else { flashToast('Failed to save comment.'); } return; }
-    if (action === 'send-reply') { const body = (root.querySelector(`[data-input="reply"][data-id="${id}"]`)?.value || '').trim(); if (!body) { setError(`reply-${id}`, 'Reply is required.'); return render(); } clearError(`reply-${id}`); const res = await api(`${id}/reply/`, { method: 'POST', body: JSON.stringify({ body }) }); if (res.ok) { state.openReplyFormId = null; loadComments(); } else { flashToast('Failed to save reply.'); } return; }
+    if (action === 'sort-tab') {
+      const nextSort = btn.dataset.sort;
+      if (nextSort && nextSort !== state.sort) {
+        state.sort = nextSort;
+        state.cursor = null;
+        loadComments();
+      }
+      return;
+    }
+    if (action === 'compose') {
+      const body = (root.querySelector('[data-input="compose"]')?.value || '').trim();
+      if (!body) { setError('compose', 'Comment is required.'); return render(); }
+      clearError('compose');
+      const res = await api('', { method: 'POST', body: JSON.stringify({ content_type: Number(ct), object_id: Number(oid), body }) });
+      if (res.ok) {
+        const textarea = root.querySelector('[data-input="compose"]');
+        if (textarea) textarea.value = '';
+        loadComments();
+      } else {
+        flashToast('Failed to save comment.');
+      }
+      return;
+    }
+    if (action === 'send-reply') {
+      const body = (root.querySelector(`[data-input="reply"][data-id="${id}"]`)?.value || '').trim();
+      if (!body) { setError(`reply-${id}`, 'Reply is required.'); return render(); }
+      clearError(`reply-${id}`);
+      const res = await api(`${id}/reply/`, { method: 'POST', body: JSON.stringify({ body }) });
+      if (res.ok) {
+        state.openReplyFormId = null;
+        const parent = state.comments.find((comment) => comment.id === id);
+        if (parent) parent.reply_count = (parent.reply_count || 0) + 1;
+        const cached = repliesCache.get(id) || { expanded: true, items: [], cursor: null, isLoading: false, isLoadingMore: false };
+        cached.expanded = true;
+        repliesCache.set(id, cached);
+        await loadReplies(id, false);
+        render();
+      } else {
+        flashToast('Failed to save reply.');
+      }
+      return;
+    }
     if (action === 'like') {
       const c = state.comments.find((comment) => comment.id === id);
       const wasLiked = Boolean(c?.user_has_liked);
@@ -344,18 +396,6 @@
         state.openMenuId = null;
         render();
       } else { flashToast('Failed to update pin.'); }
-    }
-  });
-
-  root.addEventListener('click', (e) => {
-    const sortTab = e.target.closest('[data-action="sort-tab"]');
-    if (sortTab) {
-      const nextSort = sortTab.dataset.sort;
-      if (nextSort && nextSort !== state.sort) {
-        state.sort = nextSort;
-        state.cursor = null;
-        loadComments();
-      }
     }
   });
 

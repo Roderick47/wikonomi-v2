@@ -138,6 +138,44 @@ class PriceReportCreateViewTest(TestCase):
         self.assertIn('tag3', tags)
 
 
+class BusinessDetailCommentsTest(TestCase):
+    def test_business_detail_comment_api_accepts_session_csrf(self):
+        from django.contrib.contenttypes.models import ContentType
+        from comments.models import Comment
+
+        user = User.objects.create_user(username='bizcommenter', password='testpass')
+        business = Business.objects.create(name='Comment Test Shop')
+        ct = ContentType.objects.get_for_model(Business)
+
+        self.client.login(username='bizcommenter', password='testpass')
+        page = self.client.get(reverse('business_detail', kwargs={'pk': business.pk}))
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'data-csrf-token')
+
+        csrf = self.client.cookies['csrftoken'].value
+        create = self.client.post(
+            '/api/comments/',
+            data={'content_type': ct.id, 'object_id': business.id, 'body': 'Helpful store'},
+            content_type='application/json',
+            HTTP_X_CSRFTOKEN=csrf,
+        )
+        self.assertEqual(create.status_code, 201)
+        self.assertTrue(
+            Comment.objects.filter(content_type=ct, object_id=business.id, body='Helpful store').exists()
+        )
+
+        parent = Comment.objects.get(pk=create.json()['id'])
+        reply = self.client.post(
+            f'/api/comments/{parent.id}/reply/',
+            data={'body': 'Thanks for visiting'},
+            content_type='application/json',
+            HTTP_X_CSRFTOKEN=csrf,
+        )
+        self.assertEqual(reply.status_code, 201)
+        parent.refresh_from_db()
+        self.assertEqual(parent.reply_count, 1)
+
+
 class PriceReportDetailCommentsAssetTest(TestCase):
     def test_comment_assets_are_rendered_on_price_detail(self):
         user = User.objects.create_user(username='commentowner', password='testpass')

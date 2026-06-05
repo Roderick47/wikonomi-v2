@@ -418,6 +418,7 @@
                 id="wk-comment-section"
                 data-content-type="{{ comment_content_type_id }}"
                 data-object-id="{{ report.id }}"
+                data-csrf-token="{{ csrf_token }}"
                 data-is-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}"
                 data-current-user-id="{{ user.id|default:'' }}"
                 data-current-user-avatar="{% if user.is_authenticated and user.profile.profile_picture %}{{ user.profile.profile_picture.url }}{% endif %}"
