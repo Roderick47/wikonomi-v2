@@ -71,10 +71,13 @@
                 <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-3">
                         <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
-                            {{ report.product.name }}
+                            <span class="wk-editable cursor-pointer hover:text-brand-purple transition-colors" data-field="product_name">{{ report.product.name }}</span>
+                            <input type="text" name="product_name" class="wk-edit-input hidden w-full rounded-lg border border-slate-300 px-3 py-2 text-2xl sm:text-3xl font-bold text-gray-900 focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20">
                         </h1>
-                        <span class="inline-flex items-center px-4 py-1.5 rounded-lg text-xl sm:text-2xl font-extrabold bg-brand-green text-white shadow-sm whitespace-nowrap">
-                            {{ report.currency }} {{ report.price|intcomma }}
+                        <span id="wk-price-badge" class="inline-flex items-center gap-1 px-4 py-1.5 rounded-lg text-xl sm:text-2xl font-extrabold bg-brand-green text-white shadow-sm whitespace-nowrap">
+                            <span class="wk-price-prefix">{{ report.currency }}</span>
+                            <span class="wk-editable cursor-pointer" data-field="price">{{ report.price|floatformat:2 }}</span>
+                            <input type="number" step="0.01" name="price" class="wk-edit-input hidden w-32 rounded-lg border border-white/70 bg-white px-2 py-1 text-xl sm:text-2xl font-extrabold text-gray-900 focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-white/60">
                         </span>
                     </div>
                     {% if report.business %}
@@ -202,18 +205,14 @@
                     {% if report.image %}
                     <div>
                         <h2 class="text-sm font-medium text-gray-500 mb-2">Attached photo</h2>
-                        <a href="{{ report.image.url }}" target="_blank" rel="noopener" class="block group" title="View full size">
-                            <div class="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
-                                <img src="{{ report.image.url }}" alt="Photo of {{ report.product.name }}"
-                                    class="w-full max-h-[480px] object-contain group-hover:opacity-95 transition-opacity">
-                                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/10 pointer-events-none">
-                                    <svg class="h-10 w-10 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path>
-                                    </svg>
-                                </div>
+                        <div id="wk-image-overlay" class="cursor-pointer group relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50" title="Click to change photo">
+                            <img id="wk-product-image" src="{{ report.image.url }}" alt="Photo of {{ report.product.name }}"
+                                class="w-full max-h-[480px] object-contain group-hover:opacity-95 transition-opacity">
+                            <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                                <span class="rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm">Click to change photo</span>
                             </div>
-                            <p class="mt-1 text-xs text-gray-400">Click to view full size</p>
-                        </a>
+                        </div>
+                        <input type="file" name="image" accept="image/*" class="hidden" id="image-file-input">
                     </div>
                     {% else %}
                     <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center h-48 text-gray-400 text-sm">
@@ -272,7 +271,10 @@
                     {% if report.notes %}
                     <div>
                         <h2 class="text-sm font-medium text-gray-500 mb-1">Notes</h2>
-                        <p class="text-sm text-gray-900">{{ report.notes }}</p>
+                        <p class="text-sm text-gray-900">
+                            <span class="wk-editable cursor-pointer hover:text-brand-purple transition-colors" data-field="notes">{{ report.notes }}</span>
+                            <textarea name="notes" class="wk-edit-input hidden w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-gray-900 focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20" rows="4"></textarea>
+                        </p>
                     </div>
                     {% endif %}
                 </div>
@@ -464,6 +466,22 @@
     {% endif %}
     {% endcache %}
 
+    <div id="wk-edit-bar" class="hidden fixed bottom-0 left-0 right-0 z-[9] bg-white border-t border-slate-200 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+            <p class="text-sm text-gray-500" id="wk-edit-status">You are editing this report</p>
+            <div class="flex items-center gap-3">
+                <button type="button" id="wk-cancel-btn"
+                    class="px-4 py-2 rounded-lg text-sm font-semibold border border-slate-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <button type="button" id="wk-save-btn"
+                    class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-purple hover:bg-brand-purple/90 transition-colors">
+                    Save changes
+                </button>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 {% if report.latitude and report.longitude %}
@@ -560,6 +578,168 @@
     });
 </script>
 
+
+<script>
+(function () {
+    // --- State ---
+    let editMode = false;
+    let originalValues = {};
+    let originalImageSrc = null;
+    let pendingImageFile = null;
+
+    const editBar = document.getElementById('wk-edit-bar');
+    const saveBtn = document.getElementById('wk-save-btn');
+    const cancelBtn = document.getElementById('wk-cancel-btn');
+    const statusEl = document.getElementById('wk-edit-status');
+
+    // Only run if user is authenticated and owns the report.
+    // Gate: check for the actions-menu-btn as a proxy for auth/edit access.
+    if (!document.getElementById('actions-menu-btn') || !editBar || !saveBtn || !cancelBtn || !statusEl) return;
+
+    // --- Enter edit mode when any editable is clicked ---
+    document.querySelectorAll('.wk-editable').forEach(el => {
+        el.addEventListener('click', function () {
+            if (!editMode) enterEditMode();
+            // Focus the sibling input
+            const input = this.nextElementSibling;
+            if (input && input.classList.contains('wk-edit-input')) {
+                input.focus();
+                input.select && input.select();
+            }
+        });
+    });
+
+    // --- Image click ---
+    const imageOverlay = document.getElementById('wk-image-overlay');
+    const imageInput = document.getElementById('image-file-input');
+    if (imageOverlay && imageInput) {
+        imageOverlay.addEventListener('click', function () {
+            if (!editMode) enterEditMode();
+            imageInput.click();
+        });
+        imageInput.addEventListener('change', function () {
+            if (!this.files || !this.files[0]) return;
+            pendingImageFile = this.files[0];
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = document.querySelector('#wk-product-image');
+                if (img) img.src = e.target.result;
+            };
+            reader.readAsDataURL(pendingImageFile);
+            if (!editMode) enterEditMode();
+        });
+    }
+
+    function enterEditMode() {
+        editMode = true;
+        originalValues = {};
+        const img = document.querySelector('#wk-product-image');
+        originalImageSrc = img ? img.src : null;
+        // Save originals and show inputs
+        document.querySelectorAll('.wk-editable').forEach(el => {
+            originalValues[el.dataset.field] = el.textContent.trim();
+            el.classList.add('hidden');
+            const input = el.nextElementSibling;
+            if (input && input.classList.contains('wk-edit-input')) {
+                input.classList.remove('hidden');
+                input.value = originalValues[el.dataset.field];
+            }
+        });
+        editBar.classList.remove('hidden');
+        document.body.style.paddingBottom = '72px';
+    }
+
+    function exitEditMode(restoreValues) {
+        editMode = false;
+        pendingImageFile = null;
+        if (imageInput) imageInput.value = '';
+        if (restoreValues && originalImageSrc) {
+            const img = document.querySelector('#wk-product-image');
+            if (img) img.src = originalImageSrc;
+        }
+        document.querySelectorAll('.wk-editable').forEach(el => {
+            if (restoreValues) el.textContent = originalValues[el.dataset.field] || el.textContent;
+            el.classList.remove('hidden');
+            const input = el.nextElementSibling;
+            if (input && input.classList.contains('wk-edit-input')) {
+                input.classList.add('hidden');
+            }
+        });
+        editBar.classList.add('hidden');
+        document.body.style.paddingBottom = '';
+        statusEl.textContent = 'You are editing this report';
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save changes';
+    }
+
+    cancelBtn.addEventListener('click', () => exitEditMode(true));
+
+    saveBtn.addEventListener('click', function () {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving…';
+        statusEl.textContent = 'Saving your changes…';
+
+        const formData = new FormData();
+        // Append CSRF and existing model fields expected by the current edit form.
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        formData.append('currency', '{{ report.currency|escapejs }}');
+        formData.append('latitude', '{% if report.latitude %}{{ report.latitude }}{% endif %}');
+        formData.append('longitude', '{% if report.longitude %}{{ report.longitude }}{% endif %}');
+
+        // Collect all edit inputs
+        document.querySelectorAll('.wk-edit-input').forEach(input => {
+            if (input.name && input.type !== 'file' && !input.classList.contains('hidden')) {
+                formData.append(input.name, input.value);
+            }
+        });
+
+        // Append image if changed
+        if (pendingImageFile) formData.append('image', pendingImageFile);
+
+        fetch('{% url "edit_price_report" report.pk %}', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(res => {
+            if (res.redirected || res.ok) {
+                // Optimistically update display values
+                document.querySelectorAll('.wk-edit-input').forEach(input => {
+                    if (!input.name || input.type === 'file') return;
+                    const display = input.previousElementSibling;
+                    if (display && display.classList.contains('wk-editable')) {
+                        display.textContent = input.value;
+                    }
+                });
+                // Update price display separately so the PGK prefix stays intact.
+                const priceInput = document.querySelector('.wk-edit-input[name="price"]');
+                const priceDisplay = document.querySelector('.wk-editable[data-field="price"]');
+                if (priceInput && priceDisplay) {
+                    const parsedPrice = parseFloat(priceInput.value);
+                    priceDisplay.textContent = Number.isFinite(parsedPrice) ? parsedPrice.toFixed(2) : priceInput.value;
+                }
+                exitEditMode(false);
+                showToast('Changes saved successfully', 'success');
+            } else {
+                throw new Error('Server error ' + res.status);
+            }
+        })
+        .catch(() => {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save changes';
+            statusEl.textContent = 'You are editing this report';
+            showToast('Failed to save. Please try again.', 'error');
+        });
+    });
+
+    function showToast(message, type) {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 z-[60] px-4 py-3 rounded-lg text-sm font-semibold shadow-lg text-white transition-opacity ${type === 'success' ? 'bg-brand-green' : 'bg-red-500'}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+    }
+})();
+</script>
 
 {% endblock %}
 
