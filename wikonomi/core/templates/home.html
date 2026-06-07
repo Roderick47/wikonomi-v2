@@ -461,23 +461,7 @@
 
                         <div class="flex items-center gap-3">
 
-                            {% if business.image %}
-
-                            <img src="{{ business.image.url }}" alt="{{ business.name }}" class="h-12 w-12 rounded-lg object-cover border border-slate-100">
-
-                            {% else %}
-
-                            <div class="h-12 w-12 rounded-lg bg-brand-purple/10 flex items-center justify-center shrink-0">
-
-                                <svg class="h-6 w-6 text-brand-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-
-                                </svg>
-
-                            </div>
-
-                            {% endif %}
+                            <img src="{% if business.image %}{{ business.image.url }}{% else %}{% static 'img/default-business.svg' %}{% endif %}" alt="{{ business.name }}" class="h-12 w-12 rounded-lg object-cover border border-slate-100">
 
                             <div class="min-w-0 flex-1">
 
@@ -1423,11 +1407,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         card.className = 'block bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md p-4';
 
-        const imageHtml = business.image_url
-
-            ? `<img src="${business.image_url}" alt="" class="h-12 w-12 rounded-lg object-cover border border-slate-100">`
-
-            : `<div class="h-12 w-12 rounded-lg bg-brand-purple/10 flex items-center justify-center"><svg class="h-6 w-6 text-brand-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg></div>`;
+        const imageHtml = `<img src="${business.image_url}" alt="" class="h-12 w-12 rounded-lg object-cover border border-slate-100">`;
 
         card.innerHTML = `<div class="flex items-center gap-3">${imageHtml}<div><h4 class="font-medium text-gray-900">${business.name}</h4><span class="text-xs text-amber-600">★ ${business.avg_rating ? Number(business.avg_rating).toFixed(1) : '0.0'}/5</span></div></div>`;
 

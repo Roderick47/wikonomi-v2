@@ -55,6 +55,75 @@ class PriceReportCreateViewTest(TestCase):
         self.assertEqual(price_report.product, self.product)
         self.assertEqual(price_report.business, self.business)
 
+
+    def test_business_default_branch_location_overrides_price_form_location(self):
+        """Selected businesses use their default branch location before form coordinates."""
+        BusinessBranch.objects.create(
+            canonical_business=self.business,
+            name='Main Branch',
+            slug='main-branch',
+            latitude=-9.4000,
+            longitude=147.1000,
+            is_main_branch=True,
+            created_by=self.user,
+        )
+
+        self.client.login(username='testuser', password='testpass')
+        response = self.client.post(self.url, {
+            'price': '10.50',
+            'currency': 'PGK',
+            'product_name': 'Test Product',
+            'business_name': 'Test Business',
+            'latitude': '-8.0000',
+            'longitude': '148.0000',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        price_report = PriceReport.objects.first()
+        self.assertEqual(price_report.latitude, -9.4000)
+        self.assertEqual(price_report.longitude, 147.1000)
+
+    def test_business_first_report_location_becomes_default(self):
+        """Businesses without branch coordinates use their first reported price location."""
+        PriceReport.objects.create(
+            product=self.product,
+            business=self.business,
+            user=self.user,
+            price='9.00',
+            currency='PGK',
+            latitude=-9.4100,
+            longitude=147.1100,
+        )
+
+        self.client.login(username='testuser', password='testpass')
+        response = self.client.post(self.url, {
+            'price': '10.50',
+            'currency': 'PGK',
+            'product_name': 'Test Product',
+            'business_name': 'Test Business',
+            'latitude': '-8.0000',
+            'longitude': '148.0000',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        price_report = PriceReport.objects.order_by('-id').first()
+        self.assertEqual(price_report.latitude, -9.4100)
+        self.assertEqual(price_report.longitude, 147.1100)
+
+    def test_business_without_default_requires_price_location(self):
+        """A business with no default or prior located price asks for a price location."""
+        self.client.login(username='testuser', password='testpass')
+        response = self.client.post(self.url, {
+            'price': '10.50',
+            'currency': 'PGK',
+            'product_name': 'Test Product',
+            'business_name': 'Test Business',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Please set a location for this price")
+        self.assertFalse(PriceReport.objects.exists())
+
     def test_form_valid_anonymous_user(self):
         """Test form validation with anonymous user"""
         data = {
@@ -62,7 +131,9 @@ class PriceReportCreateViewTest(TestCase):
             'currency': 'PGK',
             'product_name': 'Test Product',
             'business_name': 'Test Business',
-            'notes': 'Test notes'
+            'notes': 'Test notes',
+            'latitude': '-9.4438',
+            'longitude': '147.1803'
         }
         response = self.client.post(self.url, data)
         self.assertEqual(response.status_code, 302)
@@ -126,6 +197,8 @@ class PriceReportCreateViewTest(TestCase):
             'currency': 'PGK',
             'product_name': 'Test Product',
             'business_name': 'Test Business',
+            'latitude': '-9.4438',
+            'longitude': '147.1803',
             'tags': 'tag1, tag2, tag3'
         }
         response = self.client.post(self.url, data)

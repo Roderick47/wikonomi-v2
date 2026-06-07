@@ -20,6 +20,7 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django import forms
+from django.core.serializers.json import DjangoJSONEncoder
 from django.views.decorators.cache import cache_page
 from django.templatetags.static import static
 from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, PriceLike, create_like_threshold_notification
@@ -84,17 +85,46 @@ class PriceReportCreateView(CreateView):
     form_class = PriceReportForm
     template_name = 'price_report_form.html'
     success_url = reverse_lazy('home')
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from .models import Product, Business
+        businesses = Business.objects.all().order_by('name')
         context['products'] = Product.objects.all().order_by('name')
-        context['businesses'] = Business.objects.all().order_by('name')
+        context['businesses'] = businesses
+        context['business_default_locations_json'] = json.dumps(
+            self._get_business_default_locations(businesses),
+            cls=DjangoJSONEncoder,
+        )
         return context
+
+    def _get_business_default_locations(self, businesses):
+        locations = {}
+        for business in businesses:
+            default_location = business.get_default_location()
+            if default_location:
+                lat, lng = default_location
+                locations[business.name] = {
+                    'latitude': lat,
+                    'longitude': lng,
+                    'source': business.get_default_location_source() or 'business default location',
+                }
+        return locations
+
+    def _apply_business_default_location(self, form, business):
+        default_location = business.get_default_location()
+        if default_location:
+            form.instance.latitude, form.instance.longitude = default_location
+            return True
+
+        if form.instance.latitude is None or form.instance.longitude is None:
+            form.add_error(None, "Please set a location for this price so it can become this business's default location.")
+            return False
+
+        return True
         
     def form_valid(self, form):
         from django.contrib.auth.models import User
-        from .models import Product
-        from django.utils.text import slugify
         
         try:
             # 1. Handle user
@@ -142,6 +172,12 @@ class PriceReportCreateView(CreateView):
                     form.instance.business = business
                 
                 form.instance.business = business
+
+                # Prefer the business default location over any location selected
+                # on the price form. If the business has no default yet, require
+                # this first located price to seed future defaults.
+                if not self._apply_business_default_location(form, business):
+                    return self.form_invalid(form)
 
             # 3. Save form to hit the DB
             response = super().form_valid(form)
@@ -397,7 +433,7 @@ def load_more_prices(request):
             businesses_data.append({
                 'id': business.id,
                 'name': business.name,
-                'image_url': business.image.url if business.image else None,
+                'image_url': business.image.url if business.image else static('img/default-business.svg'),
                 'price_reports_count': business.price_reports.count(),
                 'avg_rating': business.avg_rating
             })
