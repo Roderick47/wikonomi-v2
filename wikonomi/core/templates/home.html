@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% load custom_filters cache %}
+{% load custom_filters cache static %}
 
 
 
@@ -199,6 +199,7 @@
 
 
 {% block content %}
+{% static 'img/default-profile.svg' as default_profile_picture_url %}
 
 <!-- Hero Search Hub -->
 
@@ -582,19 +583,7 @@
 
                                 <span class="relative h-5 w-5 shrink-0">
 
-                                    {% if report.user.profile.profile_picture %}
-
-                                    <img src="{{ report.user.profile.profile_picture.url }}" alt="" class="h-5 w-5 rounded-full object-cover">
-
-                                    {% else %}
-
-                                    <span class="h-5 w-5 rounded-full bg-slate-200 flex items-center justify-center">
-
-                                        <svg class="h-3 w-3 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
-
-                                    </span>
-
-                                    {% endif %}
+                                    <img src="{{ report.user.profile.profile_picture_url|default:default_profile_picture_url }}" alt="{{ report.user.username }}'s profile picture" class="h-5 w-5 rounded-full object-cover" loading="lazy">
 
                                 </span>
 
@@ -1344,11 +1333,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
-        const avatarHtml = item.profile_picture_url
+        const avatarUrl = item.profile_picture_url || '{% static "img/default-profile.svg" %}';
 
-            ? `<img src="${item.profile_picture_url}" alt="" class="h-5 w-5 rounded-full object-cover">`
-
-            : `<span class="h-5 w-5 rounded-full bg-slate-200 flex items-center justify-center"><svg class="h-3 w-3 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg></span>`;
+        const avatarHtml = `<img src="${avatarUrl}" alt="${item.username || 'User'}'s profile picture" class="h-5 w-5 rounded-full object-cover" loading="lazy">`;
 
 
 

@@ -1,5 +1,6 @@
 from django.utils import timezone
 from rest_framework import serializers
+from django.templatetags.static import static
 import bleach
 
 from .models import Comment
@@ -12,13 +13,9 @@ class AuthorSerializer(serializers.Serializer):
 
     def get_profile_picture(self, obj):
         profile = getattr(obj, 'profile', None)
-        picture = getattr(profile, 'profile_picture', None)
-        if not picture:
-            return None
-        try:
-            return picture.url
-        except Exception:
-            return None
+        if profile:
+            return profile.profile_picture_url
+        return static('img/default-profile.svg')
 
 
 class CommentSerializer(serializers.ModelSerializer):

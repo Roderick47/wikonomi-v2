@@ -299,3 +299,20 @@ class EmailUtilsErrorHandlingTest(TestCase):
         # Should complete very quickly since they're just printing debug messages
         execution_time = end_time - start_time
         self.assertLess(execution_time, 1.0)  # Should be less than 1 second for 200 calls
+
+
+class ProfilePictureUrlTest(TestCase):
+    def test_default_profile_picture_url_uses_static_avatar(self):
+        user = User.objects.create_user(username='default-avatar-user')
+        profile = user.profile
+
+        self.assertFalse(profile.has_custom_profile_picture)
+        self.assertEqual(profile.profile_picture_url, '/static/img/default-profile.svg')
+
+    def test_custom_profile_picture_url_uses_uploaded_media(self):
+        user = User.objects.create_user(username='custom-avatar-user')
+        profile = user.profile
+        profile.profile_picture = 'profile_pics/custom.jpg'
+
+        self.assertTrue(profile.has_custom_profile_picture)
+        self.assertEqual(profile.profile_picture_url, '/media/profile_pics/custom.jpg')

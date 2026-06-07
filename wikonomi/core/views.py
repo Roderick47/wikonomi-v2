@@ -21,6 +21,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django import forms
 from django.views.decorators.cache import cache_page
+from django.templatetags.static import static
 from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, PriceLike, create_like_threshold_notification
 from comments.models import Comment
 
@@ -363,7 +364,7 @@ def load_more_prices(request):
             'currency': price.currency,
             'business_name': price.business.name if price.business else None,
             'username': price.user.username,
-            'profile_picture_url': price.user.profile.profile_picture.url if hasattr(price.user, 'profile') and price.user.profile.profile_picture else None,
+            'profile_picture_url': price.user.profile.profile_picture_url if hasattr(price.user, 'profile') else static('img/default-profile.svg'),
             'image_url': price.image.url if price.image else None,
             'observed_at': price.observed_at.strftime('%Y-%m-%d %H:%M'),
             'updated_at': price.updated_at.strftime('%Y-%m-%d %H:%M'),
