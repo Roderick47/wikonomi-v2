@@ -96,8 +96,8 @@
             </div>
             
             <!-- Business Image Section -->
-            {% if business.image %}
             <div class="mt-6">
+                {% if business.image %}
                 <a href="{{ business.image.url }}" target="_blank" class="inline-block group" title="Click to view full size">
                     <div class="relative">
                         <img src="{{ business.image.url }}" alt="{{ business.name }}" 
@@ -110,8 +110,11 @@
                     </div>
                     <p class="mt-1 text-xs text-gray-400 italic">Click to view full size</p>
                 </a>
+                {% else %}
+                <img src="{% static 'img/default-business.svg' %}" alt="Default business profile image for {{ business.name }}"
+                    class="w-32 h-32 sm:w-48 sm:h-48 object-cover rounded-lg shadow-sm border border-gray-200">
+                {% endif %}
             </div>
-            {% endif %}
             <div class="mt-4 flex items-center space-x-6">
                 <div class="flex items-center">
                     <svg class="h-5 w-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

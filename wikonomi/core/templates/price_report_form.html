@@ -107,7 +107,8 @@
 
                     <div class="sm:col-span-6">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                        <p class="text-sm text-gray-500 mb-2">Click on the map to set the exact location where you saw this price.</p>
+                        <p class="text-sm text-gray-500 mb-2">Select a business to use its default location automatically. If the business has no default yet, set the exact location where you saw this price.</p>
+                        <p id="business_location_hint" class="hidden text-sm rounded-md border px-3 py-2 mb-3"></p>
                         
                         <div class="mb-3 flex items-start">
                             <div class="flex items-center h-5">
@@ -163,9 +164,51 @@
         }).addTo(map);
 
         let marker = null;
+        const businessDefaultLocations = {{ business_default_locations_json|default:'{}'|safe }};
         
         const latInput = document.getElementById('{{ form.latitude.id_for_label }}');
         const lngInput = document.getElementById('{{ form.longitude.id_for_label }}');
+        const businessInput = document.getElementById('business_search');
+        const businessLocationHint = document.getElementById('business_location_hint');
+
+        function setMapLocation(lat, lng, zoom = 15) {
+            const latlng = [lat, lng];
+            if (marker) {
+                marker.setLatLng(latlng);
+            } else {
+                marker = L.marker(latlng).addTo(map);
+            }
+            map.setView(latlng, zoom);
+            latInput.value = Number(lat).toFixed(6);
+            lngInput.value = Number(lng).toFixed(6);
+        }
+
+        function showBusinessLocationHint(message, type) {
+            businessLocationHint.innerText = message;
+            businessLocationHint.classList.remove('hidden', 'bg-green-50', 'border-green-200', 'text-green-700', 'bg-amber-50', 'border-amber-200', 'text-amber-700');
+            if (type === 'success') {
+                businessLocationHint.classList.add('bg-green-50', 'border-green-200', 'text-green-700');
+            } else {
+                businessLocationHint.classList.add('bg-amber-50', 'border-amber-200', 'text-amber-700');
+            }
+        }
+
+        function applyBusinessDefaultLocation() {
+            if (!businessInput) return;
+            const businessName = businessInput.value.trim();
+            if (!businessName) {
+                businessLocationHint.classList.add('hidden');
+                return;
+            }
+
+            const defaultLocation = businessDefaultLocations[businessName];
+            if (defaultLocation) {
+                setMapLocation(defaultLocation.latitude, defaultLocation.longitude);
+                showBusinessLocationHint(`Using ${businessName}'s default location from ${defaultLocation.source}.`, 'success');
+            } else {
+                showBusinessLocationHint(`${businessName} does not have a default location yet. Please set this price's location on the map so future prices can use it automatically.`, 'warning');
+            }
+        }
 
         // If there's already a value (e.g. form validation failed), load the marker
         if (latInput.value && lngInput.value) {
@@ -180,15 +223,7 @@
             const lat = e.latlng.lat;
             const lng = e.latlng.lng;
             
-            if (marker) {
-                marker.setLatLng(e.latlng);
-            } else {
-                marker = L.marker(e.latlng).addTo(map);
-            }
-            
-            // Update hidden inputs
-            latInput.value = lat.toFixed(6);
-            lngInput.value = lng.toFixed(6);
+            setMapLocation(lat, lng);
             
             // Uncheck "use my location" if user manually clicks map
             document.getElementById('use_my_location').checked = false;
@@ -197,6 +232,23 @@
         // Handle geolocation
         const locationCheckbox = document.getElementById('use_my_location');
         const locationStatus = document.getElementById('location_status');
+
+        if (businessInput) {
+            businessInput.addEventListener('change', applyBusinessDefaultLocation);
+            businessInput.addEventListener('blur', applyBusinessDefaultLocation);
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const productPrefill = urlParams.get('product_name');
+        const businessPrefill = urlParams.get('business_name');
+        if (productPrefill) {
+            const productInput = document.getElementById('product_search');
+            if (productInput) productInput.value = productPrefill;
+        }
+        if (businessPrefill && businessInput) {
+            businessInput.value = businessPrefill;
+            applyBusinessDefaultLocation();
+        }
 
         locationCheckbox.addEventListener('change', function() {
             if (this.checked) {
@@ -220,18 +272,7 @@
                         const lat = position.coords.latitude;
                         const lng = position.coords.longitude;
                         
-                        // Update map and marker
-                        const latlng = [lat, lng];
-                        if (marker) {
-                            marker.setLatLng(latlng);
-                        } else {
-                            marker = L.marker(latlng).addTo(map);
-                        }
-                        map.setView(latlng, 15);
-                        
-                        // Update hidden inputs
-                        latInput.value = lat.toFixed(6);
-                        lngInput.value = lng.toFixed(6);
+                        setMapLocation(lat, lng);
                         
                         locationStatus.innerText = "Location found successfully.";
                         locationStatus.className = "text-green-500 text-xs mt-1";
@@ -278,18 +319,6 @@
             }
         });
     });
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const productPrefill = urlParams.get('product_name');
-    const businessPrefill = urlParams.get('business_name');
-    if (productPrefill) {
-        const productInput = document.getElementById('product_search');
-        if (productInput) productInput.value = productPrefill;
-    }
-    if (businessPrefill) {
-        const businessInput = document.getElementById('business_search');
-        if (businessInput) businessInput.value = businessPrefill;
-    }
 
 </script>
 {% include 'includes/image_upload_script.html' %}

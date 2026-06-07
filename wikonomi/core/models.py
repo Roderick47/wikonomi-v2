@@ -343,6 +343,67 @@ class Business(models.Model):
     def __str__(self):
         return self.name
 
+    def get_default_location(self):
+        """Return this business's default ``(latitude, longitude)`` when known.
+
+        An explicitly selected main branch location is preferred. If no branch
+        has coordinates yet, the first reported price with coordinates becomes
+        the implicit default location for the business.
+        """
+        main_branch = self.branches.filter(
+            is_active=True,
+            is_main_branch=True,
+            latitude__isnull=False,
+            longitude__isnull=False,
+        ).first()
+        if main_branch:
+            return (main_branch.latitude, main_branch.longitude)
+
+        branch = self.branches.filter(
+            is_active=True,
+            latitude__isnull=False,
+            longitude__isnull=False,
+        ).order_by('-is_main_branch', 'created_at', 'id').first()
+        if branch:
+            return (branch.latitude, branch.longitude)
+
+        first_located_price = self.price_reports.filter(
+            latitude__isnull=False,
+            longitude__isnull=False,
+        ).order_by('observed_at', 'id').first()
+        if first_located_price:
+            return (first_located_price.latitude, first_located_price.longitude)
+
+        return None
+
+    def get_default_location_source(self):
+        """Return a human-readable source for the default location."""
+        main_branch = self.branches.filter(
+            is_active=True,
+            is_main_branch=True,
+            latitude__isnull=False,
+            longitude__isnull=False,
+        ).first()
+        if main_branch:
+            return main_branch.get_full_name()
+
+        branch = self.branches.filter(
+            is_active=True,
+            latitude__isnull=False,
+            longitude__isnull=False,
+        ).order_by('-is_main_branch', 'created_at', 'id').first()
+        if branch:
+            return branch.get_full_name()
+
+        first_located_price = self.price_reports.filter(
+            latitude__isnull=False,
+            longitude__isnull=False,
+        ).select_related('product').order_by('observed_at', 'id').first()
+        if first_located_price:
+            return f"first reported price ({first_located_price.product.name})"
+
+        return None
+
 class BusinessBranch(models.Model):
     """
     Represents a specific branch/location of a business.

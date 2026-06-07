@@ -1,0 +1,17 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Default business profile image</title>
+  <desc id="desc">A generic storefront icon on a purple and blue gradient background.</desc>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <path d="M132 232h248v150a18 18 0 0 1-18 18H150a18 18 0 0 1-18-18V232Z" fill="white" fill-opacity="0.94"/>
+  <path d="M156 162h200l36 70H120l36-70Z" fill="white"/>
+  <path d="M120 232h272v20c0 23.2-18.8 42-42 42-16.1 0-30.1-9.1-37.2-22.5C305.8 284.9 291.8 294 276 294c-15.9 0-29.8-9.1-36.8-22.5C232.1 284.9 218.1 294 202 294c-15.9 0-29.8-9.1-36.8-22.5C158.1 284.9 144.1 294 128 294c-2.7 0-5.4-.3-8-.8V232Z" fill="#F8B84E"/>
+  <path d="M184 320h64v80h-64v-80Z" fill="#6B4EFF" fill-opacity="0.88"/>
+  <path d="M276 324h62v44h-62v-44Z" fill="#2E9AFE" fill-opacity="0.82"/>
+  <path d="M132 232h248v150a18 18 0 0 1-18 18H150a18 18 0 0 1-18-18V232Z" stroke="#3F2A8C" stroke-opacity="0.2" stroke-width="10"/>
+  <defs>
+    <linearGradient id="bg" x1="80" y1="60" x2="432" y2="452" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+</svg>
