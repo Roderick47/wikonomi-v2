@@ -4,13 +4,19 @@ from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django_resized import ResizedImageField
 from django.utils import timezone
+from django.templatetags.static import static
 import uuid
+
+
+DEFAULT_PROFILE_PICTURE = 'profile_pics/default.jpg'
+DEFAULT_PROFILE_PICTURE_STATIC = 'img/default-profile.svg'
+
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     profile_picture = ResizedImageField(
         upload_to='profile_pics/', 
-        default='profile_pics/default.jpg',
+        default=DEFAULT_PROFILE_PICTURE,
         null=True, 
         blank=True,
         size=[300, 300], 
@@ -21,6 +27,23 @@ class Profile(models.Model):
     email_verification_token = models.UUIDField(default=uuid.uuid4, editable=False)
     email_verification_sent_at = models.DateTimeField(null=True, blank=True)
     deletion_notifications_enabled = models.BooleanField(default=True)
+    
+
+    @property
+    def has_custom_profile_picture(self):
+        """Return True when the user uploaded a non-default profile picture."""
+        picture_name = getattr(self.profile_picture, 'name', '')
+        return bool(picture_name and picture_name != DEFAULT_PROFILE_PICTURE)
+
+    @property
+    def profile_picture_url(self):
+        """Return the custom profile picture URL or the bundled default avatar."""
+        if self.has_custom_profile_picture:
+            try:
+                return self.profile_picture.url
+            except Exception:
+                pass
+        return static(DEFAULT_PROFILE_PICTURE_STATIC)
     
     def generate_verification_token(self):
         self.email_verification_token = uuid.uuid4()

@@ -64,6 +64,7 @@
 {% endblock %}
 
 {% block content %}
+{% static 'img/default-profile.svg' as default_profile_picture_url %}
 <div class="max-w-7xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
     <div class="mb-6">
         <a href="{% url 'home' %}" class="text-brand-purple hover:text-brand-purple/80 flex items-center font-medium">
@@ -199,9 +200,10 @@
                                             {{ latest_price.observed_at|rounded_timesince }}
                                         </span>
                                     </div>
-                                    <p class="text-sm text-gray-600 mt-2">
-                                        Reported by {{ latest_price.user.username }}
-                                    </p>
+                                    <div class="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                                        <img src="{{ latest_price.user.profile.profile_picture_url|default:default_profile_picture_url }}" alt="{{ latest_price.user.username }}'s profile picture" class="h-6 w-6 rounded-full object-cover border border-gray-200" loading="lazy">
+                                        <span>Reported by {{ latest_price.user.username }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </a>
@@ -248,7 +250,7 @@
                 data-csrf-token="{{ csrf_token }}"
                 data-is-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}"
                 data-current-user-id="{{ user.id|default:'' }}"
-                data-current-user-avatar="{% if user.is_authenticated and user.profile.profile_picture %}{{ user.profile.profile_picture.url }}{% endif %}"
+                data-current-user-avatar="{% if user.is_authenticated %}{{ user.profile.profile_picture_url|default:default_profile_picture_url }}{% endif %}"
                 data-current-username="{{ user.username|default:'' }}"
                 data-is-staff="{% if user.is_staff %}true{% else %}false{% endif %}"
                 data-can-pin-comments="{% if user.is_staff %}true{% else %}false{% endif %}"
