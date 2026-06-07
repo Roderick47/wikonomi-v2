@@ -316,6 +316,40 @@
 
 </section>
 
+<div id="sticky-search" class="hidden fixed left-0 right-0 w-full z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm" style="top: var(--navbar-height, 4rem);">
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+
+        <form method="GET" action="{% url 'home' %}" class="flex items-center gap-2 sm:gap-3">
+
+            <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search prices…"
+
+                class="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-brand-purple/30 focus:border-brand-blue">
+
+            <input type="hidden" name="sort" value="{{ current_sort }}">
+
+            <input type="hidden" name="lat" value="{{ request.GET.lat }}">
+
+            <input type="hidden" name="lng" value="{{ request.GET.lng }}">
+
+            <button type="submit" class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-purple hover:bg-brand-purple/90 transition-colors">
+
+                Search
+
+            </button>
+
+            <a href="{% url 'add_price' %}" class="shrink-0 inline-flex items-center px-3 py-2 text-sm font-semibold text-brand-purple hover:text-brand-purple/80">
+
+                + Add
+
+            </a>
+
+        </form>
+
+    </div>
+
+</div>
+
 
 
 <!-- Split layout: feed + map -->
@@ -866,19 +900,73 @@ function ensureMapReady(callback) {
 
 
 
-function createPriceMarkerIcon(label, tier) {
+function tierColor(tier) {
+
+    return {
+
+        cheap: '#66D17E',
+
+        mid: '#4DB8FF',
+
+        expensive: '#ef4444',
+
+        other: '#4B2798',
+
+    }[tier] || '#4B2798';
+
+}
+
+
+
+function createPriceMarkerIcon(label, tier, storeName) {
+
+    const escapeHtml = value => String(value || '').replace(/[&<>"']/g, char => ({
+
+        '&': '&amp;',
+
+        '<': '&lt;',
+
+        '>': '&gt;',
+
+        '"': '&quot;',
+
+        "'": '&#39;',
+
+    }[char]));
+
+    const color = tierColor(tier);
+
+    const safeLabel = escapeHtml(label);
+
+    const safeStoreName = escapeHtml(storeName || 'Unknown store');
+
+
 
     return L.divIcon({
 
         className: 'wk-price-marker',
 
-        html: `<div class="wk-price-marker__tag wk-price-marker__tag--${tier}">${label}</div>`,
+        html: `
 
-        iconSize: [72, 28],
+            <div style="display:flex; flex-direction:column; align-items:center; width:88px;">
 
-        iconAnchor: [36, 28],
+                <div class="wk-price-marker__tag wk-price-marker__tag--${tier}" style="display:flex; flex-direction:column; align-items:center; width:84px; padding:4px 8px; background:${color};">
 
-        popupAnchor: [0, -30],
+                    <span style="max-width:70px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${safeLabel}</span>
+
+                    <span style="max-width:70px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9px; font-weight:600; color:rgba(255,255,255,0.78); line-height:1.1;">${safeStoreName}</span>
+
+                </div>
+
+                <div style="width:0; height:0; border-left:7px solid transparent; border-right:7px solid transparent; border-top:8px solid ${color};"></div>
+
+            </div>`,
+
+        iconSize: [88, 42],
+
+        iconAnchor: [44, 42],
+
+        popupAnchor: [0, -44],
 
     });
 
@@ -1026,7 +1114,7 @@ function initPriceMap() {
 
                     const marker = L.marker([price.lat, price.lng], {
 
-                        icon: createPriceMarkerIcon(shortPriceLabel(price.price), tier),
+                        icon: createPriceMarkerIcon(shortPriceLabel(price.price), tier, price.business),
 
                     });
 
@@ -1095,6 +1183,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const userLat = new URLSearchParams(window.location.search).get('lat') || '';
 
     const userLng = new URLSearchParams(window.location.search).get('lng') || '';
+
+
+
+    const stickySearch = document.getElementById('sticky-search');
+
+    const heroSection = document.querySelector('section.relative');
+
+    if (stickySearch && heroSection && 'IntersectionObserver' in window) {
+
+        const stickySearchObserver = new IntersectionObserver(entries => {
+
+            const heroEntry = entries[0];
+
+            stickySearch.classList.toggle('hidden', heroEntry.isIntersecting);
+
+        }, { rootMargin: '-60px 0px 0px 0px' });
+
+        stickySearchObserver.observe(heroSection);
+
+    }
 
 
 
