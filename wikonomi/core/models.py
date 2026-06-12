@@ -7,6 +7,7 @@ from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django_resized import ResizedImageField
 from django.core.cache import cache
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.core.files.base import ContentFile
 from django.utils.text import slugify
 from difflib import SequenceMatcher
@@ -913,6 +914,50 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notification for {self.user.username}: {self.message}"
+
+
+class PriceReportRating(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='price_report_ratings')
+    price_report = models.ForeignKey(PriceReport, on_delete=models.CASCADE, related_name='ratings')
+    rating = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'price_report'],
+                name='unique_price_report_rating_per_user',
+            ),
+        ]
+        ordering = ['-updated_at', '-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} rated price report #{self.price_report_id}: {self.rating}"
+
+
+class BusinessRating(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='business_ratings')
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name='ratings')
+    rating = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'business'],
+                name='unique_business_rating_per_user',
+            ),
+        ]
+        ordering = ['-updated_at', '-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} rated {self.business.name}: {self.rating}"
 
 
 class PriceLike(models.Model):
