@@ -26,6 +26,7 @@ from django.views.decorators.cache import cache_page
 from django.templatetags.static import static
 from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, PriceLike, PriceReportRating, BusinessRating, create_like_threshold_notification
 from comments.models import Comment
+from categories.models import Category as PriceCategory, Subcategory, BusinessCategory, BusinessSubcategory
 
 
 def _get_matched_product_ids(query):
@@ -99,9 +100,22 @@ def _rating_summary(ratings_manager):
     }
 
 class PriceReportForm(forms.ModelForm):
+    category = forms.ModelChoiceField(
+        queryset=PriceCategory.objects.all(),
+        required=False,
+        empty_label="Select a category",
+        widget=forms.Select(attrs={'id': 'id_category', 'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm'}),
+    )
+    subcategory = forms.ModelChoiceField(
+        queryset=Subcategory.objects.none(),
+        required=False,
+        empty_label="Select a subcategory",
+        widget=forms.Select(attrs={'id': 'id_subcategory', 'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm'}),
+    )
+
     class Meta:
         model = PriceReport
-        fields = ['price', 'currency', 'latitude', 'longitude', 'notes', 'image']
+        fields = ['category', 'subcategory', 'price', 'currency', 'latitude', 'longitude', 'notes', 'image']
         widgets = {
             'price': forms.NumberInput(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'step': '0.01'}),
             'currency': forms.TextInput(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'}),
@@ -111,15 +125,56 @@ class PriceReportForm(forms.ModelForm):
             'image': forms.FileInput(attrs={'class': 'hidden', 'accept': 'image/*'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'category' in self.data:
+            try:
+                cat_id = int(self.data.get('category'))
+                self.fields['subcategory'].queryset = Subcategory.objects.filter(category_id=cat_id)
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk and self.instance.subcategory:
+            self.fields['subcategory'].queryset = Subcategory.objects.filter(
+                category=self.instance.subcategory.category
+            )
+            self.fields['category'].initial = self.instance.subcategory.category
+
 class BusinessForm(forms.ModelForm):
+    business_category = forms.ModelChoiceField(
+        queryset=BusinessCategory.objects.all(),
+        required=False,
+        empty_label="Select your industry",
+        widget=forms.Select(attrs={'id': 'id_business_category', 'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm'}),
+    )
+    business_subcategory = forms.ModelChoiceField(
+        queryset=BusinessSubcategory.objects.none(),
+        required=False,
+        empty_label="Select a subcategory",
+        widget=forms.Select(attrs={'id': 'id_business_subcategory', 'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm'}),
+    )
+
     class Meta:
         model = Business
-        fields = ['name', 'details', 'image']
+        fields = ['name', 'business_category', 'business_subcategory', 'details', 'image']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'}),
             'details': forms.Textarea(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'rows': 4, 'placeholder': 'Add any additional information about this business...'}),
             'image': forms.FileInput(attrs={'class': 'hidden', 'accept': 'image/*'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'business_category' in self.data:
+            try:
+                cat_id = int(self.data.get('business_category'))
+                self.fields['business_subcategory'].queryset = BusinessSubcategory.objects.filter(category_id=cat_id)
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk and self.instance.business_subcategory:
+            self.fields['business_subcategory'].queryset = BusinessSubcategory.objects.filter(
+                category=self.instance.business_subcategory.category
+            )
+            self.fields['business_category'].initial = self.instance.business_subcategory.category
 
 class PriceReportCreateView(CreateView):
     model = PriceReport
@@ -811,15 +866,17 @@ class PriceReportEditView(UpdateView):
         messages.success(self.request, 'Price report updated successfully!')
         return response
 
+@login_required
 def edit_price_report(request, pk):
     report = get_object_or_404(PriceReport, pk=pk)
     
     if request.method == 'POST':
         form = PriceReportForm(request.POST, request.FILES, instance=report)
         if form.is_valid():
-            # Store old values for history
-            old_price = report.price
-            old_currency = report.currency
+            # Store old values from the database because ModelForm validation mutates the instance.
+            old_report = PriceReport.objects.get(pk=report.pk)
+            old_price = old_report.price
+            old_currency = old_report.currency
             
             # Save the form but don't commit yet
             form.instance.last_edited_by = request.user

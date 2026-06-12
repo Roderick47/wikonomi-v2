@@ -340,6 +340,13 @@ class Business(models.Model):
     image = ResizedImageField(upload_to='business_images/', null=True, blank=True, size=[1000, 1000], quality=75, force_format='JPEG')
     created_at = models.DateTimeField(auto_now_add=True)
     comments = GenericRelation('comments.Comment', related_query_name='business')
+    business_subcategory = models.ForeignKey(
+        'categories.BusinessSubcategory',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='businesses',
+    )
 
     def __str__(self):
         return self.name
@@ -731,6 +738,13 @@ class PriceReport(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='price_reports')
     business = models.ForeignKey(Business, on_delete=models.SET_NULL, null=True, blank=True, related_name='price_reports')
     business_branch = models.ForeignKey('BusinessBranch', on_delete=models.SET_NULL, null=True, blank=True, related_name='price_reports')
+    subcategory = models.ForeignKey(
+        'categories.Subcategory',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='price_reports',
+    )
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='price_reports')
     last_edited_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='edited_price_reports')
     

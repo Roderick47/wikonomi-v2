@@ -84,6 +84,21 @@
                     </div>
 
                     <div class="sm:col-span-3">
+                        <label for="id_category" class="block text-sm font-medium text-gray-700">Category</label>
+                        <div class="mt-1">
+                            {{ form.category }}
+                        </div>
+                    </div>
+
+                    <div class="sm:col-span-3">
+                        <label for="id_subcategory" class="block text-sm font-medium text-gray-700">Subcategory</label>
+                        <div class="mt-1">
+                            {{ form.subcategory }}
+                        </div>
+                        <small id="subcategory-hint" class="mt-1 block text-sm text-gray-500"></small>
+                    </div>
+
+                    <div class="sm:col-span-3">
                         <label for="{{ form.price.id_for_label }}" class="block text-sm font-medium text-gray-700">Price</label>
                         <div class="mt-1">
                             {{ form.price }}
@@ -322,4 +337,5 @@
 
 </script>
 {% include 'includes/image_upload_script.html' %}
+{% include 'includes/category_select_scripts.html' %}
 {% endblock %}
