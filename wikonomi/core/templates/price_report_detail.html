@@ -66,128 +66,66 @@
     </div>
 
     <!-- Hero header -->
-    <div class="bg-white shadow sm:rounded-lg mb-8">
-        <div class="px-4 py-5 sm:px-6">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div class="min-w-0 flex-1">
-                    <div class="flex flex-wrap items-center gap-3">
-                        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
-                            <span class="wk-editable cursor-pointer hover:text-brand-purple transition-colors" data-field="product_name">{{ report.product.name }}</span>
-                            <input type="text" name="product_name" class="wk-edit-input hidden w-full rounded-lg border border-slate-300 px-3 py-2 text-2xl sm:text-3xl font-bold text-gray-900 focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20">
-                        </h1>
-                        <span id="wk-price-badge" class="inline-flex items-center gap-1 px-4 py-1.5 rounded-lg text-xl sm:text-2xl font-extrabold bg-brand-green text-white shadow-sm whitespace-nowrap">
-                            <span class="wk-price-prefix">{{ report.currency }}</span>
-                            <span class="wk-editable cursor-pointer" data-field="price">{{ report.price|floatformat:2 }}</span>
-                            <input type="number" step="0.01" name="price" class="wk-edit-input hidden w-32 rounded-lg border border-white/70 bg-white px-2 py-1 text-xl sm:text-2xl font-extrabold text-gray-900 focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-white/60">
-                        </span>
-                    </div>
-                    {% if report.business %}
-                    <p class="mt-2 text-base sm:text-lg text-gray-700">
-                        at <a href="{% url 'business_detail' report.business.pk %}" class="font-semibold text-brand-purple hover:text-brand-purple/80">{{ report.get_business_display }}</a>
+    <div class="mb-8">
+        {% include "includes/_price_report_card.html" with report=report price_card_static=True price_card_editable=True price_card_show_detail_actions=True average_rating=average_rating rating_count=rating_count current_user_rating=current_user_rating %}
+
+        <!-- Deletion request banner -->
+        {% if report.marked_for_deletion %}
+        <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div class="flex items-start gap-3">
+                <svg class="h-5 w-5 text-red-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <div class="flex-grow min-w-0">
+                    <h4 class="text-red-800 font-semibold">Marked for Deletion</h4>
+                    <p class="text-red-700 text-sm mt-1">
+                        Reported by {{ report.marked_for_deletion_by.username }} on {{ report.marked_for_deletion_at|date:"M d, Y" }}
                     </p>
+                    {% if report.deletion_reason %}
+                    <p class="text-red-600 text-sm mt-2 italic">"{{ report.deletion_reason }}"</p>
                     {% endif %}
-                    <div class="mt-3 flex items-center gap-2">
-                        <div class="relative h-8 w-8 shrink-0">
-                            <img src="{{ report.user.profile.profile_picture_url|default:default_profile_picture_url }}" alt="{{ report.user.username }}'s profile picture" class="h-8 w-8 rounded-full object-cover border border-gray-200" loading="lazy">
-                        </div>
-                        <p class="text-sm text-gray-500">
-                            Reported by <span class="font-medium text-gray-700">{{ report.user.username }}</span> on {{ report.observed_at|date:"F j, Y" }}
-                            {% if report.last_edited_by and report.last_edited_by != report.user %}
-                            <span class="block sm:inline sm:ml-1">· Last edited by {{ report.last_edited_by.username }} on {{ report.updated_at|date:"F j, Y" }}</span>
+                    <p class="text-red-700 text-sm mt-2">
+                        <span class="font-medium">{{ report.deletion_votes.count }}</span> user(s) have confirmed this deletion request.
+                    </p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        {% if user.is_authenticated %}
+                            {% if user == report.marked_for_deletion_by or user.is_staff or user.is_superuser %}
+                            <form method="post" action="{% url 'unmark_for_deletion' report.pk %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium rounded transition-colors">Cancel request</button>
+                            </form>
                             {% endif %}
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Icon toolbar -->
-                <div class="flex items-center gap-1 shrink-0">
-                    <button type="button" onclick="sharePriceReport(event, {title: '{{ report.product.name|escapejs }}', text: 'Checked {{ report.product.name|escapejs }} at {{ report.business.name|default:"Unknown"|escapejs }} for {{ report.currency|escapejs }} {{ report.price|intcomma|escapejs }} on Wikonomi.', url: window.location.href})"
-                        class="p-2.5 text-gray-500 hover:text-brand-purple hover:bg-brand-purple/10 rounded-full transition-colors" title="Share" aria-label="Share">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-                    </button>
-                    {% if user.is_authenticated %}
-                    <button type="button" id="watchlist-btn" data-product-id="{{ report.product.id }}"
-                        class="p-2.5 rounded-full transition-colors {% if is_watching %}text-brand-purple bg-brand-purple/10{% else %}text-gray-500 hover:text-brand-purple hover:bg-brand-purple/10{% endif %}"
-                        title="{% if is_watching %}Watching{% else %}Watch product{% endif %}" aria-label="Watch product">
-                        <span id="watchlist-icon" class="text-lg leading-none">{% if is_watching %}⭐{% else %}☆{% endif %}</span>
-                    </button>
-                    <button type="button" id="add-to-list-btn" data-product-id="{{ report.product.id }}"
-                        class="p-2.5 text-gray-500 hover:text-brand-purple hover:bg-brand-purple/10 rounded-full transition-colors" title="Add to shopping list" aria-label="Add to list">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    </button>
-                    <div class="relative">
-                        <button type="button" id="actions-menu-btn" class="p-2.5 text-gray-500 hover:text-brand-purple hover:bg-brand-purple/10 rounded-full transition-colors" title="More actions" aria-label="More actions" aria-expanded="false" aria-haspopup="true">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
-                        </button>
-                        <div id="actions-menu" class="hidden absolute right-0 mt-1 w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                            <a href="{% url 'edit_price_report' report.pk %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Edit report</a>
-                            {% if not report.marked_for_deletion %}
-                            <button type="button" onclick="document.getElementById('deletion-form').classList.remove('hidden'); document.getElementById('actions-menu').classList.add('hidden');" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Mark for deletion</button>
+                            {% if can_vote_delete %}
+                            <form method="post" action="{% url 'vote_delete_price' report.pk %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-medium rounded border border-red-300 transition-colors">Confirm &amp; vote to delete</button>
+                            </form>
                             {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Deletion request banner -->
-            {% if report.marked_for_deletion %}
-            <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div class="flex items-start gap-3">
-                    <svg class="h-5 w-5 text-red-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                    </svg>
-                    <div class="flex-grow min-w-0">
-                        <h4 class="text-red-800 font-semibold">Marked for Deletion</h4>
-                        <p class="text-red-700 text-sm mt-1">
-                            Reported by {{ report.marked_for_deletion_by.username }} on {{ report.marked_for_deletion_at|date:"M d, Y" }}
-                        </p>
-                        {% if report.deletion_reason %}
-                        <p class="text-red-600 text-sm mt-2 italic">"{{ report.deletion_reason }}"</p>
+                            {% if user.is_staff or user.is_superuser or report.deletion_votes.count >= 1 %}
+                            <form method="post" action="{% url 'delete_price_report' report.pk %}" class="inline" onsubmit="return confirm('Are you sure you want to permanently delete this price report?');">
+                                {% csrf_token %}
+                                <button type="submit" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded transition-colors">Delete now</button>
+                            </form>
+                            {% endif %}
                         {% endif %}
-                        <p class="text-red-700 text-sm mt-2">
-                            <span class="font-medium">{{ report.deletion_votes.count }}</span> user(s) have confirmed this deletion request.
-                        </p>
-                        <div class="mt-3 flex flex-wrap gap-2">
-                            {% if user.is_authenticated %}
-                                {% if user == report.marked_for_deletion_by or user.is_staff or user.is_superuser %}
-                                <form method="post" action="{% url 'unmark_for_deletion' report.pk %}" class="inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium rounded transition-colors">Cancel request</button>
-                                </form>
-                                {% endif %}
-                                {% if can_vote_delete %}
-                                <form method="post" action="{% url 'vote_delete_price' report.pk %}" class="inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-medium rounded border border-red-300 transition-colors">Confirm &amp; vote to delete</button>
-                                </form>
-                                {% endif %}
-                                {% if user.is_staff or user.is_superuser or report.deletion_votes.count >= 1 %}
-                                <form method="post" action="{% url 'delete_price_report' report.pk %}" class="inline" onsubmit="return confirm('Are you sure you want to permanently delete this price report?');">
-                                    {% csrf_token %}
-                                    <button type="submit" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded transition-colors">Delete now</button>
-                                </form>
-                                {% endif %}
-                            {% endif %}
-                        </div>
                     </div>
                 </div>
             </div>
-            {% elif user.is_authenticated %}
-            <div id="deletion-form" class="hidden mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <form method="post" action="{% url 'mark_for_deletion' report.pk %}">
-                    {% csrf_token %}
-                    <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">Reason for deletion (optional)</label>
-                    <textarea name="reason" id="reason" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Duplicate, wrong price, etc."></textarea>
-                    <div class="flex gap-2 mt-3">
-                        <button type="submit" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded transition-colors">Submit request</button>
-                        <button type="button" onclick="document.getElementById('deletion-form').classList.add('hidden')" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium rounded transition-colors">Cancel</button>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-2">Another user must confirm before deletion.</p>
-                </form>
-            </div>
-            {% endif %}
         </div>
+        {% elif user.is_authenticated %}
+        <div id="deletion-form" class="hidden mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <form method="post" action="{% url 'mark_for_deletion' report.pk %}">
+                {% csrf_token %}
+                <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">Reason for deletion (optional)</label>
+                <textarea name="reason" id="reason" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Duplicate, wrong price, etc."></textarea>
+                <div class="flex gap-2 mt-3">
+                    <button type="submit" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded transition-colors">Submit request</button>
+                    <button type="button" onclick="document.getElementById('deletion-form').classList.add('hidden')" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium rounded transition-colors">Cancel</button>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Another user must confirm before deletion.</p>
+            </form>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Two-column main content -->

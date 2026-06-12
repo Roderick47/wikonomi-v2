@@ -220,6 +220,58 @@
             });
         }
 
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return '';
+        }
+
+        document.addEventListener('click', async function(event) {
+            const ratingButton = event.target.closest('[data-rating-value][data-rating-target][data-object-id]');
+            if (!ratingButton) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const target = ratingButton.dataset.ratingTarget;
+            const objectId = ratingButton.dataset.objectId;
+            const rating = ratingButton.dataset.ratingValue;
+            const endpoint = target === 'business' ? `/business/${objectId}/rate/` : `/price/${objectId}/rate/`;
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ rating })
+                });
+
+                if (!response.ok) {
+                    if (response.status === 403 || response.redirected) {
+                        window.location.href = `{% url 'login' %}?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+                        return;
+                    }
+                    throw new Error('Rating request failed');
+                }
+
+                const data = await response.json();
+                const widget = ratingButton.closest('[data-rating-widget]') || document.querySelector(`[data-rating-widget][data-rating-target="${target}"][data-object-id="${objectId}"]`);
+                if (widget) {
+                    widget.querySelectorAll('[data-rating-value]').forEach((button) => {
+                        button.setAttribute('aria-pressed', button.dataset.ratingValue === String(data.rating) ? 'true' : 'false');
+                    });
+                }
+                showToast(`Rated ${data.rating} out of 5`, 'success');
+            } catch (error) {
+                console.error('Error submitting rating:', error);
+                showToast('Could not save rating', 'error');
+            }
+        });
+
         function showToast(message, type = 'info') {
             const toast = document.getElementById('global-toast');
             const messageEl = document.getElementById('toast-message');

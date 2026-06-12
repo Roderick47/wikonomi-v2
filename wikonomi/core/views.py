@@ -257,7 +257,10 @@ def _get_prices_queryset(request):
     user_lat = request.GET.get('lat')
     user_lng = request.GET.get('lng')
     
-    qs = PriceReport.objects.select_related('product', 'business', 'user').prefetch_related('user__profile')
+    qs = PriceReport.objects.select_related('product', 'business', 'user').prefetch_related('user__profile').annotate(
+        average_rating=Avg('ratings__rating'),
+        rating_count=Count('ratings'),
+    )
     
     if query:
         # Enhanced search using product normalization
@@ -658,7 +661,10 @@ class BusinessDetailView(DetailView):
         # Get all price reports for this business with location data
         price_reports = PriceReport.objects.filter(
             business=business
-        ).select_related('product', 'user').prefetch_related('product__tags').order_by('-observed_at')
+        ).select_related('product', 'user').prefetch_related('product__tags').annotate(
+            average_rating=Avg('ratings__rating'),
+            rating_count=Count('ratings'),
+        ).order_by('-observed_at')
         
         # Filter reports with valid coordinates for the map
         reports_with_location = price_reports.filter(
@@ -671,7 +677,12 @@ class BusinessDetailView(DetailView):
         for product in Product.objects.filter(
             price_reports__business=business
         ).distinct().order_by('name'):
-            latest_price = product.price_reports.filter(business=business).first()
+            latest_price = product.price_reports.filter(business=business).select_related(
+                'product', 'business', 'user'
+            ).prefetch_related('user__profile', 'product__tags').annotate(
+                average_rating=Avg('ratings__rating'),
+                rating_count=Count('ratings'),
+            ).first()
             products_data.append({
                 'product': product,
                 'latest_price': latest_price
