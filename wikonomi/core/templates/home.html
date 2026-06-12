@@ -1235,6 +1235,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
+        const ratingValue = item.average_rating === null || item.average_rating === undefined ? 0 : Number(item.average_rating);
+
+        const ratingCount = item.rating_count || 0;
+
+        const ratingHtml = `<span class="inline-flex items-center gap-1 text-amber-600 font-medium">★ ${ratingValue.toFixed(1)}/5 <span class="text-gray-400">(${ratingCount})</span></span>`;
+
+
+
         card.innerHTML = `
 
             <div class="p-4">
@@ -1276,6 +1284,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${locationHtml}
 
                     ${distanceHtml}
+
+                    ${ratingHtml}
 
                 </div>
 
