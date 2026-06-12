@@ -1,0 +1,133 @@
+{% load custom_filters humanize static %}
+{% static 'img/default-profile.svg' as fallback_profile_picture_url %}
+{% if price_card_static %}
+<div class="price-card group block bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all overflow-hidden"
+{% else %}
+<a href="{% url 'price_detail' report.pk %}"
+   class="price-card group block bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all overflow-hidden"
+{% endif %}
+   data-product-card
+   data-name="{{ report.product.name|lower|escape }}"
+   data-price="{{ report.price }}"
+   data-updated="{{ report.updated_at|date:'U' }}"
+   data-rating-widget
+   data-rating-target="price-report"
+   data-object-id="{{ report.id }}">
+    <div class="p-4">
+        <div class="flex gap-3">
+            <div class="h-20 w-20 shrink-0 rounded-lg bg-gray-50 border border-slate-100 overflow-hidden flex items-center justify-center">
+                {% if report.image %}
+                <img src="{{ report.image.url }}" alt="{{ report.product.name }}" class="h-full w-full object-contain p-1 group-hover:scale-105 transition-transform" loading="lazy">
+                {% else %}
+                <svg class="h-8 w-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                {% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <h3 class="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug">
+                            {% if price_card_editable %}
+                            <span class="wk-editable cursor-pointer hover:text-brand-purple transition-colors" data-field="product_name">{{ report.product.name }}</span>
+                            <input type="text" name="product_name" class="wk-edit-input hidden w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-gray-900 focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20">
+                            {% else %}
+                            {{ report.product.name }}
+                            {% endif %}
+                        </h3>
+                        <p class="mt-1 text-2xl font-extrabold text-brand-green leading-none"{% if price_card_editable %} id="wk-price-badge"{% endif %}>
+                            <span{% if price_card_editable %} class="wk-price-prefix"{% endif %}>{{ report.currency }}</span>
+                            {% if price_card_editable %}
+                            <span class="wk-editable cursor-pointer" data-field="price">{{ report.price|floatformat:2 }}</span>
+                            <input type="number" step="0.01" name="price" class="wk-edit-input hidden w-28 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xl font-extrabold text-gray-900 focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20">
+                            {% else %}
+                            {{ report.price|intcomma }}
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="flex shrink-0 items-start gap-0.5">
+                        <button type="button" onclick="sharePriceReport(event, {title: '{{ report.product.name|escapejs }}', text: 'Checked {{ report.product.name|escapejs }} at {{ report.business.name|default:"Unknown"|escapejs }} for {{ report.currency|escapejs }} {{ report.price|intcomma|escapejs }} on Wikonomi.', url: window.location.origin + '{% url 'price_detail' report.pk %}'})" class="p-1.5 text-gray-400 hover:text-brand-purple rounded-full hover:bg-brand-purple/10" title="Share" aria-label="Share">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                        </button>
+                        {% if show_like_button %}
+                        <button type="button" data-like-btn data-price-id="{{ report.id }}" onclick="toggleLike(event, this)" class="p-1.5 rounded-full text-xs {% if report.is_liked_by_user %}text-brand-green bg-brand-green/10{% else %}text-gray-400 hover:text-brand-blue hover:bg-brand-blue/10{% endif %}" title="Like" aria-label="Like">
+                            👍 <span data-like-count>{{ report.likes.count }}</span>
+                        </button>
+                        {% endif %}
+                        <div class="relative group/rating">
+                            <button type="button" onclick="event.preventDefault(); event.stopPropagation();" class="p-1.5 text-gray-400 hover:text-brand-purple rounded-full hover:bg-brand-purple/10" title="Quick rating" aria-label="Quick rating" aria-haspopup="true">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+                            </button>
+                            <div class="hidden group-hover/rating:block group-focus-within/rating:block absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                                <p class="px-3 py-1 text-xs font-semibold text-gray-500">Rate this price</p>
+                                {% if user.is_authenticated %}
+                                    {% for value in "12345" %}
+                                    <button type="button" onclick="event.preventDefault();" class="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700" aria-label="Rate {{ value }} out of 5" data-rating-target="price-report" data-object-id="{{ report.id }}" data-rating-value="{{ value }}">{{ value }} ★</button>
+                                    {% endfor %}
+                                {% else %}
+                                <span class="block px-3 py-1.5 text-sm text-gray-500">Log in to rate</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% if report.business %}
+                <p class="mt-1 text-sm text-gray-600 truncate flex items-center gap-1">
+                    <svg class="h-3.5 w-3.5 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    {{ report.get_business_display|default:report.business.name }}
+                </p>
+                {% endif %}
+                {% if show_product_tags and report.product.tags.all %}
+                <div class="mt-2 flex flex-wrap gap-1">
+                    {% for tag in report.product.tags.all %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-purple/10 text-brand-purple">{{ tag.name }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                    <span class="inline-flex items-center gap-1 text-amber-600 font-medium">
+                        ★ {% firstof report.average_rating average_rating 0 as card_average_rating %}{{ card_average_rating|floatformat:1 }}/5
+                        {% firstof report.rating_count rating_count 0 as card_rating_count %}<span class="text-gray-400">({{ card_rating_count }})</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+            <span class="inline-flex items-center gap-1.5">
+                <span class="relative h-5 w-5 shrink-0">
+                    <img src="{{ report.user.profile.profile_picture_url|default:default_profile_picture_url|default:fallback_profile_picture_url }}" alt="{{ report.user.username }}'s profile picture" class="h-5 w-5 rounded-full object-cover" loading="lazy">
+                </span>
+                <span class="font-medium text-gray-600">{{ report.user.username }}</span>
+            </span>
+            <span class="inline-flex items-center gap-1">
+                <svg class="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                {% if report.is_updated %}<span class="text-brand-purple font-medium">Updated</span> {{ report.updated_at|rounded_timesince }}{% else %}{{ report.observed_at|rounded_timesince }}{% endif %}
+            </span>
+            {% if report.latitude and report.longitude %}
+            <span class="inline-flex items-center gap-1">
+                <svg class="h-3.5 w-3.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>
+                On map
+            </span>
+            {% endif %}
+            {% if price_card_show_detail_actions and user.is_authenticated %}
+            <span class="ml-auto inline-flex items-center gap-1">
+                <button type="button" id="watchlist-btn" data-product-id="{{ report.product.id }}" onclick="event.preventDefault(); event.stopPropagation();" class="p-1.5 rounded-full transition-colors {% if is_watching %}text-brand-purple bg-brand-purple/10{% else %}text-gray-500 hover:text-brand-purple hover:bg-brand-purple/10{% endif %}" title="{% if is_watching %}Watching{% else %}Watch product{% endif %}" aria-label="Watch product"><span id="watchlist-icon" class="text-sm leading-none">{% if is_watching %}⭐{% else %}☆{% endif %}</span></button>
+                <button type="button" id="add-to-list-btn" data-product-id="{{ report.product.id }}" onclick="event.preventDefault(); event.stopPropagation();" class="p-1.5 text-gray-500 hover:text-brand-purple hover:bg-brand-purple/10 rounded-full transition-colors" title="Add to shopping list" aria-label="Add to list"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button>
+                <span class="relative">
+                    <button type="button" id="actions-menu-btn" onclick="event.preventDefault(); event.stopPropagation();" class="p-1.5 text-gray-500 hover:text-brand-purple hover:bg-brand-purple/10 rounded-full transition-colors" title="More actions" aria-label="More actions" aria-expanded="false" aria-haspopup="true"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg></button>
+                    <span id="actions-menu" class="hidden absolute right-0 mt-1 w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                        <span onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{% url 'edit_price_report' report.pk %}';" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">Edit report</span>
+                        {% if not report.marked_for_deletion %}
+                        <button type="button" onclick="event.preventDefault(); event.stopPropagation(); document.getElementById('deletion-form').classList.remove('hidden'); document.getElementById('actions-menu').classList.add('hidden');" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Mark for deletion</button>
+                        {% endif %}
+                    </span>
+                </span>
+            </span>
+            {% endif %}
+        </div>
+    </div>
+{% if price_card_static %}
+</div>
+{% else %}
+</a>
+{% endif %}
