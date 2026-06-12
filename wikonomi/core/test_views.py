@@ -9,7 +9,7 @@ from decimal import Decimal
 from core.models import (
     Product, Business, PriceReport, ProductAlias, BusinessAlias,
     BusinessBranch, ProductWatchlist, ShoppingList, ShoppingListItem,
-    Notification, PriceHistory, Category
+    Notification, PriceHistory, Category, PriceReportRating, BusinessRating
 )
 from core import views
 
@@ -209,6 +209,79 @@ class PriceReportCreateViewTest(TestCase):
         self.assertIn('tag1', tags)
         self.assertIn('tag2', tags)
         self.assertIn('tag3', tags)
+
+
+class RatingViewsTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='rater', password='testpass')
+        self.other_user = User.objects.create_user(username='other-rater', password='testpass')
+        self.product = Product.objects.create(name='Rated Product', slug='rated-product', created_by=self.user)
+        self.business = Business.objects.create(name='Rated Business')
+        self.report = PriceReport.objects.create(
+            product=self.product,
+            business=self.business,
+            user=self.user,
+            price=Decimal('10.50'),
+            currency='PGK',
+        )
+        self.client.login(username='rater', password='testpass')
+
+    def test_rate_price_report_accepts_form_rating(self):
+        response = self.client.post(reverse('rate_price_report', args=[self.report.pk]), {'rating': '4'})
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['ok'])
+        self.assertEqual(data['rating'], 4)
+        self.assertEqual(data['average_rating'], 4.0)
+        self.assertEqual(data['rating_count'], 1)
+        self.assertTrue(
+            PriceReportRating.objects.filter(user=self.user, price_report=self.report, rating=4).exists()
+        )
+
+    def test_rate_price_report_updates_existing_rating_and_summary(self):
+        PriceReportRating.objects.create(user=self.user, price_report=self.report, rating=2)
+        PriceReportRating.objects.create(user=self.other_user, price_report=self.report, rating=4)
+
+        response = self.client.post(
+            reverse('rate_price_report', args=[self.report.pk]),
+            data=json.dumps({'rating': 5}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['rating'], 5)
+        self.assertEqual(data['average_rating'], 4.5)
+        self.assertEqual(data['rating_count'], 2)
+        self.assertEqual(PriceReportRating.objects.filter(user=self.user, price_report=self.report).count(), 1)
+        self.assertEqual(PriceReportRating.objects.get(user=self.user, price_report=self.report).rating, 5)
+
+    def test_rate_business_accepts_json_rating(self):
+        response = self.client.post(
+            reverse('rate_business', args=[self.business.pk]),
+            data=json.dumps({'rating': 3}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['ok'])
+        self.assertEqual(data['rating'], 3)
+        self.assertEqual(data['average_rating'], 3.0)
+        self.assertEqual(data['rating_count'], 1)
+        self.assertTrue(
+            BusinessRating.objects.filter(user=self.user, business=self.business, rating=3).exists()
+        )
+
+    def test_invalid_ratings_return_400(self):
+        for url in (
+            reverse('rate_price_report', args=[self.report.pk]),
+            reverse('rate_business', args=[self.business.pk]),
+        ):
+            response = self.client.post(url, {'rating': '6'})
+            self.assertEqual(response.status_code, 400)
+            self.assertFalse(response.json()['ok'])
 
 
 class BusinessDetailCommentsTest(TestCase):
