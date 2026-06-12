@@ -54,6 +54,21 @@
                     </div>
                     
                     <div>
+                        <label for="id_category" class="block text-sm font-medium text-gray-700">Category</label>
+                        <div class="mt-1">
+                            {{ form.category }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="id_subcategory" class="block text-sm font-medium text-gray-700">Subcategory</label>
+                        <div class="mt-1">
+                            {{ form.subcategory }}
+                        </div>
+                        <small id="subcategory-hint" class="mt-1 block text-sm text-gray-500"></small>
+                    </div>
+
+                    <div>
                         <label for="price" class="block text-sm font-medium text-gray-700">Price *</label>
                         <div class="mt-1">
                             <input type="number" 
@@ -470,4 +485,5 @@
         }
     });
 </script>
+{% include 'includes/category_select_scripts.html' %}
 {% endblock %}

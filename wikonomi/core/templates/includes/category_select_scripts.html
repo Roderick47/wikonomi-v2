@@ -1,0 +1,62 @@
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const catSelect = document.getElementById('id_category');
+        const subSelect = document.getElementById('id_subcategory');
+
+        if (catSelect && subSelect) {
+            subSelect.disabled = !catSelect.value;
+            catSelect.addEventListener('change', function () {
+                const catId = this.value;
+                subSelect.innerHTML = '<option value="">Select a subcategory</option>';
+                subSelect.disabled = !catId;
+                const hint = document.getElementById('subcategory-hint');
+                if (hint) hint.textContent = '';
+                if (!catId) return;
+
+                fetch(`/categories/api/subcategories/?category_id=${catId}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        data.subcategories.forEach(sub => {
+                            const opt = document.createElement('option');
+                            opt.value = sub.id;
+                            opt.textContent = sub.name + (sub.is_png_specific ? ' ★' : '');
+                            opt.dataset.examples = sub.examples || '';
+                            subSelect.appendChild(opt);
+                        });
+                    });
+            });
+
+            subSelect.addEventListener('change', function () {
+                const selected = this.options[this.selectedIndex];
+                const hint = document.getElementById('subcategory-hint');
+                if (hint) {
+                    hint.textContent = selected && selected.dataset.examples ? 'e.g. ' + selected.dataset.examples : '';
+                }
+            });
+        }
+
+        const businessCatSelect = document.getElementById('id_business_category');
+        const businessSubSelect = document.getElementById('id_business_subcategory');
+
+        if (businessCatSelect && businessSubSelect) {
+            businessSubSelect.disabled = !businessCatSelect.value;
+            businessCatSelect.addEventListener('change', function () {
+                const catId = this.value;
+                businessSubSelect.innerHTML = '<option value="">Select a subcategory</option>';
+                businessSubSelect.disabled = !catId;
+                if (!catId) return;
+
+                fetch(`/categories/api/business-subcategories/?category_id=${catId}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        data.subcategories.forEach(sub => {
+                            const opt = document.createElement('option');
+                            opt.value = sub.id;
+                            opt.textContent = sub.name;
+                            businessSubSelect.appendChild(opt);
+                        });
+                    });
+            });
+        }
+    });
+</script>

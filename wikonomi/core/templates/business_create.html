@@ -61,6 +61,20 @@
                         <p class="mt-2 text-sm text-gray-500">Enter the name of the business you want to add.</p>
                     </div>
 
+                    <div class="sm:col-span-3">
+                        <label for="id_business_category" class="block text-sm font-medium text-gray-700">Industry / business type</label>
+                        <div class="mt-1">
+                            {{ form.business_category }}
+                        </div>
+                    </div>
+
+                    <div class="sm:col-span-3">
+                        <label for="id_business_subcategory" class="block text-sm font-medium text-gray-700">Subcategory</label>
+                        <div class="mt-1">
+                            {{ form.business_subcategory }}
+                        </div>
+                    </div>
+
                     <div class="sm:col-span-6">
                         <label for="{{ form.details.id_for_label }}" class="block text-sm font-medium text-gray-700">Business Details (Optional)</label>
                         <div class="mt-1">
@@ -85,4 +99,5 @@
 </div>
 
 {% include 'includes/image_upload_script.html' %}
+{% include 'includes/category_select_scripts.html' %}
 {% endblock %}

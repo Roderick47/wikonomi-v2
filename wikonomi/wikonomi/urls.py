@@ -28,6 +28,7 @@ urlpatterns = [
     path('accounts/logout/', user_views.allauth_logout_redirect, name='allauth_logout_redirect'),
     path('users/', include('users.urls')),
     path('accounts/', include('allauth.urls')),
+    path('categories/', include('categories.urls')),
     path('', include('core.urls')),
     path('analytics/', include('analytics.urls')),
     path('api/comments/', include('comments.urls')),
