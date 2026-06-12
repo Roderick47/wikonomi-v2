@@ -536,6 +536,14 @@ class PriceReportDetailView(DetailView):
         except Exception:
             price_analysis = None
 
+        rating_summary = report.ratings.aggregate(
+            average_rating=Avg('rating'),
+            rating_count=Count('id'),
+        )
+        context['average_rating'] = rating_summary['average_rating']
+        context['rating_count'] = rating_summary['rating_count']
+        context['current_user_rating'] = None
+
         context['price_analysis'] = price_analysis
         context['price'] = report
         
@@ -557,6 +565,10 @@ class PriceReportDetailView(DetailView):
                 product=report.product
             ).exists()
             context['is_liked'] = PriceLike.objects.filter(user=self.request.user, price_report=report).exists()
+            context['current_user_rating'] = PriceReportRating.objects.filter(
+                user=self.request.user,
+                price_report=report,
+            ).values_list('rating', flat=True).first()
             # Deletion permission context
             if report.marked_for_deletion:
                 context['can_vote_delete'] = report.can_vote_delete(self.request.user)
@@ -629,6 +641,18 @@ class BusinessDetailView(DetailView):
         context['reports_with_location'] = reports_with_location
         context['products_data'] = products_data
         context['total_reports'] = price_reports.count()
+        rating_summary = business.ratings.aggregate(
+            average_rating=Avg('rating'),
+            rating_count=Count('id'),
+        )
+        context['average_rating'] = rating_summary['average_rating']
+        context['rating_count'] = rating_summary['rating_count']
+        context['current_user_rating'] = None
+        if self.request.user.is_authenticated:
+            context['current_user_rating'] = BusinessRating.objects.filter(
+                user=self.request.user,
+                business=business,
+            ).values_list('rating', flat=True).first()
         context['reports_with_location_count'] = reports_with_location.count()
         context['comments'] = business.comments.filter(parent__isnull=True).select_related('user').prefetch_related('replies__user')
         context['comment_content_type_id'] = ContentType.objects.get_for_model(business).id
