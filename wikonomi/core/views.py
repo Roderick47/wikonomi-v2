@@ -8,6 +8,7 @@ from django.utils.text import slugify
 from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, DetailView, UpdateView
 from django.shortcuts import render, redirect, get_object_or_404
+from django.template.loader import render_to_string
 from django.db.models import Avg, Min, Max, Count, Q
 from django.utils import timezone
 from datetime import timedelta
@@ -410,9 +411,8 @@ def api_map_prices(request):
         
     return JsonResponse({'items': items_data})
 
-@cache_page(60 * 2)
 def load_more_prices(request):
-    page = int(request.GET.get('page', 1))
+    page = request.GET.get('page', 1)
     query = request.GET.get('q', '').strip()
     sort = request.GET.get('sort', 'recent')
     user_lat = request.GET.get('lat')
@@ -430,48 +430,45 @@ def load_more_prices(request):
     except EmptyPage:
         return JsonResponse({'has_more': False})
     
-    from django.utils.timesince import timesince
-    from .templatetags.custom_filters import rounded_timesince_js
+    liked_ids = set()
+    user_ratings = {}
+    if request.user.is_authenticated:
+        page_price_ids = [price.id for price in prices_page.object_list]
+        liked_ids = set(PriceLike.objects.filter(
+            user=request.user,
+            price_report_id__in=page_price_ids,
+        ).values_list('price_report_id', flat=True))
+        user_ratings = dict(PriceReportRating.objects.filter(
+            user=request.user,
+            price_report_id__in=page_price_ids,
+        ).values_list('price_report_id', 'rating'))
 
-    # Prepare data for JSON response
+    # Render the same card partial used by the initial home feed so infinite-scroll
+    # results stay in lockstep with data attributes, quick-rating controls, and
+    # rating summaries.
     items_data = []
     for price in prices_page:
-        item_data = {
-            'id': price.id,
-            'product_name': price.product.name,
-            'price': str(price.price),
-            'currency': price.currency,
-            'business_name': price.business.name if price.business else None,
-            'username': price.user.username,
-            'profile_picture_url': price.user.profile.profile_picture_url if hasattr(price.user, 'profile') else static('img/default-profile.svg'),
-            'image_url': price.image.url if price.image else None,
-            'observed_at': price.observed_at.strftime('%Y-%m-%d %H:%M'),
-            'updated_at': price.updated_at.strftime('%Y-%m-%d %H:%M'),
-            'is_updated': price.is_updated,
-            'has_location': bool(price.latitude and price.longitude),
-            'timesince': f"{rounded_timesince_js(price.updated_at if price.is_updated else price.observed_at)} ago",
-            'average_rating': price.average_rating,
-            'rating_count': price.rating_count,
-        }
-        item_data['likes_count'] = price.likes.count()
-        item_data['is_liked_by_user'] = request.user.is_authenticated and PriceLike.objects.filter(
-            user=request.user,
-            price_report=price
-        ).exists()
-        # Add distance if available
-        if hasattr(price, 'distance_km'):
-            item_data['distance_km'] = round(price.distance_km, 1)
-        items_data.append(item_data)
+        price.is_liked_by_user = price.id in liked_ids
+        items_data.append(render_to_string(
+            'partials/_price_report_card.html',
+            {
+                'report': price,
+                'show_like_button': True,
+                'price_card_current_user_rating': user_ratings.get(price.id),
+                'default_profile_picture_url': static('img/default-profile.svg'),
+            },
+            request=request,
+        ))
     
     response_data = {
         'items': items_data,
         'has_more': prices_page.has_next(),
-        'current_page': page,
+        'current_page': prices_page.number,
         'total_pages': paginator.num_pages
     }
     
     # Add business results for page 1 searches
-    if page == 1 and query:
+    if prices_page.number == 1 and query:
         businesses = _get_business_queryset(request)[:10]
         businesses_data = []
         for business in businesses:

@@ -510,6 +510,9 @@ class APIEndpointsTest(TestCase):
         self.assertIn('total_pages', data)
         
         self.assertEqual(len(data['items']), 1)
+        self.assertIn('price-card', data['items'][0])
+        self.assertIn('data-rating-menu-root', data['items'][0])
+        self.assertIn('Test Product', data['items'][0])
         self.assertFalse(data['has_more'])
 
     def test_load_more_prices_invalid_page(self):
