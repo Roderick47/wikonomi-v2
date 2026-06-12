@@ -348,8 +348,8 @@ class SearchFunctionalityTest(TestCase):
         self.user = User.objects.create_user(username='testuser', password='testpass')
         self.product1 = Product.objects.create(name='Rice', slug='rice', created_by=self.user)
         self.product2 = Product.objects.create(name='Bread', slug='bread', created_by=self.user)
-        self.business1 = Business.objects.create(name='Shop A')
-        self.business2 = Business.objects.create(name='Store B')
+        self.business1 = Business.objects.create(name='Shop A', slug='shop-a')
+        self.business2 = Business.objects.create(name='Store B', slug='store-b')
         
         # Create price reports
         self.price1 = PriceReport.objects.create(
@@ -431,6 +431,26 @@ class SearchFunctionalityTest(TestCase):
         businesses = views._get_business_queryset(request)
         self.assertEqual(businesses.count(), 0)
 
+    def test_get_business_queryset_uses_business_ratings(self):
+        """Business search ratings come from BusinessRating, not price report prices."""
+        BusinessRating.objects.create(user=self.user, business=self.business1, rating=4)
+
+        request = MagicMock()
+        request.GET = {'q': 'Shop'}
+        business = views._get_business_queryset(request).get()
+
+        self.assertEqual(business.avg_rating, 4)
+        self.assertEqual(business.rating_count, 1)
+
+    def test_get_business_queryset_unrated_business_has_neutral_annotations(self):
+        """Unrated businesses keep a null average and zero rating count."""
+        request = MagicMock()
+        request.GET = {'q': 'Shop'}
+        business = views._get_business_queryset(request).get()
+
+        self.assertIsNone(business.avg_rating)
+        self.assertEqual(business.rating_count, 0)
+
     def test_search_with_product_aliases(self):
         """Test search functionality with product aliases"""
         # Create an alias for rice
@@ -451,7 +471,7 @@ class APIEndpointsTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='testuser', password='testpass')
         self.product = Product.objects.create(name='Test Product', slug='test-product', created_by=self.user)
-        self.business = Business.objects.create(name='Test Business')
+        self.business = Business.objects.create(name='Test Business', slug='test-business')
         
         # Create price report with location
         self.price = PriceReport.objects.create(
@@ -514,6 +534,30 @@ class APIEndpointsTest(TestCase):
         self.assertIn('data-rating-menu-root', data['items'][0])
         self.assertIn('Test Product', data['items'][0])
         self.assertFalse(data['has_more'])
+
+    def test_load_more_prices_serializes_business_rating_annotations(self):
+        """Business results include the BusinessRating average and count."""
+        BusinessRating.objects.create(user=self.user, business=self.business, rating=5)
+
+        url = reverse('load_more_prices')
+        response = self.client.get(url, {'page': 1, 'q': 'Test'})
+        self.assertEqual(response.status_code, 200)
+
+        data = json.loads(response.content)
+        self.assertIn('businesses', data)
+        self.assertEqual(data['businesses'][0]['avg_rating'], 5.0)
+        self.assertEqual(data['businesses'][0]['rating_count'], 1)
+
+    def test_load_more_prices_serializes_unrated_business_neutral_state(self):
+        """Unrated business results expose a null average and zero count."""
+        url = reverse('load_more_prices')
+        response = self.client.get(url, {'page': 1, 'q': 'Test'})
+        self.assertEqual(response.status_code, 200)
+
+        data = json.loads(response.content)
+        self.assertIn('businesses', data)
+        self.assertIsNone(data['businesses'][0]['avg_rating'])
+        self.assertEqual(data['businesses'][0]['rating_count'], 0)
 
     def test_load_more_prices_invalid_page(self):
         """Test load more prices with invalid page number"""

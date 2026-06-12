@@ -467,7 +467,11 @@
 
                                 <h4 class="font-medium text-gray-900 truncate">{{ business.name }}</h4>
 
-                                <span class="text-xs text-amber-600 font-medium">★ {{ business.avg_rating|default:"0.0"|floatformat:1 }}/5</span>
+                                {% if business.rating_count %}
+                                <span class="text-xs text-amber-600 font-medium">★ {{ business.avg_rating|floatformat:1 }}/5</span>
+                                {% else %}
+                                <span class="text-xs text-slate-500 font-medium">No ratings yet</span>
+                                {% endif %}
 
                             </div>
 
@@ -1195,7 +1199,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const imageHtml = `<img src="${business.image_url}" alt="" class="h-12 w-12 rounded-lg object-cover border border-slate-100">`;
 
-        card.innerHTML = `<div class="flex items-center gap-3">${imageHtml}<div><h4 class="font-medium text-gray-900">${business.name}</h4><span class="text-xs text-amber-600">★ ${business.avg_rating ? Number(business.avg_rating).toFixed(1) : '0.0'}/5</span></div></div>`;
+        const ratingHtml = business.rating_count
+
+            ? `<span class="text-xs text-amber-600 font-medium">★ ${Number(business.avg_rating).toFixed(1)}/5</span>`
+
+            : '<span class="text-xs text-slate-500 font-medium">No ratings yet</span>';
+
+        card.innerHTML = `<div class="flex items-center gap-3">${imageHtml}<div><h4 class="font-medium text-gray-900">${business.name}</h4>${ratingHtml}</div></div>`;
 
         return card;
 
