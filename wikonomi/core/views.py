@@ -477,7 +477,8 @@ def load_more_prices(request):
                 'name': business.name,
                 'image_url': business.image.url if business.image else static('img/default-business.svg'),
                 'price_reports_count': business.price_reports.count(),
-                'avg_rating': business.avg_rating
+                'avg_rating': float(business.avg_rating) if business.avg_rating is not None else None,
+                'rating_count': business.rating_count,
             })
         response_data['businesses'] = businesses_data
     
