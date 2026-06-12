@@ -57,6 +57,46 @@ def _get_matched_product_ids(query):
 
     return exact_ids | alias_ids | signature_ids
 
+
+def _rating_from_request(request):
+    """Return a validated 1-5 integer rating from form data or a JSON body."""
+    rating_value = request.POST.get('rating')
+
+    if rating_value is None and request.body:
+        try:
+            payload = json.loads(request.body.decode(request.encoding or 'utf-8'))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            payload = {}
+        if isinstance(payload, dict):
+            rating_value = payload.get('rating')
+
+    if isinstance(rating_value, bool):
+        return None
+
+    if isinstance(rating_value, int):
+        rating = rating_value
+    elif isinstance(rating_value, str) and re.fullmatch(r'\s*[+-]?\d+\s*', rating_value):
+        rating = int(rating_value)
+    else:
+        return None
+
+    if rating < 1 or rating > 5:
+        return None
+
+    return rating
+
+
+def _rating_summary(ratings_manager):
+    summary = ratings_manager.aggregate(
+        average_rating=Avg('rating'),
+        rating_count=Count('id'),
+    )
+    average_rating = summary['average_rating']
+    return {
+        'average_rating': float(average_rating) if average_rating is not None else None,
+        'rating_count': summary['rating_count'],
+    }
+
 class PriceReportForm(forms.ModelForm):
     class Meta:
         model = PriceReport
@@ -932,6 +972,50 @@ def toggle_price_like(request, pk):
     if liked and request.user != report.user and likes_count in PriceLike.LIKE_NOTIFICATION_THRESHOLDS:
         create_like_threshold_notification(report, likes_count)
     return JsonResponse({'liked': liked, 'likes_count': likes_count})
+
+
+@login_required
+@require_POST
+def rate_price_report(request, pk):
+    report = get_object_or_404(PriceReport, pk=pk)
+    rating = _rating_from_request(request)
+    if rating is None:
+        return JsonResponse({'ok': False, 'error': 'Rating must be an integer from 1 to 5.'}, status=400)
+
+    PriceReportRating.objects.update_or_create(
+        user=request.user,
+        price_report=report,
+        defaults={'rating': rating},
+    )
+    summary = _rating_summary(report.ratings)
+    return JsonResponse({
+        'ok': True,
+        'rating': rating,
+        'average_rating': summary['average_rating'],
+        'rating_count': summary['rating_count'],
+    })
+
+
+@login_required
+@require_POST
+def rate_business(request, pk):
+    business = get_object_or_404(Business, pk=pk)
+    rating = _rating_from_request(request)
+    if rating is None:
+        return JsonResponse({'ok': False, 'error': 'Rating must be an integer from 1 to 5.'}, status=400)
+
+    BusinessRating.objects.update_or_create(
+        user=request.user,
+        business=business,
+        defaults={'rating': rating},
+    )
+    summary = _rating_summary(business.ratings)
+    return JsonResponse({
+        'ok': True,
+        'rating': rating,
+        'average_rating': summary['average_rating'],
+        'rating_count': summary['rating_count'],
+    })
 
 
 @login_required
