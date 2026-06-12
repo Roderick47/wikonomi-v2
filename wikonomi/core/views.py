@@ -449,7 +449,9 @@ def load_more_prices(request):
             'updated_at': price.updated_at.strftime('%Y-%m-%d %H:%M'),
             'is_updated': price.is_updated,
             'has_location': bool(price.latitude and price.longitude),
-            'timesince': f"{rounded_timesince_js(price.updated_at if price.is_updated else price.observed_at)} ago"
+            'timesince': f"{rounded_timesince_js(price.updated_at if price.is_updated else price.observed_at)} ago",
+            'average_rating': price.average_rating,
+            'rating_count': price.rating_count,
         }
         item_data['likes_count'] = price.likes.count()
         item_data['is_liked_by_user'] = request.user.is_authenticated and PriceLike.objects.filter(
@@ -597,7 +599,10 @@ class PriceReportDetailView(DetailView):
                 product=report.product,
                 lat=report.latitude,
                 lng=report.longitude
-            ).exclude(id=report.id)[:5] # Show up to 5 nearby prices
+            ).exclude(id=report.id).annotate(
+                average_rating=Avg('ratings__rating'),
+                rating_count=Count('ratings'),
+            )[:5] # Show up to 5 nearby prices
             context['nearby_prices'] = nearby
         else:
             context['nearby_prices'] = None
