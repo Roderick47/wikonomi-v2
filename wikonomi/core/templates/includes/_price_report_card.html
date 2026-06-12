@@ -54,19 +54,15 @@
                             👍 <span data-like-count>{{ report.likes.count }}</span>
                         </button>
                         {% endif %}
-                        <div class="relative group/rating">
-                            <button type="button" onclick="event.preventDefault(); event.stopPropagation();" class="p-1.5 text-gray-400 hover:text-brand-purple rounded-full hover:bg-brand-purple/10" title="Quick rating" aria-label="Quick rating" aria-haspopup="true">
+                        <div class="relative" data-rating-menu-root data-price-id="{{ report.id }}">
+                            <button type="button" class="p-1.5 text-gray-400 hover:text-brand-purple rounded-full hover:bg-brand-purple/10" title="Quick rating" aria-label="Quick rating" aria-haspopup="menu" aria-expanded="false" data-rating-menu-toggle data-price-id="{{ report.id }}">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
                             </button>
-                            <div class="hidden group-hover/rating:block group-focus-within/rating:block absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                            <div class="hidden absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20" role="menu" aria-label="Quick rating options" data-rating-menu data-price-id="{{ report.id }}">
                                 <p class="px-3 py-1 text-xs font-semibold text-gray-500">Rate this price</p>
-                                {% if user.is_authenticated %}
-                                    {% for value in "12345" %}
-                                    <button type="button" onclick="event.preventDefault();" class="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700" aria-label="Rate {{ value }} out of 5" data-rating-target="price-report" data-object-id="{{ report.id }}" data-rating-value="{{ value }}">{{ value }} ★</button>
-                                    {% endfor %}
-                                {% else %}
-                                <span class="block px-3 py-1.5 text-sm text-gray-500">Log in to rate</span>
-                                {% endif %}
+                                {% for value in "12345" %}
+                                <button type="button" class="block w-full text-left px-3 py-1.5 text-sm hover:bg-amber-50 hover:text-amber-700 {% if price_card_current_user_rating|stringformat:'s' == value %}bg-amber-100 text-amber-700{% else %}text-gray-700{% endif %}" aria-label="Rate {{ value }} out of 5" aria-pressed="{% if price_card_current_user_rating|stringformat:'s' == value %}true{% else %}false{% endif %}" data-selected="{% if price_card_current_user_rating|stringformat:'s' == value %}true{% else %}false{% endif %}" role="menuitem" data-quick-rate data-price-id="{{ report.id }}" data-rating-target="price-report" data-object-id="{{ report.id }}" data-rating-value="{{ value }}">{{ value }} ★</button>
+                                {% endfor %}
                             </div>
                         </div>
                     </div>
@@ -85,9 +81,9 @@
                 </div>
                 {% endif %}
                 <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-                    <span class="inline-flex items-center gap-1 text-amber-600 font-medium">
-                        ★ {% firstof report.average_rating average_rating 0 as card_average_rating %}{{ card_average_rating|floatformat:1 }}/5
-                        {% firstof report.rating_count rating_count 0 as card_rating_count %}<span class="text-gray-400">({{ card_rating_count }})</span>
+                    <span class="inline-flex items-center gap-1 text-amber-600 font-medium" data-rating-summary data-price-id="{{ report.id }}">
+                        ★ <span data-rating-score>{% firstof report.average_rating average_rating 0 as card_average_rating %}{{ card_average_rating|floatformat:1 }}</span>/5
+                        {% firstof report.rating_count rating_count 0 as card_rating_count %}<span class="text-gray-400">(<span data-rating-count>{{ card_rating_count }}</span>)</span>
                     </span>
                 </div>
             </div>
