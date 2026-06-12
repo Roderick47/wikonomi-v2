@@ -228,15 +228,51 @@
             return '';
         }
 
+        function closeRatingMenus(exceptRoot = null) {
+            document.querySelectorAll('[data-rating-menu-root]').forEach((root) => {
+                if (exceptRoot && root === exceptRoot) return;
+                const menu = root.querySelector('[data-rating-menu]');
+                const toggle = root.querySelector('[data-rating-menu-toggle]');
+                if (menu) menu.classList.add('hidden');
+                if (toggle) toggle.setAttribute('aria-expanded', 'false');
+            });
+        }
+
         document.addEventListener('click', async function(event) {
-            const ratingButton = event.target.closest('[data-rating-value][data-rating-target][data-object-id]');
-            if (!ratingButton) return;
+            const menuRoot = event.target.closest('[data-rating-menu-root]');
+            const menuToggle = event.target.closest('[data-rating-menu-toggle]');
+            const ratingButton = event.target.closest('[data-rating-value][data-rating-target][data-object-id], [data-quick-rate][data-price-id][data-rating-value]');
+
+            if (menuToggle) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const root = menuToggle.closest('[data-rating-menu-root]');
+                const menu = root ? root.querySelector('[data-rating-menu]') : null;
+                if (!menu) return;
+
+                const willOpen = menu.classList.contains('hidden');
+                closeRatingMenus(root);
+                menu.classList.toggle('hidden', !willOpen);
+                menuToggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                return;
+            }
+
+            if (!ratingButton) {
+                if (menuRoot) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                } else {
+                    closeRatingMenus();
+                }
+                return;
+            }
 
             event.preventDefault();
             event.stopPropagation();
 
-            const target = ratingButton.dataset.ratingTarget;
-            const objectId = ratingButton.dataset.objectId;
+            const target = ratingButton.dataset.ratingTarget || 'price-report';
+            const objectId = ratingButton.dataset.objectId || ratingButton.dataset.priceId;
             const rating = ratingButton.dataset.ratingValue;
             const endpoint = target === 'business' ? `/business/${objectId}/rate/` : `/price/${objectId}/rate/`;
 
@@ -245,16 +281,19 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
                     body: JSON.stringify({ rating })
                 });
 
+                if (response.redirected || response.status === 401 || response.status === 403) {
+                    showToast('Please log in to rate prices', 'info');
+                    window.location.href = `{% url 'login' %}?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+                    return;
+                }
+
                 if (!response.ok) {
-                    if (response.status === 403 || response.redirected) {
-                        window.location.href = `{% url 'login' %}?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
-                        return;
-                    }
                     throw new Error('Rating request failed');
                 }
 
@@ -262,13 +301,43 @@
                 const widget = ratingButton.closest('[data-rating-widget]') || document.querySelector(`[data-rating-widget][data-rating-target="${target}"][data-object-id="${objectId}"]`);
                 if (widget) {
                     widget.querySelectorAll('[data-rating-value]').forEach((button) => {
-                        button.setAttribute('aria-pressed', button.dataset.ratingValue === String(data.rating) ? 'true' : 'false');
+                        const isSelected = button.dataset.ratingValue === String(data.rating);
+                        button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+                        button.dataset.selected = isSelected ? 'true' : 'false';
+                        button.classList.toggle('bg-amber-100', isSelected);
+                        button.classList.toggle('text-amber-700', isSelected);
+                        button.classList.toggle('text-gray-700', !isSelected);
                     });
                 }
+
+                if (target === 'price-report') {
+                    document.querySelectorAll(`[data-rating-summary][data-price-id="${objectId}"]`).forEach((summary) => {
+                        const score = summary.querySelector('[data-rating-score]');
+                        const count = summary.querySelector('[data-rating-count]');
+                        if (score) score.textContent = Number(data.average_rating || 0).toFixed(1);
+                        if (count) count.textContent = data.rating_count;
+                    });
+                    document.querySelectorAll(`[data-quick-rate][data-price-id="${objectId}"]`).forEach((button) => {
+                        const isSelected = button.dataset.ratingValue === String(data.rating);
+                        button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+                        button.dataset.selected = isSelected ? 'true' : 'false';
+                        button.classList.toggle('bg-amber-100', isSelected);
+                        button.classList.toggle('text-amber-700', isSelected);
+                        button.classList.toggle('text-gray-700', !isSelected);
+                    });
+                }
+
+                closeRatingMenus();
                 showToast(`Rated ${data.rating} out of 5`, 'success');
             } catch (error) {
                 console.error('Error submitting rating:', error);
                 showToast('Could not save rating', 'error');
+            }
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeRatingMenus();
             }
         });
 

@@ -67,7 +67,7 @@
 
     <!-- Hero header -->
     <div class="mb-8">
-        {% include "includes/_price_report_card.html" with report=report price_card_static=True price_card_editable=True price_card_show_detail_actions=True average_rating=average_rating rating_count=rating_count current_user_rating=current_user_rating %}
+        {% include "includes/_price_report_card.html" with report=report price_card_static=True price_card_editable=True price_card_show_detail_actions=True average_rating=average_rating rating_count=rating_count current_user_rating=current_user_rating price_card_current_user_rating=current_user_rating %}
 
         <!-- Deletion request banner -->
         {% if report.marked_for_deletion %}
