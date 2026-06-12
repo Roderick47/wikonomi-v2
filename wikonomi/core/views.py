@@ -23,7 +23,7 @@ from django import forms
 from django.core.serializers.json import DjangoJSONEncoder
 from django.views.decorators.cache import cache_page
 from django.templatetags.static import static
-from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, PriceLike, create_like_threshold_notification
+from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, PriceLike, PriceReportRating, BusinessRating, create_like_threshold_notification
 from comments.models import Comment
 
 
@@ -281,13 +281,13 @@ def _get_business_queryset(request):
         # Convert back to queryset and order
         business_ids = [b.id for b in businesses]
         return Business.objects.filter(id__in=business_ids).annotate(
-            avg_rating=Avg('price_reports__price'),
-            rating_count=Count('price_reports')
+            avg_rating=Avg('ratings__rating'),
+            rating_count=Count('ratings')
         ).order_by('name')
     
     return Business.objects.none().annotate(
-        avg_rating=Avg('price_reports__price'),
-        rating_count=Count('price_reports')
+        avg_rating=Avg('ratings__rating'),
+        rating_count=Count('ratings')
     )
 
 def home(request):
