@@ -891,7 +891,7 @@ function tierColor(tier) {
 
 
 
-function createPriceMarkerIcon(label, tier, storeName) {
+function createPriceMarkerIcon(label, tier, productName) {
 
     const escapeHtml = value => String(value || '').replace(/[&<>"']/g, char => ({
 
@@ -911,7 +911,7 @@ function createPriceMarkerIcon(label, tier, storeName) {
 
     const safeLabel = escapeHtml(label);
 
-    const safeStoreName = escapeHtml(storeName || 'Unknown store');
+    const safeProductName = escapeHtml(productName || 'Unknown product');
 
 
 
@@ -927,7 +927,7 @@ function createPriceMarkerIcon(label, tier, storeName) {
 
                     <span style="max-width:70px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${safeLabel}</span>
 
-                    <span style="max-width:70px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9px; font-weight:600; color:rgba(255,255,255,0.78); line-height:1.1;">${safeStoreName}</span>
+                    <span style="max-width:70px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9px; font-weight:600; color:rgba(255,255,255,0.78); line-height:1.1;">${safeProductName}</span>
 
                 </div>
 
@@ -1085,7 +1085,7 @@ function initPriceMap() {
 
                     const marker = L.marker([price.lat, price.lng], {
 
-                        icon: createPriceMarkerIcon(shortPriceLabel(price.price), tier, price.business),
+                        icon: createPriceMarkerIcon(shortPriceLabel(price.price), tier, price.product),
 
                     });
 

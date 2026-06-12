@@ -67,6 +67,26 @@
     .price-card:hover {
         transform: translateY(-2px);
     }
+    .wk-price-marker {
+        background: transparent;
+        border: none;
+    }
+    .wk-price-marker__tag {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fff;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+        border: 2px solid #fff;
+        line-height: 1.2;
+    }
+    .wk-price-marker__tag--cheap { background: #66D17E; }
+    .wk-price-marker__tag--mid { background: #4DB8FF; }
+    .wk-price-marker__tag--expensive { background: #ef4444; }
+    .wk-price-marker__tag--other { background: #4B2798; }
     .marker-cluster-small,
     .marker-cluster-medium,
     .marker-cluster-large {
@@ -91,8 +111,9 @@
             Back to feed
         </a>
         <a href="{% url 'business_edit' business.pk %}" class="inline-flex w-fit items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-brand-purple hover:bg-brand-purple/90 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
-            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-4h-4v4m0 0l6-6m-6 6l6 6"></path>
+            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 7.125L16.875 4.5M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"></path>
             </svg>
             Edit Business
         </a>
@@ -295,6 +316,51 @@
 {% if reports_with_location %}
 <!-- Initialize Leaflet Map -->
 <script>
+    function tierColor(tier) {
+        return {
+            cheap: '#66D17E',
+            mid: '#4DB8FF',
+            expensive: '#ef4444',
+            other: '#4B2798',
+        }[tier] || '#4B2798';
+    }
+
+    function shortPriceLabel(priceStr) {
+        const parts = String(priceStr || '').split(/\s+/);
+        if (parts.length >= 2) return `${parts[0]} ${parts[1]}`;
+        return String(priceStr || '');
+    }
+
+    function createPriceMarkerIcon(label, tier, productName) {
+        const escapeHtml = value => String(value || '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+        }[char]));
+
+        const color = tierColor(tier);
+        const safeLabel = escapeHtml(label);
+        const safeProductName = escapeHtml(productName || 'Unknown product');
+
+        return L.divIcon({
+            className: 'wk-price-marker',
+            html: `
+                <div style="display:flex; flex-direction:column; align-items:center; width:88px;">
+                    <div class="wk-price-marker__tag wk-price-marker__tag--${tier}" style="display:flex; flex-direction:column; align-items:center; width:84px; padding:4px 8px; background:${color};">
+                        <span style="max-width:70px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${safeLabel}</span>
+                        <span style="max-width:70px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9px; font-weight:600; color:rgba(255,255,255,0.78); line-height:1.1;">${safeProductName}</span>
+                    </div>
+                    <div style="width:0; height:0; border-left:7px solid transparent; border-right:7px solid transparent; border-top:8px solid ${color};"></div>
+                </div>
+            `,
+            iconSize: [88, 48],
+            iconAnchor: [44, 48],
+            popupAnchor: [0, -48],
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         try {
             const map = L.map('map', { scrollWheelZoom: true }).setView([0, 0], 2);
@@ -310,11 +376,25 @@
                 showCoverageOnHover: false,
             });
             const bounds = [];
+            const reportPrices = [
+                {% for report in reports_with_location %}{{ report.price }}{% if not forloop.last %},{% endif %}{% endfor %}
+            ];
+            const minPrice = Math.min(...reportPrices);
+            const maxPrice = Math.max(...reportPrices);
 
             {% for report in reports_with_location %}
                 const lat{{ forloop.counter }} = {{ report.latitude }};
                 const lng{{ forloop.counter }} = {{ report.longitude }};
-                const marker{{ forloop.counter }} = L.marker([lat{{ forloop.counter }}, lng{{ forloop.counter }}]);
+                const rawPrice{{ forloop.counter }} = parseFloat('{{ report.price }}');
+                let tier{{ forloop.counter }} = 'other';
+                if (Number.isFinite(rawPrice{{ forloop.counter }}) && Number.isFinite(minPrice) && Number.isFinite(maxPrice) && minPrice !== maxPrice) {
+                    if (rawPrice{{ forloop.counter }} <= minPrice) tier{{ forloop.counter }} = 'cheap';
+                    else if (rawPrice{{ forloop.counter }} >= maxPrice) tier{{ forloop.counter }} = 'expensive';
+                    else if (rawPrice{{ forloop.counter }} < (minPrice + maxPrice) / 2) tier{{ forloop.counter }} = 'mid';
+                }
+                const marker{{ forloop.counter }} = L.marker([lat{{ forloop.counter }}, lng{{ forloop.counter }}], {
+                    icon: createPriceMarkerIcon(shortPriceLabel('{{ report.currency }} {{ report.price|intcomma }}'), tier{{ forloop.counter }}, '{{ report.product.name|escapejs }}'),
+                });
                 marker{{ forloop.counter }}.bindPopup(`
                     <div class="p-1 min-w-[150px]">
                         <p class="font-semibold text-sm text-gray-900">{{ report.product.name|escapejs }}</p>
