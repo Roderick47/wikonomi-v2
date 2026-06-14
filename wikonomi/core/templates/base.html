@@ -325,6 +325,45 @@
                         button.classList.toggle('text-amber-700', isSelected);
                         button.classList.toggle('text-gray-700', !isSelected);
                     });
+                    // Update or create "Your rating" badge
+                    let yourRatingBadge = widget.querySelector('[data-your-rating-badge]');
+                    if (yourRatingBadge) {
+                        const badgeValue = yourRatingBadge.querySelector('[data-your-rating-value]');
+                        if (badgeValue) badgeValue.textContent = data.rating;
+                    } else {
+                        // Create the badge if it doesn't exist
+                        const headerDiv = widget.querySelector('.flex.flex-col.gap-1') || widget.querySelector('div');
+                        if (headerDiv) {
+                            const badge = document.createElement('span');
+                            badge.className = 'inline-flex w-fit items-center rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200';
+                            badge.setAttribute('data-your-rating-badge', '');
+                            badge.innerHTML = `Your rating: <span data-your-rating-value>${data.rating}</span>/5`;
+                            headerDiv.appendChild(badge);
+                        }
+                    }
+                } else if (target === 'business') {
+                    document.querySelectorAll(`[data-rating-summary][data-business-id="${objectId}"]`).forEach((summary) => {
+                        const score = summary.querySelector('[data-rating-score]');
+                        const count = summary.querySelector('[data-rating-count]');
+                        if (score) score.textContent = Number(data.average_rating || 0).toFixed(1);
+                        if (count) count.textContent = data.rating_count;
+                    });
+                    // Update or create "Your rating" badge
+                    let yourRatingBadge = widget.querySelector('[data-your-rating-badge]');
+                    if (yourRatingBadge) {
+                        const badgeValue = yourRatingBadge.querySelector('[data-your-rating-value]');
+                        if (badgeValue) badgeValue.textContent = data.rating;
+                    } else {
+                        // Create the badge if it doesn't exist
+                        const headerDiv = widget.querySelector('.flex.flex-col.gap-1') || widget.querySelector('div');
+                        if (headerDiv) {
+                            const badge = document.createElement('span');
+                            badge.className = 'inline-flex w-fit items-center rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold text-amber-100 ring-1 ring-white/25';
+                            badge.setAttribute('data-your-rating-badge', '');
+                            badge.innerHTML = `Your rating: <span data-your-rating-value>${data.rating}</span>/5`;
+                            headerDiv.appendChild(badge);
+                        }
+                    }
                 }
 
                 closeRatingMenus();

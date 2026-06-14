@@ -1,10 +1,10 @@
 {% load custom_filters humanize static %}
 {% static 'img/default-profile.svg' as fallback_profile_picture_url %}
 {% if price_card_static %}
-<div class="price-card group block bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all overflow-hidden"
+<div class="price-card group block bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
 {% else %}
 <a href="{% url 'price_detail' report.pk %}"
-   class="price-card group block bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all overflow-hidden"
+   class="price-card group block bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
 {% endif %}
    data-product-card
    data-name="{{ report.product.name|lower|escape }}"
