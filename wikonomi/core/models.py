@@ -820,6 +820,29 @@ class PriceReport(models.Model):
             return False
         return True
 
+    @property
+    def primary_photo(self):
+        first_photo = self.photos.first()
+        if first_photo:
+            return first_photo
+        # Wrap the legacy image in a simple object so the template can always call .image.url
+        if self.image:
+            from types import SimpleNamespace
+            return SimpleNamespace(image=self.image)
+        return None
+
+    def can_add_more_photos(self):
+        """Check if more photos can be added (max 5)"""
+        return self.photos.count() < 5
+
+    def get_photo_count(self):
+        """Get the total number of photos"""
+        count = self.photos.count()
+        if self.image and not self.photos.exists():
+            # Count legacy image as 1 if no new photos exist
+            return 1
+        return count
+
 class PriceHistory(models.Model):
     price_report = models.ForeignKey(PriceReport, on_delete=models.CASCADE, related_name='price_history')
     old_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
@@ -835,6 +858,21 @@ class PriceHistory(models.Model):
 
     def __str__(self):
         return f"Price change for {self.price_report.product}: {self.old_price} → {self.new_price}"
+
+class PriceReportPhoto(models.Model):
+    """Multiple photos for a price report (max 5)"""
+    price_report = models.ForeignKey(PriceReport, on_delete=models.CASCADE, related_name='photos')
+    image = ResizedImageField(upload_to='price_report_images/', size=[1000, 1000], quality=75, force_format='JPEG')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order', 'uploaded_at']
+        verbose_name = 'Price Report Photo'
+        verbose_name_plural = 'Price Report Photos'
+
+    def __str__(self):
+        return f"Photo for {self.price_report}"
 
 # Auto H3 population
 
@@ -877,6 +915,10 @@ def populate_h3_index(sender, instance, **kwargs):
         except Exception:
             instance.h3_res9 = None
             instance.h3_res8 = None
+
+@receiver(pre_save, sender=PriceReportPhoto)
+def normalize_photo_orientation(sender, instance, **kwargs):
+    _normalize_uploaded_image_orientation(instance, "image")
 
 class ProductWatchlist(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='watched_products')

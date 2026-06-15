@@ -54,7 +54,34 @@
 
                 <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                     <div class="sm:col-span-6">
-                        {% include 'includes/image_upload_widget.html' with image_label="Upload Photo (Optional)" %}
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Upload Photos (Optional, Max 5)</label>
+                        <input type="file" name="photos" id="photos-input" accept="image/*" multiple class="hidden">
+
+                        <div class="mt-1 border-2 border-gray-300 border-dashed rounded-md relative hover:bg-gray-50 transition-colors duration-200" id="photos-drop-zone">
+                            <div class="px-6 pt-8 pb-8 text-center" id="photos-upload-content">
+                                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+
+                                <div class="flex flex-col sm:flex-row justify-center gap-3 mt-2">
+                                    <button type="button" onclick="openPhotosFilePicker(false)" class="inline-flex items-center justify-center px-4 py-2 border border-brand-purple text-sm font-medium rounded-md text-brand-purple bg-white hover:bg-brand-purple hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple">
+                                        <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                        Choose from Files
+                                    </button>
+
+                                    <button type="button" onclick="openPhotosFilePicker(true)" class="inline-flex items-center justify-center px-4 py-2 border border-brand-purple text-sm font-medium rounded-md text-white bg-brand-purple hover:bg-brand-purple/90 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple">
+                                        <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                        Take Photo
+                                    </button>
+                                </div>
+                                <p class="mt-4 text-xs text-gray-500">PNG, JPG, GIF up to 10MB each (Max 5 photos)</p>
+                                <p class="mt-1 text-xs text-gray-400">or drag and drop here</p>
+                            </div>
+
+                            <div id="photos-preview-container" class="hidden w-full p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            </div>
+                        </div>
+                        <p id="photo-count" class="mt-2 text-xs text-gray-500">0/5 photos selected</p>
                     </div>
 
                     <div class="sm:col-span-6">
@@ -334,6 +361,136 @@
             }
         });
     });
+
+    // Multiple photos upload handling
+    const photosInput = document.getElementById('photos-input');
+    const photosDropZone = document.getElementById('photos-drop-zone');
+    const photosUploadContent = document.getElementById('photos-upload-content');
+    const photosPreviewContainer = document.getElementById('photos-preview-container');
+    const photoCount = document.getElementById('photo-count');
+    const maxPhotos = 5;
+    let selectedPhotos = [];
+
+    window.openPhotosFilePicker = function(useCamera) {
+        if (photosInput) {
+            if (useCamera) {
+                photosInput.setAttribute('capture', 'environment');
+            } else {
+                photosInput.removeAttribute('capture');
+            }
+            photosInput.click();
+        }
+    };
+
+    function updatePhotoCount() {
+        photoCount.textContent = `${selectedPhotos.length}/${maxPhotos} photos selected`;
+        if (selectedPhotos.length >= maxPhotos) {
+            photoCount.classList.add('text-red-500');
+        } else {
+            photoCount.classList.remove('text-red-500');
+        }
+    }
+
+    function addPhotoPreview(file, index) {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function(e) {
+            const previewDiv = document.createElement('div');
+            previewDiv.className = 'relative group';
+            previewDiv.innerHTML = `
+                <img src="${e.target.result}" class="w-full h-32 object-cover rounded-md border border-gray-200" alt="Photo preview">
+                <button type="button" onclick="removePhoto(${index})" class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            `;
+            photosPreviewContainer.appendChild(previewDiv);
+        };
+    }
+
+    window.removePhoto = function(index) {
+        selectedPhotos.splice(index, 1);
+        renderPhotoPreviews();
+        updatePhotoCount();
+    };
+
+    function renderPhotoPreviews() {
+        photosPreviewContainer.innerHTML = '';
+        selectedPhotos.forEach((file, index) => {
+            addPhotoPreview(file, index);
+        });
+
+        if (selectedPhotos.length > 0) {
+            photosUploadContent.classList.add('hidden');
+            photosPreviewContainer.classList.remove('hidden');
+        } else {
+            photosUploadContent.classList.remove('hidden');
+            photosPreviewContainer.classList.add('hidden');
+        }
+    }
+
+    if (photosInput) {
+        photosInput.addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            const availableSlots = maxPhotos - selectedPhotos.length;
+            const filesToAdd = files.slice(0, availableSlots);
+
+            selectedPhotos = selectedPhotos.concat(filesToAdd);
+            renderPhotoPreviews();
+            updatePhotoCount();
+
+            // Reset input so same files can be selected again if needed
+            photosInput.value = '';
+        });
+    }
+
+    if (photosDropZone) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            photosDropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            photosDropZone.addEventListener(eventName, () => {
+                photosDropZone.classList.add('border-brand-purple', 'bg-brand-purple/5');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            photosDropZone.addEventListener(eventName, () => {
+                photosDropZone.classList.remove('border-brand-purple', 'bg-brand-purple/5');
+            }, false);
+        });
+
+        photosDropZone.addEventListener('drop', function(e) {
+            const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+            const availableSlots = maxPhotos - selectedPhotos.length;
+            const filesToAdd = files.slice(0, availableSlots);
+
+            selectedPhotos = selectedPhotos.concat(filesToAdd);
+            renderPhotoPreviews();
+            updatePhotoCount();
+        }, false);
+    }
+
+    // Handle form submission to include selected photos
+    const form = document.querySelector('form[method="POST"]');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Clear existing photos input
+            photosInput.value = '';
+
+            // Add selected photos to the input
+            const dataTransfer = new DataTransfer();
+            selectedPhotos.forEach(file => {
+                dataTransfer.items.add(file);
+            });
+            photosInput.files = dataTransfer.files;
+        });
+    }
 
 </script>
 {% include 'includes/image_upload_script.html' %}

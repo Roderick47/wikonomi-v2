@@ -24,7 +24,7 @@ from django import forms
 from django.core.serializers.json import DjangoJSONEncoder
 from django.views.decorators.cache import cache_page
 from django.templatetags.static import static
-from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, PriceLike, PriceReportRating, BusinessRating, create_like_threshold_notification
+from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, PriceLike, PriceReportRating, BusinessRating, create_like_threshold_notification, PriceReportPhoto
 from comments.models import Comment
 from categories.models import Category as PriceCategory, Subcategory, BusinessCategory, BusinessSubcategory
 
@@ -277,16 +277,41 @@ class PriceReportCreateView(CreateView):
 
             # 3. Save form to hit the DB
             response = super().form_valid(form)
-            
-            # Apply image to product/business if they don't have one and one was uploaded
-            if form.instance.image:
-                if not product.image:
-                    product.image = form.instance.image
+
+            # 3b. Handle multiple photo uploads
+            from .models import PriceReportPhoto
+            photos_files = self.request.FILES.getlist('photos')
+            if photos_files:
+                current_count = form.instance.photos.count()
+                max_photos = 5
+                available_slots = max_photos - current_count
+                photos_to_add = photos_files[:available_slots]
+
+                for i, photo_file in enumerate(photos_to_add):
+                    PriceReportPhoto.objects.create(
+                        price_report=form.instance,
+                        image=photo_file,
+                        order=current_count + i
+                    )
+
+                # Apply first photo to product/business if they don't have one
+                if photos_to_add and not product.image:
+                    product.image = photos_to_add[0]
                     product.save()
-                if hasattr(form.instance, 'business') and form.instance.business and not form.instance.business.image:
-                    form.instance.business.image = form.instance.image
+                if photos_to_add and hasattr(form.instance, 'business') and form.instance.business and not form.instance.business.image:
+                    form.instance.business.image = photos_to_add[0]
                     form.instance.business.save()
-            
+            else:
+                # Fallback to legacy single image field
+                # Apply image to product/business if they don't have one and one was uploaded
+                if form.instance.image:
+                    if not product.image:
+                        product.image = form.instance.image
+                        product.save()
+                    if hasattr(form.instance, 'business') and form.instance.business and not form.instance.business.image:
+                        form.instance.business.image = form.instance.image
+                        form.instance.business.save()
+
             # 4. Handle Tags (comma separated string)
             tags_string = self.request.POST.get('tags', '').strip()
             if tags_string:
@@ -294,7 +319,7 @@ class PriceReportCreateView(CreateView):
                 tag_list = [tag.strip() for tag in tags_string.split(',') if tag.strip()]
                 if tag_list:
                     product.tags.add(*tag_list)
-            
+
             return response
             
         except Exception as e:
@@ -435,6 +460,9 @@ def home(request):
 
 def about_view(request):
     return render(request, 'about.html')
+
+def how_to_use_view(request):
+    return render(request, 'how_to_use.html')
 
 @cache_page(60 * 5)
 def api_map_prices(request):
@@ -684,6 +712,7 @@ class PriceReportDetailView(DetailView):
             context['can_delete'] = False
         context['comments'] = report.comments.filter(parent__isnull=True).select_related('user').prefetch_related('replies__user')
         context['comment_content_type_id'] = ContentType.objects.get_for_model(report).id
+        context['photos'] = report.photos.all()
 
         if report.business_branch and report.business_branch.address:
             context['branch_address'] = report.business_branch.address
@@ -837,6 +866,7 @@ class PriceReportEditView(UpdateView):
         context = super().get_context_data(**kwargs)
         context['products'] = Product.objects.all().order_by('name')
         context['businesses'] = Business.objects.all().order_by('name')
+        context['photos'] = self.object.photos.all()
         return context
     
     def form_valid(self, form):
@@ -923,7 +953,47 @@ def edit_price_report(request, pk):
                 # If the field is submitted but empty, the user wants to remove the business
                 updated_report.business = None
             
-            # Handle image
+            # Handle multiple photo uploads
+            from .models import PriceReportPhoto
+
+            # Handle specific photo replacements
+            for photo in updated_report.photos.all():
+                file_key = f'update_photo_{photo.id}'
+                if file_key in request.FILES:
+                    photo.image = request.FILES[file_key]
+                    photo.save()
+            
+            photos_files = request.FILES.getlist('photos')
+            if photos_files:
+                current_count = updated_report.photos.count()
+                max_photos = 5
+                available_slots = max_photos - current_count
+                photos_to_add = photos_files[:available_slots]
+
+                for i, photo_file in enumerate(photos_to_add):
+                    PriceReportPhoto.objects.create(
+                        price_report=updated_report,
+                        image=photo_file,
+                        order=current_count + i
+                    )
+
+                # Apply first photo to product/business if they don't have one
+                if photos_to_add and not updated_report.product.image:
+                    updated_report.product.image = photos_to_add[0]
+                    updated_report.product.save()
+                if photos_to_add and updated_report.business and not updated_report.business.image:
+                    updated_report.business.image = photos_to_add[0]
+                    updated_report.business.save()
+
+            # Handle photo deletions
+            delete_photo_ids = request.POST.getlist('delete_photos')
+            if delete_photo_ids:
+                PriceReportPhoto.objects.filter(
+                    id__in=delete_photo_ids,
+                    price_report=updated_report
+                ).delete()
+
+            # Handle legacy single image field (for backward compatibility)
             clear_image = request.POST.get('clear_image')
             if clear_image in ('1', 'true', 'True', 'on'):
                 if updated_report.image:
@@ -932,7 +1002,7 @@ def edit_price_report(request, pk):
 
             if 'image' in request.FILES:
                 updated_report.image = request.FILES['image']
-                
+
                 # Optionally update product or business if they don't have an image
                 if not updated_report.product.image:
                     updated_report.product.image = updated_report.image
@@ -988,10 +1058,11 @@ def edit_price_report(request, pk):
             products = Product.objects.all().order_by('name')
             businesses = Business.objects.all().order_by('name')
             return render(request, 'price_report_edit.html', {
-                'form': form, 
-                'report': report, 
-                'products': products, 
-                'businesses': businesses
+                'form': form,
+                'report': report,
+                'products': products,
+                'businesses': businesses,
+                'photos': report.photos.all()
             })
     else:
         # GET request - create form with existing report data
@@ -999,10 +1070,11 @@ def edit_price_report(request, pk):
         products = Product.objects.all().order_by('name')
         businesses = Business.objects.all().order_by('name')
         return render(request, 'price_report_edit.html', {
-            'form': form, 
-            'report': report, 
-            'products': products, 
-            'businesses': businesses
+            'form': form,
+            'report': report,
+            'products': products,
+            'businesses': businesses,
+            'photos': report.photos.all()
         })
 
 @login_required

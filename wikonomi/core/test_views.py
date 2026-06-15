@@ -802,6 +802,53 @@ class PriceReportEditTest(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 302)  # Redirect to login
 
+    def test_edit_price_report_replaces_specific_photo(self):
+        """Test that updating a specific photo updates its image file"""
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from core.models import PriceReportPhoto
+        
+        def get_mock_image(filename):
+            file_obj = io.BytesIO()
+            image = Image.new('RGB', (100, 100), 'white')
+            image.save(file_obj, 'JPEG')
+            file_obj.seek(0)
+            return SimpleUploadedFile(filename, file_obj.read(), content_type='image/jpeg')
+
+        # Create a PriceReportPhoto associated with the report
+        photo1 = PriceReportPhoto.objects.create(
+            price_report=self.price_report,
+            image=get_mock_image('photo1.jpg'),
+            order=0
+        )
+        photo2 = PriceReportPhoto.objects.create(
+            price_report=self.price_report,
+            image=get_mock_image('photo2.jpg'),
+            order=1
+        )
+        
+        url = reverse('edit_price_report', args=[self.price_report.id])
+        # Replace only photo1
+        new_image_data = get_mock_image('new_photo1.jpg')
+        data = {
+            'price': '10.00',
+            'currency': 'PGK',
+            'product_name': 'Test Product',
+            'business_name': 'Test Business',
+            f'update_photo_{photo1.id}': new_image_data
+        }
+        
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify photo1 was updated and photo2 remained the same
+        photo1.refresh_from_db()
+        photo2.refresh_from_db()
+        
+        self.assertIn('new_photo1', photo1.image.name)
+        self.assertIn('photo2', photo2.image.name)
+
 
 class BusinessCreateViewTest(TestCase):
     def setUp(self):

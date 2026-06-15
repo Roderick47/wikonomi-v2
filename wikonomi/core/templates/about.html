@@ -1,183 +1,226 @@
 {% extends 'base.html' %}
 
+{% block page_title %}About Wikonomi — PNG's Price Tracking Platform{% endblock %}
+
 {% block content %}
 <div class="max-w-6xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-16">
-        <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight sm:text-5xl border-b-4 border-brand-purple inline-block pb-3">What is Wikonomi?</h1>
+
+    <!-- Hero -->
+    <div class="text-center mb-14">
+        <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight sm:text-5xl">
+            What is <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-green via-brand-blue to-brand-purple">Wikonomi?</span>
+        </h1>
         <p class="mt-6 text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Wikonomi is Papua New Guinea's first community-driven price tracking platform. We empower everyday consumers by making cost of living transparent, accessible, and easily comparable across different businesses and locations.
+            Papua New Guinea's first community-driven price tracking platform. We empower everyday consumers by making the cost of living transparent, accessible, and easily comparable across businesses and locations.
         </p>
-    </div>
-
-    <!-- Main Features Section -->
-    <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3 mb-16">
-        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl hover:-translate-y-1 transition-all">
-            <div class="flex items-center mb-4">
-                <div class="flex-shrink-0 bg-brand-purple/10 rounded-lg p-3">
-                    <svg class="h-6 w-6 text-brand-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <h3 class="ml-3 text-lg font-semibold text-gray-900">Price Comparison</h3>
-            </div>
-            <p class="text-gray-600">Compare prices across different stores and locations to find the best deals on everyday items.</p>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl hover:-translate-y-1 transition-all">
-            <div class="flex items-center mb-4">
-                <div class="flex-shrink-0 bg-brand-green/20 rounded-lg p-3">
-                    <svg class="h-6 w-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                    </svg>
-                </div>
-                <h3 class="ml-3 text-lg font-semibold text-gray-900">Location-Based</h3>
-            </div>
-            <p class="text-gray-600">Find prices near your location with interactive maps and distance-based search.</p>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl hover:-translate-y-1 transition-all">
-            <div class="flex items-center mb-4">
-                <div class="flex-shrink-0 bg-brand-blue/10 rounded-lg p-3">
-                    <svg class="h-6 w-6 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-                    </svg>
-                </div>
-                <h3 class="ml-3 text-lg font-semibold text-gray-900">Community Driven</h3>
-            </div>
-            <p class="text-gray-600">Real people sharing real prices from actual stores across Papua New Guinea.</p>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl hover:-translate-y-1 transition-all">
-            <div class="flex items-center mb-4">
-                <div class="flex-shrink-0 bg-brand-purple/10 rounded-lg p-3">
-                    <svg class="h-6 w-6 text-brand-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-                    </svg>
-                </div>
-                <h3 class="ml-3 text-lg font-semibold text-gray-900">Price History</h3>
-            </div>
-            <p class="text-gray-600">Track price trends over time to know when to buy and when to wait.</p>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl hover:-translate-y-1 transition-all">
-            <div class="flex items-center mb-4">
-                <div class="flex-shrink-0 bg-brand-green/20 rounded-lg p-3">
-                    <svg class="h-6 w-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.35 3.836c-.065.21-.1.433-.1.664 0 4.161-5.5 4.161-5.5 0 0-.231-.035-.454-.1-.664M9.5 3.5C9.5 2.119 10.619 1 12 1s2.5 1.119 2.5 2.5m-5 .836C9.206 4.908 10.536 5.5 12 5.5s2.794-.592 2.5-1.164m-5 .836A3.987 3.987 0 0012 6a3.987 3.987 0 002.5-.836M10.125 18h3.75m-3.75-3.75h3.75m-3.75-3.75h3.75M16.5 21H7.5A2.25 2.25 0 015.25 18.75V5.25A2.25 2.25 0 017.5 3h1.875M16.5 21v-12.3a2.25 2.25 0 00-2.25-2.25H16.5m0 16.5a2.25 2.25 0 002.25-2.25v-12.5a2.25 2.25 0 00-2.25-2.25H16.5" />
-                    </svg>
-                </div>
-                <h3 class="ml-3 text-lg font-semibold text-gray-900">Shopping Lists</h3>
-            </div>
-            <p class="text-gray-600">Create and manage shopping lists with price estimates for budget planning.</p>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl hover:-translate-y-1 transition-all">
-            <div class="flex items-center mb-4">
-                <div class="flex-shrink-0 bg-brand-blue/10 rounded-lg p-3">
-                    <svg class="h-6 w-6 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                    </svg>
-                </div>
-                <h3 class="ml-3 text-lg font-semibold text-gray-900">Bulk Upload</h3>
-            </div>
-            <p class="text-gray-600">Business owners can upload multiple prices at once using CSV files.</p>
+        <!-- Sub-page nav pills -->
+        <div class="mt-8 flex flex-wrap justify-center gap-3">
+            <a href="{% url 'about' %}" class="inline-flex items-center px-5 py-2 rounded-full bg-brand-purple text-white text-sm font-semibold shadow hover:bg-brand-purple/90 transition-all">
+                📖 About
+            </a>
+            <a href="{% url 'how_to_use' %}" class="inline-flex items-center px-5 py-2 rounded-full border border-brand-purple text-brand-purple bg-white text-sm font-semibold hover:bg-brand-purple/5 transition-all">
+                🚀 How to Use
+            </a>
+            <a href="{% url 'add_price' %}" class="inline-flex items-center px-5 py-2 rounded-full border border-brand-green text-brand-green bg-white text-sm font-semibold hover:bg-brand-green/10 transition-all">
+                ➕ Add a Price
+            </a>
+            <a href="{% url 'add_business' %}" class="inline-flex items-center px-5 py-2 rounded-full border border-brand-blue text-brand-blue bg-white text-sm font-semibold hover:bg-brand-blue/10 transition-all">
+                🏪 Add a Business
+            </a>
+            <a href="{% url 'bulk_upload' %}" class="inline-flex items-center px-5 py-2 rounded-full border border-gray-300 text-gray-600 bg-white text-sm font-semibold hover:bg-gray-50 transition-all">
+                📤 Bulk Upload
+            </a>
         </div>
     </div>
 
-    <!-- How It Works Section -->
-    <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-16">
-        <div class="p-8 sm:p-10">
-            <h2 class="text-3xl font-bold text-gray-900 mb-6">How Wikonomi Helps You Save Money</h2>
-            
-            <div class="grid gap-8 md:grid-cols-2">
-                <div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-4">🔍 Find the Best Deals</h3>
-                    <p class="text-gray-600 mb-4">
-                        Instead of visiting multiple stores to compare prices, search Wikonomi to instantly see where products are cheapest. Our community-driven database shows real prices from real stores across PNG.
-                    </p>
-                    <ul class="space-y-2 text-gray-600">
-                        <li class="flex items-start">
-                            <span class="text-brand-green mr-2 font-bold">✓</span>
-                            Compare prices across different businesses
-                        </li>
-                        <li class="flex items-start">
-                            <span class="text-brand-green mr-2 font-bold">✓</span>
-                            Find stores nearest to your location
-                        </li>
-                        <li class="flex items-start">
-                            <span class="text-brand-green mr-2 font-bold">✓</span>
-                            See price history to time your purchases
-                        </li>
-                    </ul>
-                </div>
+    <!-- Full Features Grid -->
+    <div class="mb-14">
+        <h2 class="text-2xl font-bold text-gray-900 mb-2 text-center">Everything Wikonomi Can Do</h2>
+        <p class="text-center text-gray-500 mb-8 text-sm">A complete overview of all platform features</p>
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
-                <div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-4">💰 Maximize Your Savings</h3>
-                    <p class="text-gray-600 mb-4">
-                        Smart shopping is about more than just finding the lowest price. Wikonomi helps you make informed decisions that save you money consistently.
-                    </p>
-                    <ul class="space-y-2 text-gray-600">
-                        <li class="flex items-start">
-                            <span class="text-brand-green mr-2 font-bold">✓</span>
-                            Track price trends and buy at the right time
-                        </li>
-                        <li class="flex items-start">
-                            <span class="text-brand-green mr-2 font-bold">✓</span>
-                            Plan shopping trips with price estimates
-                        </li>
-                        <li class="flex items-start">
-                            <span class="text-brand-green mr-2 font-bold">✓</span>
-                            Discover alternative stores with better prices
-                        </li>
-                    </ul>
+            <!-- Price Reporting -->
+            <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-xl hover:-translate-y-1 transition-all border border-gray-100">
+                <div class="flex items-center mb-3">
+                    <div class="flex-shrink-0 bg-brand-purple/10 rounded-lg p-3">
+                        <svg class="h-6 w-6 text-brand-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <h3 class="ml-3 text-base font-semibold text-gray-900">Price Reporting</h3>
                 </div>
+                <p class="text-sm text-gray-600 mb-3">Share prices you've seen at a store — product name, price, currency, photos, notes, and GPS location.</p>
+                <a href="{% url 'how_to_use' %}#adding-prices" class="text-xs text-brand-purple font-semibold hover:underline">Learn how →</a>
             </div>
+
+            <!-- Price Comparison -->
+            <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-xl hover:-translate-y-1 transition-all border border-gray-100">
+                <div class="flex items-center mb-3">
+                    <div class="flex-shrink-0 bg-brand-blue/10 rounded-lg p-3">
+                        <svg class="h-6 w-6 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+                    </div>
+                    <h3 class="ml-3 text-base font-semibold text-gray-900">Price Comparison</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-3">See min, max, and average prices for any product across all stores. Compare trends week-over-week.</p>
+                <a href="{% url 'how_to_use' %}#price-analysis" class="text-xs text-brand-blue font-semibold hover:underline">Learn how →</a>
+            </div>
+
+            <!-- Location & Maps -->
+            <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-xl hover:-translate-y-1 transition-all border border-gray-100">
+                <div class="flex items-center mb-3">
+                    <div class="flex-shrink-0 bg-brand-green/20 rounded-lg p-3">
+                        <svg class="h-6 w-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
+                    </div>
+                    <h3 class="ml-3 text-base font-semibold text-gray-900">Location & Maps</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-3">Pin prices to exact GPS locations. Find nearby prices on an interactive map and get directions to the store.</p>
+                <a href="{% url 'how_to_use' %}#location" class="text-xs text-brand-green font-semibold hover:underline">Learn how →</a>
+            </div>
+
+            <!-- Star Ratings -->
+            <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-xl hover:-translate-y-1 transition-all border border-gray-100">
+                <div class="flex items-center mb-3">
+                    <div class="flex-shrink-0 bg-amber-50 rounded-lg p-3">
+                        <svg class="h-6 w-6 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                    </div>
+                    <h3 class="ml-3 text-base font-semibold text-gray-900">Ratings</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-3">Rate price reports and businesses out of 5 stars. Ratings help the community trust the most accurate and up-to-date prices.</p>
+                <a href="{% url 'how_to_use' %}#rating" class="text-xs text-amber-600 font-semibold hover:underline">Learn how →</a>
+            </div>
+
+            <!-- Editing Prices -->
+            <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-xl hover:-translate-y-1 transition-all border border-gray-100">
+                <div class="flex items-center mb-3">
+                    <div class="flex-shrink-0 bg-brand-purple/10 rounded-lg p-3">
+                        <svg class="h-6 w-6 text-brand-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </div>
+                    <h3 class="ml-3 text-base font-semibold text-gray-900">Editing & History</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-3">Update prices, swap photos, and change details. Every price change is logged with full history so nothing is lost.</p>
+                <a href="{% url 'how_to_use' %}#editing" class="text-xs text-brand-purple font-semibold hover:underline">Learn how →</a>
+            </div>
+
+            <!-- Business Profiles -->
+            <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-xl hover:-translate-y-1 transition-all border border-gray-100">
+                <div class="flex items-center mb-3">
+                    <div class="flex-shrink-0 bg-brand-blue/10 rounded-lg p-3">
+                        <svg class="h-6 w-6 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                    </div>
+                    <h3 class="ml-3 text-base font-semibold text-gray-900">Business Profiles</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-3">Add stores, markets, and businesses. Each profile shows all their listed prices, ratings, and location on a map.</p>
+                <a href="{% url 'how_to_use' %}#businesses" class="text-xs text-brand-blue font-semibold hover:underline">Learn how →</a>
+            </div>
+
+            <!-- Shopping Lists -->
+            <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-xl hover:-translate-y-1 transition-all border border-gray-100">
+                <div class="flex items-center mb-3">
+                    <div class="flex-shrink-0 bg-brand-green/20 rounded-lg p-3">
+                        <svg class="h-6 w-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    </div>
+                    <h3 class="ml-3 text-base font-semibold text-gray-900">Shopping Lists</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-3">Build a shopping list with items from the platform. Get an estimated total cost based on the latest reported prices.</p>
+                <a href="{% url 'how_to_use' %}#shopping-list" class="text-xs text-brand-green font-semibold hover:underline">Learn how →</a>
+            </div>
+
+            <!-- Watchlist & Notifications -->
+            <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-xl hover:-translate-y-1 transition-all border border-gray-100">
+                <div class="flex items-center mb-3">
+                    <div class="flex-shrink-0 bg-brand-purple/10 rounded-lg p-3">
+                        <svg class="h-6 w-6 text-brand-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 11 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                    </div>
+                    <h3 class="ml-3 text-base font-semibold text-gray-900">Watchlist & Notifications</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-3">Watch products to get notified when prices change or new reports are added. Mute notifications you don't need.</p>
+                <a href="{% url 'how_to_use' %}#watchlist" class="text-xs text-brand-purple font-semibold hover:underline">Learn how →</a>
+            </div>
+
+            <!-- Bulk Upload -->
+            <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-xl hover:-translate-y-1 transition-all border border-gray-100">
+                <div class="flex items-center mb-3">
+                    <div class="flex-shrink-0 bg-brand-blue/10 rounded-lg p-3">
+                        <svg class="h-6 w-6 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+                    </div>
+                    <h3 class="ml-3 text-base font-semibold text-gray-900">Bulk Upload (CSV)</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-3">Business owners can upload hundreds of prices at once using a simple CSV file. Preview before confirming.</p>
+                <a href="{% url 'how_to_use' %}#bulk-upload" class="text-xs text-brand-blue font-semibold hover:underline">Learn how →</a>
+            </div>
+
+            <!-- Comments -->
+            <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-xl hover:-translate-y-1 transition-all border border-gray-100">
+                <div class="flex items-center mb-3">
+                    <div class="flex-shrink-0 bg-brand-green/20 rounded-lg p-3">
+                        <svg class="h-6 w-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                    </div>
+                    <h3 class="ml-3 text-base font-semibold text-gray-900">Comments</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-3">Leave comments on price reports and business profiles. Reply to others to discuss deals and availability.</p>
+                <a href="{% url 'how_to_use' %}#comments" class="text-xs text-brand-green font-semibold hover:underline">Learn how →</a>
+            </div>
+
+            <!-- Sharing -->
+            <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-xl hover:-translate-y-1 transition-all border border-gray-100">
+                <div class="flex items-center mb-3">
+                    <div class="flex-shrink-0 bg-brand-blue/10 rounded-lg p-3">
+                        <svg class="h-6 w-6 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                    </div>
+                    <h3 class="ml-3 text-base font-semibold text-gray-900">Share Prices</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-3">Share any price report directly to WhatsApp, Facebook, or copy the link — spreading deals to friends and family.</p>
+                <a href="{% url 'how_to_use' %}#sharing" class="text-xs text-brand-blue font-semibold hover:underline">Learn how →</a>
+            </div>
+
+            <!-- Community Moderation -->
+            <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-xl hover:-translate-y-1 transition-all border border-gray-100">
+                <div class="flex items-center mb-3">
+                    <div class="flex-shrink-0 bg-red-50 rounded-lg p-3">
+                        <svg class="h-6 w-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <h3 class="ml-3 text-base font-semibold text-gray-900">Community Moderation</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-3">Flag outdated or incorrect prices for deletion. Multiple users must agree before a price is removed, keeping data trustworthy.</p>
+                <a href="{% url 'how_to_use' %}#moderation" class="text-xs text-red-500 font-semibold hover:underline">Learn how →</a>
+            </div>
+
         </div>
     </div>
 
-    <!-- Benefits Section -->
-    <div class="bg-gradient-to-br from-brand-purple/5 to-brand-blue/10 rounded-2xl p-8 mb-16">
-        <h2 class="text-3xl font-bold text-gray-900 mb-6 text-center">Why Choose Wikonomi?</h2>
-        <div class="grid gap-6 md:grid-cols-3">
+    <!-- Why Wikonomi Stats -->
+    <div class="bg-gradient-to-br from-brand-purple/5 to-brand-blue/10 rounded-2xl p-8 mb-14">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Why Choose Wikonomi?</h2>
+        <div class="grid gap-6 sm:grid-cols-3">
             <div class="text-center bg-white p-6 rounded-xl shadow-sm border border-brand-purple/10">
                 <div class="text-4xl font-bold text-brand-purple mb-2">100%</div>
                 <p class="text-gray-700 font-bold">Community Driven</p>
-                <p class="text-sm text-gray-600 mt-1">Real prices from real shoppers</p>
+                <p class="text-sm text-gray-500 mt-1">Real prices from real shoppers</p>
             </div>
             <div class="text-center bg-white p-6 rounded-xl shadow-sm border border-brand-green/20">
                 <div class="text-4xl font-bold text-brand-green mb-2">24/7</div>
                 <p class="text-gray-700 font-bold">Always Updated</p>
-                <p class="text-sm text-gray-600 mt-1">Fresh prices added daily</p>
+                <p class="text-sm text-gray-500 mt-1">Fresh prices added daily</p>
             </div>
             <div class="text-center bg-white p-6 rounded-xl shadow-sm border border-brand-blue/20">
                 <div class="text-4xl font-bold text-brand-blue mb-2">Free</div>
                 <p class="text-gray-700 font-bold">For Everyone</p>
-                <p class="text-sm text-gray-600 mt-1">No subscriptions or fees</p>
+                <p class="text-sm text-gray-500 mt-1">No subscriptions or fees</p>
             </div>
         </div>
     </div>
 
-    <!-- Call to Action -->
+    <!-- CTA -->
     <div class="text-center pb-12">
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">Start Saving Money Today!</h2>
-        <p class="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-            Join thousands of Papua New Guineans who are already using Wikonomi to make smarter shopping decisions and stretch their budget further.
-        </p>
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Ready to start saving?</h2>
+        <p class="text-gray-600 mb-8 max-w-xl mx-auto">Join Papua New Guineans using Wikonomi to make smarter shopping decisions every day.</p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="{% url 'add_price' %}" class="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-lg text-white bg-brand-purple hover:bg-brand-purple/90 focus:outline-none shadow-lg hover:shadow-xl transition-all">
-                <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                Add a New Price Now
+            <a href="{% url 'how_to_use' %}" class="inline-flex items-center justify-center px-8 py-4 border border-transparent text-base font-bold rounded-lg text-white bg-brand-purple hover:bg-brand-purple/90 shadow-lg hover:shadow-xl transition-all">
+                🚀 Read the Guide
             </a>
-            <a href="{% url 'home' %}" class="inline-flex items-center justify-center px-8 py-4 border border-brand-purple text-lg font-bold rounded-lg text-brand-purple bg-white hover:bg-brand-purple/5 focus:outline-none shadow transition-all">
-                <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-                Browse Prices
+            <a href="{% url 'home' %}" class="inline-flex items-center justify-center px-8 py-4 border border-brand-purple text-base font-bold rounded-lg text-brand-purple bg-white hover:bg-brand-purple/5 shadow transition-all">
+                🔍 Browse Prices
             </a>
         </div>
     </div>
+
 </div>
 {% endblock %}

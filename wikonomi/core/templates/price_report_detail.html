@@ -14,7 +14,12 @@
 <meta property="og:url" content="{{ base_url }}/price/{{ report.id }}/">
 <meta property="og:title" content="{{ report.product|get_attr:"name"|default:"Unknown Product" }} — PGK {{ report.price }} at {{ report.business|get_attr:"name"|default:"Unknown Business" }}">
 <meta property="og:description" content="Reported at {{ report.business|get_attr:"name"|default:"Unknown Business" }} on {{ reported_date|date:'N j, Y' }}. {{ report.notes|default:'Compare prices across PNG on Wikonomi.'|striptags|truncatechars:140 }}">
-{% if report.image %}
+{% if photos %}
+<meta property="og:image" content="{{ photos.0.image.url|absolute_url:base_url }}">
+<meta property="og:image:url" content="{{ photos.0.image.url|absolute_url:base_url }}">
+<meta property="og:image:secure_url" content="{{ photos.0.image.url|absolute_url:base_url }}">
+<meta property="og:image:type" content="{{ photos.0.image|image_mime_type }}">
+{% elif report.image %}
 <meta property="og:image" content="{{ report.image.url|absolute_url:base_url }}">
 <meta property="og:image:url" content="{{ report.image.url|absolute_url:base_url }}">
 <meta property="og:image:secure_url" content="{{ report.image.url|absolute_url:base_url }}">
@@ -32,7 +37,9 @@
 <meta name="twitter:site" content="@wikonomi">
 <meta name="twitter:title" content="{{ report.product|get_attr:"name"|default:"Unknown Product" }} — PGK {{ report.price }} at {{ report.business|get_attr:"name"|default:"Unknown Business" }}">
 <meta name="twitter:description" content="Reported at {{ report.business|get_attr:"name"|default:"Unknown Business" }} on {{ reported_date|date:'N j, Y' }}. {{ report.notes|default:'Compare prices across PNG on Wikonomi.'|striptags|truncatechars:140 }}">
-{% if report.image %}
+{% if photos %}
+<meta name="twitter:image" content="{{ photos.0.image.url|absolute_url:base_url }}">
+{% elif report.image %}
 <meta name="twitter:image" content="{{ report.image.url|absolute_url:base_url }}">
 {% else %}
 <meta name="twitter:image" content="{{ default_image }}">
@@ -167,7 +174,32 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <!-- Left: photo + accuracy + metadata -->
                 <div class="space-y-6">
-                    {% if report.image %}
+                    {% if photos %}
+                    <div>
+                        <h2 class="text-sm font-medium text-gray-500 mb-2">Attached photos ({{ photos|length }}/5)</h2>
+                        <!-- Main image display -->
+                        <div id="wk-photos-overlay" class="cursor-pointer group relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50 mb-3" title="Click to change photo">
+                            <img id="main-photo" src="{{ photos.0.image.url }}" alt="Photo 1 of {{ report.product.name }}"
+                                class="w-full max-h-[480px] object-contain group-hover:opacity-95 transition-opacity"
+                                data-photo-id="{{ photos.0.id }}">
+                            <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                                <span class="rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm">Click to change photo</span>
+                            </div>
+                        </div>
+                        <!-- Thumbnails -->
+                        <div class="grid grid-cols-5 gap-2">
+                            {% for photo in photos %}
+                            <button type="button" onclick="setMainPhoto('{{ photo.id }}', this)"
+                                data-thumb-photo-id="{{ photo.id }}"
+                                class="relative rounded-lg overflow-hidden border-2 {% if forloop.first %}border-brand-purple{% else %}border-gray-200 hover:border-brand-purple{% endif %} bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2">
+                                <img src="{{ photo.image.url }}" alt="Photo {{ forloop.counter }}"
+                                    class="w-full h-16 object-cover">
+                            </button>
+                            {% endfor %}
+                        </div>
+                        <input type="file" accept="image/*" class="hidden" id="photo-file-input">
+                    </div>
+                    {% elif report.image %}
                     <div>
                         <h2 class="text-sm font-medium text-gray-500 mb-2">Attached photo</h2>
                         <div id="wk-image-overlay" class="cursor-pointer group relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50" title="Click to change photo">
@@ -543,6 +575,27 @@
     });
 </script>
 
+<script>
+    // Photo gallery functionality
+    function setMainPhoto(photoId, button) {
+        const mainPhoto = document.getElementById('main-photo');
+        const img = button.querySelector('img');
+        if (mainPhoto && img) {
+            mainPhoto.src = img.src;
+            mainPhoto.setAttribute('data-photo-id', photoId);
+        }
+
+        // Update thumbnail borders
+        const thumbnails = document.querySelectorAll('[data-thumb-photo-id]');
+        thumbnails.forEach(thumb => {
+            thumb.classList.remove('border-brand-purple');
+            thumb.classList.add('border-gray-200');
+        });
+        button.classList.remove('border-gray-200');
+        button.classList.add('border-brand-purple');
+    }
+</script>
+
 
 <script>
 (function () {
@@ -551,6 +604,8 @@
     let originalValues = {};
     let originalImageSrc = null;
     let pendingImageFile = null;
+    let originalPhotoSrcs = {};
+    let pendingPhotoReplacements = {};
 
     const editBar = document.getElementById('wk-edit-bar');
     const saveBtn = document.getElementById('wk-save-btn');
@@ -574,7 +629,7 @@
         });
     });
 
-    // --- Image click ---
+    // --- Image click (for single photo block) ---
     const imageOverlay = document.getElementById('wk-image-overlay');
     const imageInput = document.getElementById('image-file-input');
     if (imageOverlay && imageInput) {
@@ -595,11 +650,62 @@
         });
     }
 
+    // --- Photos overlay click (for multi-photo block) ---
+    const photosOverlay = document.getElementById('wk-photos-overlay');
+    const photoInput = document.getElementById('photo-file-input');
+    if (photosOverlay && photoInput) {
+        photosOverlay.addEventListener('click', function () {
+            if (!editMode) enterEditMode();
+            photoInput.click();
+        });
+        photoInput.addEventListener('change', function () {
+            if (!this.files || !this.files[0]) return;
+            const file = this.files[0];
+            const mainPhoto = document.getElementById('main-photo');
+            if (!mainPhoto) return;
+            const activePhotoId = mainPhoto.getAttribute('data-photo-id');
+            if (!activePhotoId) return;
+
+            pendingPhotoReplacements[activePhotoId] = file;
+
+            const reader = new FileReader();
+            reader.onload = e => {
+                mainPhoto.src = e.target.result;
+                const thumbButton = document.querySelector(`button[data-thumb-photo-id="${activePhotoId}"]`);
+                if (thumbButton) {
+                    const thumbImg = thumbButton.querySelector('img');
+                    if (thumbImg) thumbImg.src = e.target.result;
+                }
+            };
+            reader.readAsDataURL(file);
+
+            if (!editMode) enterEditMode();
+        });
+    }
+
     function enterEditMode() {
         editMode = true;
         originalValues = {};
         const img = document.querySelector('#wk-product-image');
         originalImageSrc = img ? img.src : null;
+
+        // Save original multi-photo srcs
+        originalPhotoSrcs = {};
+        document.querySelectorAll('[data-thumb-photo-id]').forEach(thumb => {
+            const photoId = thumb.getAttribute('data-thumb-photo-id');
+            const thumbImg = thumb.querySelector('img');
+            if (photoId && thumbImg) {
+                originalPhotoSrcs[photoId] = thumbImg.src;
+            }
+        });
+        const mainPhoto = document.getElementById('main-photo');
+        if (mainPhoto) {
+            const activePhotoId = mainPhoto.getAttribute('data-photo-id');
+            if (activePhotoId) {
+                originalPhotoSrcs['main_' + activePhotoId] = mainPhoto.src;
+            }
+        }
+
         // Save originals and show inputs
         document.querySelectorAll('.wk-editable').forEach(el => {
             originalValues[el.dataset.field] = el.textContent.trim();
@@ -617,10 +723,30 @@
     function exitEditMode(restoreValues) {
         editMode = false;
         pendingImageFile = null;
+        pendingPhotoReplacements = {};
         if (imageInput) imageInput.value = '';
-        if (restoreValues && originalImageSrc) {
-            const img = document.querySelector('#wk-product-image');
-            if (img) img.src = originalImageSrc;
+        if (photoInput) photoInput.value = '';
+        if (restoreValues) {
+            if (originalImageSrc) {
+                const img = document.querySelector('#wk-product-image');
+                if (img) img.src = originalImageSrc;
+            }
+            // Restore multi-photo srcs
+            for (const [photoId, src] of Object.entries(originalPhotoSrcs)) {
+                if (photoId.startsWith('main_')) {
+                    const activePhotoId = photoId.substring(5);
+                    const mainPhoto = document.getElementById('main-photo');
+                    if (mainPhoto && mainPhoto.getAttribute('data-photo-id') === activePhotoId) {
+                        mainPhoto.src = src;
+                    }
+                } else {
+                    const thumbButton = document.querySelector(`button[data-thumb-photo-id="${photoId}"]`);
+                    if (thumbButton) {
+                        const thumbImg = thumbButton.querySelector('img');
+                        if (thumbImg) thumbImg.src = src;
+                    }
+                }
+            }
         }
         document.querySelectorAll('.wk-editable').forEach(el => {
             if (restoreValues) el.textContent = originalValues[el.dataset.field] || el.textContent;
@@ -658,8 +784,13 @@
             }
         });
 
-        // Append image if changed
+        // Append image if changed (single photo)
         if (pendingImageFile) formData.append('image', pendingImageFile);
+
+        // Append photo replacements (multi-photo)
+        for (const [photoId, file] of Object.entries(pendingPhotoReplacements)) {
+            formData.append('update_photo_' + photoId, file);
+        }
 
         fetch('{% url "edit_price_report" report.pk %}', {
             method: 'POST',
