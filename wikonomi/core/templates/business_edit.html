@@ -25,34 +25,67 @@
     <div class="bg-white shadow sm:rounded-lg">
         <div class="px-4 py-5 sm:px-6">
             <h2 class="text-2xl font-bold text-gray-900 mb-6">Edit Business</h2>
-            
-            <form method="post" enctype="multipart/form-data" class="space-y-6">
+
+            <form method="post" enctype="multipart/form-data" class="space-y-6" data-validate-form data-persist-key="wikonomi:edit-business-form:{{ business.pk }}">
                 {% csrf_token %}
-                
+                <div data-form-errors class="hidden"></div>
+
+                {% if form.errors %}
+                <div class="bg-red-50 border border-red-200 text-red-600 rounded-md p-4 mb-4">
+                    <p class="font-medium">Please correct the errors below.</p>
+                    <ul class="list-disc pl-5 mt-2">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
                 <div>
-                    <label for="id_name" class="block text-sm font-medium text-gray-700 mb-2">
-                        Business Name
-                    </label>
+                    <label for="id_name" class="block text-sm font-medium text-gray-700 mb-2">Business Name *</label>
                     {{ form.name }}
                     {% if form.name.errors %}
                         <div class="mt-1 text-sm text-red-600">
-                            {% for error in form.name.errors %}
-                                {{ error }}
-                            {% endfor %}
+                            {% for error in form.name.errors %}{{ error }}{% endfor %}
                         </div>
                     {% endif %}
                 </div>
 
+                {% if form.business_category %}
                 <div>
-                    <label for="id_details" class="block text-sm font-medium text-gray-700 mb-2">
-                        Business Details (Optional)
-                    </label>
+                    <label for="id_business_category" class="block text-sm font-medium text-gray-700 mb-2">Industry / business type</label>
+                    {{ form.business_category }}
+                    {% if form.business_category.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.business_category.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if form.business_subcategory %}
+                <div>
+                    <label for="id_business_subcategory" class="block text-sm font-medium text-gray-700 mb-2">Subcategory</label>
+                    {{ form.business_subcategory }}
+                    {% if form.business_subcategory.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.business_subcategory.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <div>
+                    <label for="id_details" class="block text-sm font-medium text-gray-700 mb-2">Business Details (Optional)</label>
                     {{ form.details }}
                     {% if form.details.errors %}
                         <div class="mt-1 text-sm text-red-600">
-                            {% for error in form.details.errors %}
-                                {{ error }}
-                            {% endfor %}
+                            {% for error in form.details.errors %}{{ error }}{% endfor %}
                         </div>
                     {% endif %}
                     <p class="mt-2 text-sm text-gray-500">Add any additional information about this business such as opening hours, contact information, services offered, etc.</p>
@@ -62,19 +95,15 @@
                     {% include 'includes/image_upload_widget.html' with image_label="Business Image" current_image=business.image current_image_alt=business.name enable_clear_image=True %}
                     {% if form.image.errors %}
                         <div class="mt-1 text-sm text-red-600">
-                            {% for error in form.image.errors %}
-                                {{ error }}
-                            {% endfor %}
+                            {% for error in form.image.errors %}{{ error }}{% endfor %}
                         </div>
                     {% endif %}
+                    <p class="mt-2 text-sm text-gray-500">You can replace the current image, remove it, or choose a new one before saving.</p>
                 </div>
+
                 <div class="flex items-center justify-between">
-                    <a href="{% url 'business_detail' business.pk %}" class="text-gray-600 hover:text-gray-800 font-medium py-2 px-4 border border-gray-300 rounded-md">
-                        Cancel
-                    </a>
-                    <button type="submit" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
-                        Save Changes
-                    </button>
+                    <a href="{% url 'business_detail' business.pk %}" class="text-gray-600 hover:text-gray-800 font-medium py-2 px-4 border border-gray-300 rounded-md">Cancel</a>
+                    <button type="submit" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">Save Changes</button>
                 </div>
             </form>
         </div>
@@ -82,4 +111,6 @@
 </div>
 
 {% include 'includes/image_upload_script.html' %}
+{% include 'includes/form_state_guard_script.html' %}
+{% include 'includes/category_select_scripts.html' %}
 {% endblock %}
