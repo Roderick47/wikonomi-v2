@@ -9,6 +9,7 @@
         if (!photosInput || !photosDropZone || !photosPreviewContainer || !photoCount) return;
 
         const maxPhotos = Number(photosInput.dataset.maxPhotos || 5);
+        const maxSizeBytes = Number(photosInput.dataset.maxSizeBytes || (10 * 1024 * 1024));
         const existingPhotoCount = Number(photosInput.dataset.existingCount || 0);
         let selectedPhotos = [];
         let replaceNewIndex = null;
@@ -169,6 +170,14 @@
                 if (currentTotal() > maxPhotos) {
                     errors.push(`You can upload a maximum of ${maxPhotos} photos.`);
                 }
+                selectedPhotos.forEach(file => {
+                    if (!file.type.startsWith('image/')) {
+                        errors.push(`${file.name} must be an image file.`);
+                    }
+                    if (file.size > maxSizeBytes) {
+                        errors.push(`${file.name} is larger than 10MB.`);
+                    }
+                });
                 return errors;
             },
             syncToInput() {
