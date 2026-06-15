@@ -1,0 +1,141 @@
+<script>
+(function () {
+    function getFieldLabel(field) {
+        if (!field.id) return field.name || 'This field';
+        const label = document.querySelector(`label[for="${field.id}"]`);
+        return label ? label.textContent.replace('*', '').trim() : (field.name || 'This field');
+    }
+
+    function getErrorBox(form) {
+        let errorBox = form.querySelector('[data-form-errors]');
+        if (!errorBox) {
+            errorBox = document.createElement('div');
+            errorBox.setAttribute('data-form-errors', '');
+            form.insertBefore(errorBox, form.firstElementChild);
+        }
+        return errorBox;
+    }
+
+    function showErrors(form, errors) {
+        const errorBox = getErrorBox(form);
+        if (!errors.length) {
+            errorBox.className = 'hidden';
+            errorBox.innerHTML = '';
+            return;
+        }
+
+        errorBox.className = 'bg-red-50 border border-red-200 text-red-700 rounded-md p-4 mb-4';
+        errorBox.innerHTML = `
+            <p class="font-medium">Please fix these before submitting.</p>
+            <ul class="list-disc pl-5 mt-2 space-y-1">
+                ${errors.map(error => `<li>${error}</li>`).join('')}
+            </ul>
+        `;
+        errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function restoreTextFields(form, key) {
+        if (!key) return;
+        const saved = sessionStorage.getItem(key);
+        if (!saved) return;
+
+        let values = {};
+        try {
+            values = JSON.parse(saved) || {};
+        } catch (error) {
+            return;
+        }
+
+        form.querySelectorAll('input, textarea, select').forEach(field => {
+            if (!field.name || ['file', 'password', 'hidden'].includes(field.type)) return;
+            if (!(field.name in values)) return;
+            if (field.type === 'checkbox' || field.type === 'radio') {
+                field.checked = Boolean(values[field.name]);
+            } else if (!field.value) {
+                field.value = values[field.name];
+            }
+        });
+    }
+
+    function saveTextFields(form, key) {
+        if (!key) return;
+        const values = {};
+        form.querySelectorAll('input, textarea, select').forEach(field => {
+            if (!field.name || ['file', 'password', 'hidden'].includes(field.type)) return;
+            values[field.name] = (field.type === 'checkbox' || field.type === 'radio') ? field.checked : field.value;
+        });
+        sessionStorage.setItem(key, JSON.stringify(values));
+    }
+
+    function validateFiles(form, errors) {
+        const maxSizeBytes = 10 * 1024 * 1024;
+        form.querySelectorAll('input[type="file"]').forEach(input => {
+            Array.from(input.files || []).forEach(file => {
+                if (!file.type.startsWith('image/')) {
+                    errors.push(`${file.name} must be an image file.`);
+                }
+                if (file.size > maxSizeBytes) {
+                    errors.push(`${file.name} is larger than 10MB.`);
+                }
+            });
+        });
+    }
+
+    function validateForm(form) {
+        const errors = [];
+
+        form.querySelectorAll('[required]').forEach(field => {
+            if (field.disabled) return;
+            const value = (field.value || '').trim();
+            if (!value) {
+                errors.push(`${getFieldLabel(field)} is required.`);
+            }
+        });
+
+        form.querySelectorAll('input[type="number"]').forEach(field => {
+            if (!field.value) return;
+            const value = Number(field.value);
+            if (Number.isNaN(value)) {
+                errors.push(`${getFieldLabel(field)} must be a valid number.`);
+            } else if (field.min && value < Number(field.min)) {
+                errors.push(`${getFieldLabel(field)} must be at least ${field.min}.`);
+            }
+        });
+
+        validateFiles(form, errors);
+
+        if (window.WikonomiPhotoManager && typeof window.WikonomiPhotoManager.validate === 'function') {
+            errors.push(...window.WikonomiPhotoManager.validate());
+        }
+
+        showErrors(form, errors);
+        return errors.length === 0;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('form[data-validate-form]').forEach(form => {
+            const persistKey = form.dataset.persistKey || '';
+            restoreTextFields(form, persistKey);
+
+            form.addEventListener('input', () => saveTextFields(form, persistKey));
+            form.addEventListener('change', () => saveTextFields(form, persistKey));
+
+            form.addEventListener('submit', function (event) {
+                if (!validateForm(form)) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return;
+                }
+
+                if (window.WikonomiPhotoManager && typeof window.WikonomiPhotoManager.syncToInput === 'function') {
+                    window.WikonomiPhotoManager.syncToInput();
+                }
+
+                if (persistKey) {
+                    sessionStorage.removeItem(persistKey);
+                }
+            });
+        });
+    });
+})();
+</script>
