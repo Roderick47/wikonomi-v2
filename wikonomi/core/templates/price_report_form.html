@@ -2,7 +2,6 @@
 
 {% block extra_head %}
 <style>
-    /* Ensure the map is 400px high */
     #map {
         height: 400px;
         z-index: 10;
@@ -16,9 +15,7 @@
         <div class="px-4 py-5 sm:p-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">
-                        Add a New Price
-                    </h3>
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Add a New Price</h3>
                     <div class="mt-2 text-sm text-gray-500">
                         <p>Help the community by sharing the price you found.</p>
                     </div>
@@ -33,9 +30,11 @@
                     <span class="mt-1 text-xs font-medium text-brand-purple">For Businesses</span>
                 </div>
             </div>
-            <form method="POST" class="mt-5 space-y-6" enctype="multipart/form-data">
+
+            <form method="POST" class="mt-5 space-y-6" enctype="multipart/form-data" data-validate-form data-persist-key="wikonomi:add-price-form">
                 {% csrf_token %}
-                
+                <div data-form-errors class="hidden"></div>
+
                 {% if form.errors %}
                 <div class="bg-red-50 border border-red-200 text-red-600 rounded-md p-4 mb-4">
                     <p class="font-medium">Please correct the errors below.</p>
@@ -54,13 +53,39 @@
 
                 <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                     <div class="sm:col-span-6">
-                        {% include 'includes/image_upload_widget.html' with image_label="Upload Photo (Optional)" %}
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Upload Photos (Optional, Max 5)</label>
+                        <input type="file" name="photos" id="photos-input" accept="image/*" multiple class="hidden" data-max-photos="5" data-existing-count="0">
+
+                        <div class="mt-1 border-2 border-gray-300 border-dashed rounded-md relative hover:bg-gray-50 transition-colors duration-200" id="photos-drop-zone">
+                            <div class="px-6 pt-8 pb-8 text-center" id="photos-upload-content">
+                                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+
+                                <div class="flex flex-col sm:flex-row justify-center gap-3 mt-2">
+                                    <button type="button" onclick="openPhotosFilePicker(false)" class="inline-flex items-center justify-center px-4 py-2 border border-brand-purple text-sm font-medium rounded-md text-brand-purple bg-white hover:bg-brand-purple hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple">
+                                        <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                        Choose from Files
+                                    </button>
+
+                                    <button type="button" onclick="openPhotosFilePicker(true)" class="inline-flex items-center justify-center px-4 py-2 border border-brand-purple text-sm font-medium rounded-md text-white bg-brand-purple hover:bg-brand-purple/90 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple">
+                                        <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                        Take Photo
+                                    </button>
+                                </div>
+                                <p class="mt-4 text-xs text-gray-500">PNG, JPG, GIF up to 10MB each. Add photos one at a time or in batches.</p>
+                                <p class="mt-1 text-xs text-gray-400">or drag and drop here</p>
+                            </div>
+
+                            <div id="photos-preview-container" class="hidden w-full p-4 grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+                        </div>
+                        <p id="photo-count" class="mt-2 text-xs text-gray-500">0/5 photos</p>
                     </div>
 
                     <div class="sm:col-span-6">
-                        <label for="product_search" class="block text-sm font-medium text-gray-700">Product</label>
+                        <label for="product_search" class="block text-sm font-medium text-gray-700">Product *</label>
                         <div class="mt-1 flex rounded-md shadow-sm">
-                            <input type="text" name="product_name" id="product_search" list="product_list" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="Type a product name...">
+                            <input type="text" name="product_name" id="product_search" value="{{ request.POST.product_name|default:'' }}" list="product_list" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="Type a product name..." required>
                             <datalist id="product_list">
                                 {% for product in products %}
                                     <option value="{{ product.name }}"></option>
@@ -73,7 +98,7 @@
                     <div class="sm:col-span-6">
                         <label for="business_search" class="block text-sm font-medium text-gray-700">Business (Optional)</label>
                         <div class="mt-1 flex rounded-md shadow-sm">
-                            <input type="text" name="business_name" id="business_search" list="business_list" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="Type a business name...">
+                            <input type="text" name="business_name" id="business_search" value="{{ request.POST.business_name|default:'' }}" list="business_list" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="Type a business name...">
                             <datalist id="business_list">
                                 {% for business in businesses %}
                                     <option value="{{ business.name }}"></option>
@@ -84,31 +109,39 @@
                     </div>
 
                     <div class="sm:col-span-3">
-                        <label for="{{ form.price.id_for_label }}" class="block text-sm font-medium text-gray-700">Price</label>
-                        <div class="mt-1">
-                            {{ form.price }}
-                        </div>
+                        <label for="id_category" class="block text-sm font-medium text-gray-700">Category</label>
+                        <div class="mt-1">{{ form.category }}</div>
+                    </div>
+
+                    <div class="sm:col-span-3">
+                        <label for="id_subcategory" class="block text-sm font-medium text-gray-700">Subcategory</label>
+                        <div class="mt-1">{{ form.subcategory }}</div>
+                        <small id="subcategory-hint" class="mt-1 block text-sm text-gray-500"></small>
+                    </div>
+
+                    <div class="sm:col-span-3">
+                        <label for="{{ form.price.id_for_label }}" class="block text-sm font-medium text-gray-700">Price *</label>
+                        <div class="mt-1">{{ form.price }}</div>
                     </div>
 
                     <div class="sm:col-span-3">
                         <label for="{{ form.currency.id_for_label }}" class="block text-sm font-medium text-gray-700">Currency</label>
-                        <div class="mt-1">
-                            {{ form.currency }}
-                        </div>
+                        <div class="mt-1">{{ form.currency }}</div>
                     </div>
 
                     <div class="sm:col-span-6">
                         <label for="tags" class="block text-sm font-medium text-gray-700">Tags (Optional)</label>
                         <div class="mt-1">
-                            <input type="text" name="tags" id="tags" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="e.g. sale, supermarket, wholesale (comma separated)">
+                            <input type="text" name="tags" id="tags" value="{{ request.POST.tags|default:'' }}" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="e.g. sale, supermarket, wholesale (comma separated)">
                         </div>
                         <p class="mt-2 text-sm text-gray-500">Add some tags to help categorize this price.</p>
                     </div>
 
                     <div class="sm:col-span-6">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                        <p class="text-sm text-gray-500 mb-2">Click on the map to set the exact location where you saw this price.</p>
-                        
+                        <p class="text-sm text-gray-500 mb-2">Select a business to use its default location automatically. If the business has no default yet, set the exact location where you saw this price.</p>
+                        <p id="business_location_hint" class="hidden text-sm rounded-md border px-3 py-2 mb-3"></p>
+
                         <div class="mb-3 flex items-start">
                             <div class="flex items-center h-5">
                                 <input id="use_my_location" name="use_my_location" type="checkbox" class="focus:ring-brand-purple/50 h-4 w-4 text-brand-purple border-gray-300 rounded">
@@ -120,54 +153,82 @@
                         </div>
 
                         <div id="map" class="rounded-lg border border-gray-300"></div>
-                        
-                        <!-- Hidden inputs for latitude and longitude populated by Leaflet -->
                         {{ form.latitude }}
                         {{ form.longitude }}
-                        
+
                         {% if form.latitude.errors %}<p class="mt-1 text-red-500 text-xs italic">{{ form.latitude.errors.0 }}</p>{% endif %}
                         {% if form.longitude.errors %}<p class="mt-1 text-red-500 text-xs italic">{{ form.longitude.errors.0 }}</p>{% endif %}
                     </div>
-                    
+
                     <div class="sm:col-span-6">
                         <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700">Notes (Optional)</label>
-                        <div class="mt-1">
-                            {{ form.notes }}
-                        </div>
+                        <div class="mt-1">{{ form.notes }}</div>
                     </div>
                 </div>
 
                 <div class="pt-5 flex justify-end">
-                    <a href="{% url 'home' %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
-                        Cancel
-                    </a>
-                    <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-purple hover:bg-brand-purple/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
-                        Save
-                    </button>
+                    <a href="{% url 'home' %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">Cancel</a>
+                    <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-purple hover:bg-brand-purple/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">Save</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Initialize Leaflet -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize map centered on Port Moresby
         const map = L.map('map').setView([-9.4438, 147.1803], 13);
-        
-        // Add OpenStreetMap tiles
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
         let marker = null;
-        
+        const businessDefaultLocations = {{ business_default_locations_json|default:'{}'|safe }};
         const latInput = document.getElementById('{{ form.latitude.id_for_label }}');
         const lngInput = document.getElementById('{{ form.longitude.id_for_label }}');
+        const businessInput = document.getElementById('business_search');
+        const businessLocationHint = document.getElementById('business_location_hint');
 
-        // If there's already a value (e.g. form validation failed), load the marker
+        function setMapLocation(lat, lng, zoom = 15) {
+            const latlng = [lat, lng];
+            if (marker) {
+                marker.setLatLng(latlng);
+            } else {
+                marker = L.marker(latlng).addTo(map);
+            }
+            map.setView(latlng, zoom);
+            latInput.value = Number(lat).toFixed(6);
+            lngInput.value = Number(lng).toFixed(6);
+        }
+
+        function showBusinessLocationHint(message, type) {
+            businessLocationHint.innerText = message;
+            businessLocationHint.classList.remove('hidden', 'bg-green-50', 'border-green-200', 'text-green-700', 'bg-amber-50', 'border-amber-200', 'text-amber-700');
+            if (type === 'success') {
+                businessLocationHint.classList.add('bg-green-50', 'border-green-200', 'text-green-700');
+            } else {
+                businessLocationHint.classList.add('bg-amber-50', 'border-amber-200', 'text-amber-700');
+            }
+        }
+
+        function applyBusinessDefaultLocation() {
+            if (!businessInput) return;
+            const businessName = businessInput.value.trim();
+            if (!businessName) {
+                businessLocationHint.classList.add('hidden');
+                return;
+            }
+
+            const defaultLocation = businessDefaultLocations[businessName];
+            if (defaultLocation) {
+                setMapLocation(defaultLocation.latitude, defaultLocation.longitude);
+                showBusinessLocationHint(`Using ${businessName}'s default location from ${defaultLocation.source}.`, 'success');
+            } else {
+                showBusinessLocationHint(`${businessName} does not have a default location yet. Please set this price's location on the map so future prices can use it automatically.`, 'warning');
+            }
+        }
+
         if (latInput.value && lngInput.value) {
             const lat = parseFloat(latInput.value);
             const lng = parseFloat(lngInput.value);
@@ -175,71 +236,57 @@
             map.setView([lat, lng], 15);
         }
 
-        // On map click, place marker and update hidden inputs
         map.on('click', function(e) {
-            const lat = e.latlng.lat;
-            const lng = e.latlng.lng;
-            
-            if (marker) {
-                marker.setLatLng(e.latlng);
-            } else {
-                marker = L.marker(e.latlng).addTo(map);
-            }
-            
-            // Update hidden inputs
-            latInput.value = lat.toFixed(6);
-            lngInput.value = lng.toFixed(6);
-            
-            // Uncheck "use my location" if user manually clicks map
+            setMapLocation(e.latlng.lat, e.latlng.lng);
             document.getElementById('use_my_location').checked = false;
         });
 
-        // Handle geolocation
         const locationCheckbox = document.getElementById('use_my_location');
         const locationStatus = document.getElementById('location_status');
+
+        if (businessInput) {
+            businessInput.addEventListener('change', applyBusinessDefaultLocation);
+            businessInput.addEventListener('blur', applyBusinessDefaultLocation);
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const productPrefill = urlParams.get('product_name');
+        const businessPrefill = urlParams.get('business_name');
+        if (productPrefill) {
+            const productInput = document.getElementById('product_search');
+            if (productInput && !productInput.value) productInput.value = productPrefill;
+        }
+        if (businessPrefill && businessInput && !businessInput.value) {
+            businessInput.value = businessPrefill;
+            applyBusinessDefaultLocation();
+        }
 
         locationCheckbox.addEventListener('change', function() {
             if (this.checked) {
                 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                
-                if (isMobile) {
-                    locationStatus.innerText = "Requesting exact GPS location permission...";
-                } else {
-                    locationStatus.innerText = "Requesting approximate location permission...";
-                }
+                locationStatus.innerText = isMobile ? "Requesting exact GPS location permission..." : "Requesting approximate location permission...";
                 locationStatus.className = "text-brand-blue text-xs mt-1";
-                
-                if (navigator.geolocation) {
-                    const geoOptions = {
-                        enableHighAccuracy: isMobile,
-                        timeout: 10000,
-                        maximumAge: 0
-                    };
 
+                if (navigator.geolocation) {
+                    const geoOptions = { enableHighAccuracy: isMobile, timeout: 10000, maximumAge: 0 };
                     const successCallback = function(position) {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        
-                        // Update map and marker
-                        const latlng = [lat, lng];
-                        if (marker) {
-                            marker.setLatLng(latlng);
-                        } else {
-                            marker = L.marker(latlng).addTo(map);
-                        }
-                        map.setView(latlng, 15);
-                        
-                        // Update hidden inputs
-                        latInput.value = lat.toFixed(6);
-                        lngInput.value = lng.toFixed(6);
-                        
+                        setMapLocation(position.coords.latitude, position.coords.longitude);
                         locationStatus.innerText = "Location found successfully.";
                         locationStatus.className = "text-green-500 text-xs mt-1";
                     };
-
+                    const finalErrorCallback = function(error) {
+                        let msg = "Error getting location.";
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED: msg = "User denied the request for Geolocation."; break;
+                            case error.POSITION_UNAVAILABLE: msg = "Location information is unavailable."; break;
+                            case error.TIMEOUT: msg = "The request to get user location timed out."; break;
+                        }
+                        locationStatus.innerText = msg;
+                        locationStatus.className = "text-red-500 text-xs mt-1";
+                        locationCheckbox.checked = false;
+                    };
                     const errorCallback = function(error) {
                         if (isMobile && geoOptions.enableHighAccuracy && error.code !== error.PERMISSION_DENIED) {
-                            // Fallback to approximate location if exact fails on mobile
                             locationStatus.innerText = "Exact location failed, trying approximate...";
                             geoOptions.enableHighAccuracy = false;
                             navigator.geolocation.getCurrentPosition(successCallback, finalErrorCallback, geoOptions);
@@ -247,25 +294,6 @@
                             finalErrorCallback(error);
                         }
                     };
-
-                    const finalErrorCallback = function(error) {
-                        let msg = "Error getting location.";
-                        switch(error.code) {
-                            case error.PERMISSION_DENIED:
-                                msg = "User denied the request for Geolocation.";
-                                break;
-                            case error.POSITION_UNAVAILABLE:
-                                msg = "Location information is unavailable.";
-                                break;
-                            case error.TIMEOUT:
-                                msg = "The request to get user location timed out.";
-                                break;
-                        }
-                        locationStatus.innerText = msg;
-                        locationStatus.className = "text-red-500 text-xs mt-1";
-                        locationCheckbox.checked = false; // Uncheck on error
-                    };
-
                     navigator.geolocation.getCurrentPosition(successCallback, errorCallback, geoOptions);
                 } else {
                     locationStatus.innerText = "Geolocation is not supported by this browser.";
@@ -278,19 +306,8 @@
             }
         });
     });
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const productPrefill = urlParams.get('product_name');
-    const businessPrefill = urlParams.get('business_name');
-    if (productPrefill) {
-        const productInput = document.getElementById('product_search');
-        if (productInput) productInput.value = productPrefill;
-    }
-    if (businessPrefill) {
-        const businessInput = document.getElementById('business_search');
-        if (businessInput) businessInput.value = businessPrefill;
-    }
-
 </script>
-{% include 'includes/image_upload_script.html' %}
+{% include 'includes/multi_photo_upload_script.html' %}
+{% include 'includes/form_state_guard_script.html' %}
+{% include 'includes/category_select_scripts.html' %}
 {% endblock %}
