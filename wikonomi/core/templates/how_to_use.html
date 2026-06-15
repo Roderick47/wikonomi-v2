@@ -1,0 +1,789 @@
+{% extends 'base.html' %}
+
+{% block page_title %}How to Use Wikonomi — Complete Guide{% endblock %}
+
+{% block og_tags %}
+{% with base_url="https://www.wikonomi.com" og_title="How to Use Wikonomi" og_description="A complete guide to searching, sharing, comparing, rating, editing, and bulk uploading prices on Wikonomi." og_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
+<link rel="canonical" href="{{ base_url }}{% url 'how_to_use' %}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Wikonomi">
+<meta property="og:url" content="{{ base_url }}{% url 'how_to_use' %}">
+<meta property="og:title" content="{{ og_title }}">
+<meta property="og:description" content="{{ og_description }}">
+<meta property="og:image" content="{{ og_image }}">
+<meta property="og:image:secure_url" content="{{ og_image }}">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_PG">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@wikonomi">
+<meta name="twitter:title" content="{{ og_title }}">
+<meta name="twitter:description" content="{{ og_description }}">
+<meta name="twitter:image" content="{{ og_image }}">
+{% endwith %}
+{% endblock %}
+
+{% block extra_head %}
+<style>
+    html { scroll-behavior: smooth; }
+    .guide-section { scroll-margin-top: calc(var(--navbar-height, 4rem) + 1.5rem); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+
+    <!-- Hero -->
+    <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-purple/10 via-white to-brand-green/10 border border-brand-blue/20 shadow-sm mb-10">
+        <div class="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-brand-blue/20 blur-3xl"></div>
+        <div class="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-brand-green/20 blur-3xl"></div>
+        <div class="relative px-6 py-12 sm:px-10 lg:px-14 text-center">
+            <span class="inline-flex items-center rounded-full bg-white/80 px-4 py-1.5 text-sm font-semibold text-brand-purple ring-1 ring-brand-purple/20 shadow-sm">
+                Complete Wikonomi User Guide
+            </span>
+            <h1 class="mt-5 text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
+                How to use <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-green via-brand-blue to-brand-purple">Wikonomi</span>
+            </h1>
+            <p class="mt-6 max-w-3xl mx-auto text-lg sm:text-xl text-gray-600 leading-relaxed">
+                Wikonomi helps people in Papua New Guinea share, discover, compare, and verify local store prices. This guide walks you through every main feature, from searching for prices to bulk uploading a full business inventory.
+            </p>
+            <div class="mt-8 flex flex-wrap justify-center gap-3">
+                <a href="{% url 'home' %}" class="inline-flex items-center px-5 py-2.5 rounded-full bg-brand-purple text-white text-sm font-semibold shadow hover:bg-brand-purple/90 transition-all">
+                    Search Prices
+                </a>
+                <a href="{% url 'add_price' %}" class="inline-flex items-center px-5 py-2.5 rounded-full border border-brand-green text-brand-green bg-white text-sm font-semibold hover:bg-brand-green/10 transition-all">
+                    Add a Price
+                </a>
+                <a href="{% url 'bulk_upload' %}" class="inline-flex items-center px-5 py-2.5 rounded-full border border-brand-blue text-brand-blue bg-white text-sm font-semibold hover:bg-brand-blue/10 transition-all">
+                    Bulk Upload
+                </a>
+                <a href="{% url 'about' %}" class="inline-flex items-center px-5 py-2.5 rounded-full border border-gray-300 text-gray-700 bg-white text-sm font-semibold hover:bg-gray-50 transition-all">
+                    About Wikonomi
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick value cards -->
+    <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-10">
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div class="text-2xl mb-2">🔎</div>
+            <h2 class="font-bold text-gray-900">Find prices faster</h2>
+            <p class="mt-2 text-sm text-gray-600">Search products, brands, shops, or supermarkets and compare what people have reported.</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div class="text-2xl mb-2">📍</div>
+            <h2 class="font-bold text-gray-900">Use real locations</h2>
+            <p class="mt-2 text-sm text-gray-600">Prices can be attached to store locations so shoppers know where to go.</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div class="text-2xl mb-2">⭐</div>
+            <h2 class="font-bold text-gray-900">Trust the community</h2>
+            <p class="mt-2 text-sm text-gray-600">Ratings, photos, comments, edits, and deletion votes help improve accuracy.</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div class="text-2xl mb-2">🏪</div>
+            <h2 class="font-bold text-gray-900">Help businesses be found</h2>
+            <p class="mt-2 text-sm text-gray-600">Businesses can list products, prices, locations, and inventory for local discovery.</p>
+        </div>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <!-- Sidebar Navigation -->
+        <aside class="lg:col-span-3 lg:sticky lg:top-24">
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">On this page</h2>
+                <nav class="space-y-1 text-sm">
+                    <a href="#quick-start" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Quick start</a>
+                    <a href="#account" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Create an account</a>
+                    <a href="#search" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Search and compare</a>
+                    <a href="#price-analysis" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Price analysis</a>
+                    <a href="#location" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Locations and map</a>
+                    <a href="#adding-prices" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Add a price</a>
+                    <a href="#businesses" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Business profiles</a>
+                    <a href="#bulk-upload" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Bulk upload</a>
+                    <a href="#shopping-list" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Shopping list</a>
+                    <a href="#rating" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Ratings</a>
+                    <a href="#watchlist" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Watchlist</a>
+                    <a href="#editing" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Editing and history</a>
+                    <a href="#comments" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Comments</a>
+                    <a href="#moderation" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Fix wrong data</a>
+                    <a href="#best-practices" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Best practices</a>
+                    <a href="#faq" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">FAQ</a>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main guide -->
+        <div class="lg:col-span-9 space-y-8">
+
+            <!-- Quick start -->
+            <section id="quick-start" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Quick start</h2>
+                    <p class="mt-1 text-gray-600">The fastest way to understand Wikonomi.</p>
+                </div>
+                <div class="p-6">
+                    <div class="grid gap-5 md:grid-cols-3">
+                        <div class="rounded-xl border border-brand-purple/20 bg-brand-purple/5 p-5">
+                            <div class="text-xs font-bold text-brand-purple uppercase tracking-wide">Step 1</div>
+                            <h3 class="mt-2 font-bold text-gray-900">Search first</h3>
+                            <p class="mt-2 text-sm text-gray-600">Use the search box on the homepage to look for a product, brand, supermarket, store, or market.</p>
+                        </div>
+                        <div class="rounded-xl border border-brand-blue/30 bg-brand-blue/5 p-5">
+                            <div class="text-xs font-bold text-brand-blue uppercase tracking-wide">Step 2</div>
+                            <h3 class="mt-2 font-bold text-gray-900">Compare results</h3>
+                            <p class="mt-2 text-sm text-gray-600">Check the latest reported price, business, date, photo, rating, and location before deciding where to shop.</p>
+                        </div>
+                        <div class="rounded-xl border border-brand-green/30 bg-brand-green/10 p-5">
+                            <div class="text-xs font-bold text-brand-green uppercase tracking-wide">Step 3</div>
+                            <h3 class="mt-2 font-bold text-gray-900">Contribute back</h3>
+                            <p class="mt-2 text-sm text-gray-600">Add a price, rate a report, leave a comment, or correct outdated information so the community becomes more useful.</p>
+                        </div>
+                    </div>
+                    <div class="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-5">
+                        <h3 class="font-semibold text-gray-900">Who should use Wikonomi?</h3>
+                        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                            <p class="text-sm text-gray-600"><span class="font-semibold text-gray-900">Shoppers:</span> find cheaper prices and avoid wasting time going from shop to shop.</p>
+                            <p class="text-sm text-gray-600"><span class="font-semibold text-gray-900">Businesses:</span> list products online so customers can discover what you sell.</p>
+                            <p class="text-sm text-gray-600"><span class="font-semibold text-gray-900">Communities:</span> build a living database of local prices for everyday goods.</p>
+                            <p class="text-sm text-gray-600"><span class="font-semibold text-gray-900">Researchers and advocates:</span> observe price patterns, cost-of-living pressure, and market differences.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Account -->
+            <section id="account" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Create an account</h2>
+                    <p class="mt-1 text-gray-600">You can browse public information, but an account gives you the full community features.</p>
+                </div>
+                <div class="p-6 space-y-5">
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">What an account lets you do</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                                <li>Add new price reports.</li>
+                                <li>Add businesses to the database.</li>
+                                <li>Rate price reports and businesses.</li>
+                                <li>Use your shopping list.</li>
+                                <li>Watch products and receive notifications.</li>
+                                <li>Edit your own submitted information where allowed.</li>
+                                <li>Help moderate wrong or duplicate data.</li>
+                            </ul>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">How to sign up</h3>
+                            <ol class="mt-3 space-y-2 text-sm text-gray-600 list-decimal pl-5">
+                                <li>Click <span class="font-semibold text-gray-900">Sign Up</span> in the top navigation.</li>
+                                <li>Create your account details.</li>
+                                <li>Log in whenever you want to contribute, rate, comment, or save items.</li>
+                            </ol>
+                            <div class="mt-4 flex flex-wrap gap-2">
+                                <a href="{% url 'signup' %}" class="inline-flex items-center px-4 py-2 rounded-lg bg-brand-purple text-white text-sm font-semibold hover:bg-brand-purple/90">Sign Up</a>
+                                <a href="{% url 'login' %}" class="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50">Login</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rounded-xl border border-brand-blue/30 bg-brand-blue/5 p-4 text-sm text-gray-700">
+                        <span class="font-semibold text-gray-900">Tip:</span> Use a clear username because your public contributions help other users judge how active and reliable the community data is.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Search -->
+            <section id="search" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Search and compare prices</h2>
+                    <p class="mt-1 text-gray-600">Use Wikonomi like a local price search engine.</p>
+                </div>
+                <div class="p-6 space-y-6">
+                    <div class="rounded-xl border border-gray-200 p-5">
+                        <h3 class="font-bold text-gray-900">How to search</h3>
+                        <ol class="mt-3 space-y-2 text-sm text-gray-600 list-decimal pl-5">
+                            <li>Go to the homepage.</li>
+                            <li>Type a product, brand, business name, or general item name into the search box.</li>
+                            <li>Click <span class="font-semibold text-gray-900">Search</span>.</li>
+                            <li>Review the price cards returned in the feed.</li>
+                        </ol>
+                        <div class="mt-4">
+                            <a href="{% url 'home' %}" class="inline-flex items-center px-4 py-2 rounded-lg bg-brand-purple text-white text-sm font-semibold hover:bg-brand-purple/90">Go to Search</a>
+                        </div>
+                    </div>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">What to look at on a price card</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                                <li><span class="font-semibold text-gray-900">Product name:</span> the item being reported.</li>
+                                <li><span class="font-semibold text-gray-900">Price:</span> the reported amount and currency.</li>
+                                <li><span class="font-semibold text-gray-900">Business:</span> where the price was seen.</li>
+                                <li><span class="font-semibold text-gray-900">Date:</span> how recent the report is.</li>
+                                <li><span class="font-semibold text-gray-900">Photo:</span> evidence or visual confirmation where available.</li>
+                                <li><span class="font-semibold text-gray-900">Rating:</span> community trust signal.</li>
+                            </ul>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">Useful ways to compare</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                                <li>Compare the same product across different businesses.</li>
+                                <li>Check whether the cheapest price is recent or old.</li>
+                                <li>Use photos and notes to confirm size, brand, and packaging.</li>
+                                <li>Check the location before travelling to the shop.</li>
+                                <li>Do not rely only on one report if several newer reports disagree.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900">
+                        <span class="font-semibold">Important:</span> Prices can change quickly. Wikonomi shows community reports, not guaranteed live store prices. Use the latest, most trusted reports as your guide.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Price analysis -->
+            <section id="price-analysis" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Understand price analysis</h2>
+                    <p class="mt-1 text-gray-600">Price details help you see whether a price is cheap, normal, or expensive.</p>
+                </div>
+                <div class="p-6 space-y-5">
+                    <p class="text-gray-600 leading-relaxed">
+                        When Wikonomi has enough reports for a product, the platform can show useful comparison information such as the lowest, highest, and average reported prices. This helps you understand whether a listed price is unusually cheap, unusually high, or close to the community average.
+                    </p>
+                    <div class="grid gap-4 md:grid-cols-3">
+                        <div class="rounded-xl border border-brand-green/30 bg-brand-green/10 p-5">
+                            <h3 class="font-bold text-gray-900">Lowest price</h3>
+                            <p class="mt-2 text-sm text-gray-600">Useful when you want the cheapest known option. Always check the date and location.</p>
+                        </div>
+                        <div class="rounded-xl border border-brand-blue/30 bg-brand-blue/5 p-5">
+                            <h3 class="font-bold text-gray-900">Average price</h3>
+                            <p class="mt-2 text-sm text-gray-600">Useful for understanding the normal market range for that product.</p>
+                        </div>
+                        <div class="rounded-xl border border-red-200 bg-red-50 p-5">
+                            <h3 class="font-bold text-gray-900">Highest price</h3>
+                            <p class="mt-2 text-sm text-gray-600">Useful when checking whether a store is charging much more than others.</p>
+                        </div>
+                    </div>
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-5">
+                        <h3 class="font-bold text-gray-900">How to read price analysis properly</h3>
+                        <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                            <li>A cheaper price is only useful if the report is recent and the shop is reachable.</li>
+                            <li>Different package sizes can make prices look different, so check photos and notes.</li>
+                            <li>Promotions and sales may be temporary.</li>
+                            <li>If a price looks wrong, comment, rate it lower, edit it if you can, or mark it for deletion.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Location -->
+            <section id="location" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Use locations and the map</h2>
+                    <p class="mt-1 text-gray-600">Location data makes price information practical in the real world.</p>
+                </div>
+                <div class="p-6 space-y-5">
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">When viewing prices</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                                <li>Use the map to see where prices were reported.</li>
+                                <li>Check whether the store is near you before travelling.</li>
+                                <li>Look for clusters of prices around shopping areas.</li>
+                                <li>Use nearby price details to compare options around a selected report.</li>
+                            </ul>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">When adding prices</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                                <li>Select the business first if it already has a default location.</li>
+                                <li>Use your current location if you are physically at the store.</li>
+                                <li>Click or tap the map to set the location manually.</li>
+                                <li>Use the correct store branch when possible.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="rounded-xl border border-brand-green/30 bg-brand-green/10 p-4 text-sm text-gray-700">
+                        <span class="font-semibold text-gray-900">Best practice:</span> If you are uploading prices for a business, set the correct store location once. Future prices for that business become more useful when the location is consistent.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Add price -->
+            <section id="adding-prices" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Add a price report</h2>
+                    <p class="mt-1 text-gray-600">A good price report should be clear, recent, and easy for another shopper to verify.</p>
+                </div>
+                <div class="p-6 space-y-6">
+                    <div class="rounded-xl border border-gray-200 p-5">
+                        <h3 class="font-bold text-gray-900">How to add one price</h3>
+                        <ol class="mt-3 space-y-2 text-sm text-gray-600 list-decimal pl-5">
+                            <li>Click <span class="font-semibold text-gray-900">Add</span> in the top navigation.</li>
+                            <li>Select <span class="font-semibold text-gray-900">Add Prices</span>.</li>
+                            <li>Upload up to five photos if you have them.</li>
+                            <li>Enter the product name. Choose an existing product if it appears, or type a new one.</li>
+                            <li>Enter the business name. Choose an existing business if it appears, or type a new one.</li>
+                            <li>Select a category and subcategory where relevant.</li>
+                            <li>Enter the price and currency.</li>
+                            <li>Add tags such as <span class="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">sale</span>, <span class="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">wholesale</span>, or <span class="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">supermarket</span>.</li>
+                            <li>Set the location using the business default, your current location, or the map.</li>
+                            <li>Add notes if needed, then save.</li>
+                        </ol>
+                        <div class="mt-4">
+                            <a href="{% url 'add_price' %}" class="inline-flex items-center px-4 py-2 rounded-lg bg-brand-purple text-white text-sm font-semibold hover:bg-brand-purple/90">Add a Price</a>
+                        </div>
+                    </div>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">What makes a strong report?</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                                <li>Clear product name and brand.</li>
+                                <li>Correct package size or quantity in the notes.</li>
+                                <li>Accurate price and currency.</li>
+                                <li>Correct store or branch.</li>
+                                <li>Recent photo of the price tag, shelf, receipt, or product.</li>
+                                <li>Precise location when the business is new.</li>
+                            </ul>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">Avoid these mistakes</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                                <li>Do not mix different sizes as if they are the same product.</li>
+                                <li>Do not guess prices from memory if you are not sure.</li>
+                                <li>Do not add a business name without checking spelling.</li>
+                                <li>Do not upload blurry photos if a clearer photo is possible.</li>
+                                <li>Do not use a location far away from the actual store.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Businesses -->
+            <section id="businesses" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Add and use business profiles</h2>
+                    <p class="mt-1 text-gray-600">Business profiles help shoppers discover stores and see the prices linked to them.</p>
+                </div>
+                <div class="p-6 space-y-6">
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">How to add a business</h3>
+                            <ol class="mt-3 space-y-2 text-sm text-gray-600 list-decimal pl-5">
+                                <li>Click <span class="font-semibold text-gray-900">Add</span> in the top navigation.</li>
+                                <li>Select <span class="font-semibold text-gray-900">Add Business</span>.</li>
+                                <li>Enter the business name.</li>
+                                <li>Choose the industry or business type.</li>
+                                <li>Select a subcategory if available.</li>
+                                <li>Add optional details such as opening hours, services, contact information, or notes.</li>
+                                <li>Upload a business image if available.</li>
+                                <li>Save the business.</li>
+                            </ol>
+                            <div class="mt-4">
+                                <a href="{% url 'add_business' %}" class="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue text-white text-sm font-semibold hover:bg-brand-blue/90">Add a Business</a>
+                            </div>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">What a business profile is useful for</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                                <li>Showing all prices connected to that store.</li>
+                                <li>Helping shoppers find local businesses online.</li>
+                                <li>Giving small businesses visibility without needing a full ecommerce site.</li>
+                                <li>Allowing customers to rate and discuss business information.</li>
+                                <li>Making bulk inventory uploads easier for businesses.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="rounded-xl border border-brand-blue/30 bg-brand-blue/5 p-4 text-sm text-gray-700">
+                        <span class="font-semibold text-gray-900">For businesses:</span> Treat your Wikonomi profile like a public product discovery page. Keep names, categories, and inventory prices clean so customers can find you through search.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bulk Upload -->
+            <section id="bulk-upload" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Bulk upload prices with CSV</h2>
+                    <p class="mt-1 text-gray-600">Best for businesses or users who want to add many prices at once.</p>
+                </div>
+                <div class="p-6 space-y-6">
+                    <div class="rounded-xl border border-gray-200 p-5">
+                        <h3 class="font-bold text-gray-900">How bulk upload works</h3>
+                        <ol class="mt-3 space-y-2 text-sm text-gray-600 list-decimal pl-5">
+                            <li>Open the bulk upload page.</li>
+                            <li>Download the CSV template.</li>
+                            <li>Fill in product names and prices, one product per row.</li>
+                            <li>Add optional currency, notes, and tags.</li>
+                            <li>Enter the business or store name that applies to the uploaded items.</li>
+                            <li>Set the shared store location on the map.</li>
+                            <li>Upload the CSV file.</li>
+                            <li>Review the preview carefully before confirming.</li>
+                            <li>Fix any invalid rows before final upload.</li>
+                        </ol>
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <a href="{% url 'bulk_upload' %}" class="inline-flex items-center px-4 py-2 rounded-lg bg-brand-purple text-white text-sm font-semibold hover:bg-brand-purple/90">Open Bulk Upload</a>
+                            <a href="{% url 'download_csv_template' %}" class="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50">Download CSV Template</a>
+                        </div>
+                    </div>
+                    <div class="overflow-hidden rounded-xl border border-gray-200">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left font-semibold text-gray-700">Column</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-gray-700">Required?</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-gray-700">Use</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 bg-white text-gray-600">
+                                <tr>
+                                    <td class="px-4 py-3 font-mono text-xs text-gray-900">product_name</td>
+                                    <td class="px-4 py-3">Yes</td>
+                                    <td class="px-4 py-3">Name of the product or item.</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-mono text-xs text-gray-900">price</td>
+                                    <td class="px-4 py-3">Yes</td>
+                                    <td class="px-4 py-3">Numeric price, for example 45.00.</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-mono text-xs text-gray-900">currency</td>
+                                    <td class="px-4 py-3">No</td>
+                                    <td class="px-4 py-3">Currency code. If empty, the platform can default to PGK.</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-mono text-xs text-gray-900">notes</td>
+                                    <td class="px-4 py-3">No</td>
+                                    <td class="px-4 py-3">Extra detail such as size, brand, discount, or condition.</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-mono text-xs text-gray-900">tags</td>
+                                    <td class="px-4 py-3">No</td>
+                                    <td class="px-4 py-3">Comma-separated labels that make searching easier.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900">
+                        <span class="font-semibold">Business warning:</span> Do not upload messy inventory. Clean product names matter. For example, use consistent names like "Trukai Rice 10kg" instead of switching between "rice 10", "Trukai 10kg", and "10kg rice".
+                    </div>
+                </div>
+            </section>
+
+            <!-- Shopping list -->
+            <section id="shopping-list" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Use your shopping list</h2>
+                    <p class="mt-1 text-gray-600">Plan your shopping and estimate what your list may cost.</p>
+                </div>
+                <div class="p-6 space-y-5">
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">What you can do</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                                <li>Add custom shopping items manually.</li>
+                                <li>Add products from product or price pages where available.</li>
+                                <li>Tick items off when bought.</li>
+                                <li>Delete items you no longer need.</li>
+                                <li>See an estimated total for unchecked items.</li>
+                            </ul>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">How to use it well</h3>
+                            <ol class="mt-3 space-y-2 text-sm text-gray-600 list-decimal pl-5">
+                                <li>Add the items you plan to buy.</li>
+                                <li>Search each item to compare store prices.</li>
+                                <li>Use the estimated total as a guide, not a guarantee.</li>
+                                <li>After shopping, add or update prices you actually saw.</li>
+                            </ol>
+                        </div>
+                    </div>
+                    <a href="{% url 'shopping_list' %}" class="inline-flex items-center px-4 py-2 rounded-lg bg-brand-green text-white text-sm font-semibold hover:bg-brand-green/90">Open Shopping List</a>
+                </div>
+            </section>
+
+            <!-- Ratings -->
+            <section id="rating" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Rate price reports and businesses</h2>
+                    <p class="mt-1 text-gray-600">Ratings help the community know what information is reliable.</p>
+                </div>
+                <div class="p-6 space-y-6">
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">How to rate</h3>
+                            <ol class="mt-3 space-y-2 text-sm text-gray-600 list-decimal pl-5">
+                                <li>Open a price report or business page.</li>
+                                <li>Find the community rating section.</li>
+                                <li>Select 1 to 5 stars.</li>
+                                <li>You can adjust your rating later if your view changes.</li>
+                            </ol>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">Suggested rating meaning</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                                <li><span class="font-semibold text-gray-900">5 stars:</span> clear, recent, accurate, and useful.</li>
+                                <li><span class="font-semibold text-gray-900">4 stars:</span> mostly reliable with minor missing details.</li>
+                                <li><span class="font-semibold text-gray-900">3 stars:</span> useful but needs more evidence or clarity.</li>
+                                <li><span class="font-semibold text-gray-900">2 stars:</span> likely outdated, unclear, or incomplete.</li>
+                                <li><span class="font-semibold text-gray-900">1 star:</span> probably wrong, misleading, or not useful.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                        <span class="font-semibold">Fairness matters:</span> Rate the quality of the information, not whether you like the business or the person who posted it.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Watchlist -->
+            <section id="watchlist" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Watch products and use notifications</h2>
+                    <p class="mt-1 text-gray-600">Watchlists help you follow products you care about.</p>
+                </div>
+                <div class="p-6 space-y-5">
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">When to watch a product</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                                <li>You buy the product often.</li>
+                                <li>You are waiting for a better price.</li>
+                                <li>You want to know when other users add new reports.</li>
+                                <li>You want to track changes in staple goods like rice, fuel, tinned fish, or cooking oil.</li>
+                            </ul>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">How notifications help</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                                <li>Alerts can point you to updates that need your attention.</li>
+                                <li>You can check when watched product prices change.</li>
+                                <li>You can respond faster to suspicious or useful new reports.</li>
+                                <li>You can mute notifications when they are no longer useful.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <a href="{% url 'notifications' %}" class="inline-flex items-center px-4 py-2 rounded-lg border border-brand-purple text-brand-purple bg-white text-sm font-semibold hover:bg-brand-purple/5">View Notifications</a>
+                </div>
+            </section>
+
+            <!-- Editing -->
+            <section id="editing" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Edit prices and understand history</h2>
+                    <p class="mt-1 text-gray-600">Prices change. Wikonomi is built so the database can improve over time.</p>
+                </div>
+                <div class="p-6 space-y-6">
+                    <div class="rounded-xl border border-gray-200 p-5">
+                        <h3 class="font-bold text-gray-900">When to edit a price</h3>
+                        <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                            <li>The store price has changed.</li>
+                            <li>The original report has a typo.</li>
+                            <li>The product details are incomplete.</li>
+                            <li>The photo needs to be improved.</li>
+                            <li>The location, category, or notes need correction.</li>
+                        </ul>
+                    </div>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">How to edit</h3>
+                            <ol class="mt-3 space-y-2 text-sm text-gray-600 list-decimal pl-5">
+                                <li>Open the price report page.</li>
+                                <li>Use the edit option if it is available to you.</li>
+                                <li>Update only what needs to change.</li>
+                                <li>Add a note or photo if the change could be disputed.</li>
+                                <li>Save the updated report.</li>
+                            </ol>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">Why history matters</h3>
+                            <p class="mt-3 text-sm text-gray-600 leading-relaxed">
+                                Edit history protects the community from silent changes. It helps users understand how price data has changed over time and gives the platform a better record of market movement.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="rounded-xl border border-brand-purple/20 bg-brand-purple/5 p-4 text-sm text-gray-700">
+                        <span class="font-semibold text-gray-900">Rule of thumb:</span> Do not overwrite useful old information with vague new information. A clear old report is often better than a careless new report.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Comments -->
+            <section id="comments" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Use comments for clarification</h2>
+                    <p class="mt-1 text-gray-600">Comments turn a price report into a useful discussion when details are unclear.</p>
+                </div>
+                <div class="p-6 space-y-5">
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">Good reasons to comment</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                                <li>Ask whether the price is for a specific size or brand.</li>
+                                <li>Confirm whether a sale is still active.</li>
+                                <li>Add extra context about store branch, stock, or opening hours.</li>
+                                <li>Point out that the report may be outdated.</li>
+                                <li>Thank contributors for useful information.</li>
+                            </ul>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">Commenting rules</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                                <li>Be specific and factual.</li>
+                                <li>Do not insult businesses, users, or staff.</li>
+                                <li>Do not spread rumours.</li>
+                                <li>Use comments to improve the data, not to argue.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Moderation -->
+            <section id="moderation" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Fix wrong, duplicate, or outdated data</h2>
+                    <p class="mt-1 text-gray-600">Community correction is what keeps Wikonomi useful.</p>
+                </div>
+                <div class="p-6 space-y-6">
+                    <div class="grid gap-4 md:grid-cols-3">
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">If the price changed</h3>
+                            <p class="mt-2 text-sm text-gray-600">Add a newer price report or edit the existing one if editing is available.</p>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">If details are unclear</h3>
+                            <p class="mt-2 text-sm text-gray-600">Leave a comment asking for size, brand, photo, branch, or date clarification.</p>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">If it should be removed</h3>
+                            <p class="mt-2 text-sm text-gray-600">Use the deletion request option and explain why. Another user may need to confirm.</p>
+                        </div>
+                    </div>
+                    <div class="rounded-xl border border-red-200 bg-red-50 p-5">
+                        <h3 class="font-bold text-red-900">When to mark a report for deletion</h3>
+                        <ul class="mt-3 space-y-2 text-sm text-red-800 list-disc pl-5">
+                            <li>The report is a duplicate.</li>
+                            <li>The product does not match the price.</li>
+                            <li>The price is obviously fake or impossible.</li>
+                            <li>The business is wrong and cannot be corrected properly.</li>
+                            <li>The report contains inappropriate or harmful content.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Best practices -->
+            <section id="best-practices" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Best practices for accurate price data</h2>
+                    <p class="mt-1 text-gray-600">The better the input, the more powerful Wikonomi becomes for everyone.</p>
+                </div>
+                <div class="p-6 space-y-6">
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="rounded-xl border border-brand-green/30 bg-brand-green/10 p-5">
+                            <h3 class="font-bold text-gray-900">Do this</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-700 list-disc pl-5">
+                                <li>Use clear product names.</li>
+                                <li>Include brand, size, and quantity.</li>
+                                <li>Take a photo where possible.</li>
+                                <li>Use the exact store or branch.</li>
+                                <li>Add notes for specials, discounts, or limited offers.</li>
+                                <li>Update prices when you notice changes.</li>
+                            </ul>
+                        </div>
+                        <div class="rounded-xl border border-red-200 bg-red-50 p-5">
+                            <h3 class="font-bold text-gray-900">Avoid this</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-700 list-disc pl-5">
+                                <li>Guessing or posting old prices as current.</li>
+                                <li>Mixing similar but different products.</li>
+                                <li>Using vague names like "rice" when the brand and size matter.</li>
+                                <li>Adding a store location that is only approximate when you know the exact place.</li>
+                                <li>Posting personal attacks in comments.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-5">
+                        <h3 class="font-bold text-gray-900">Example of a good report</h3>
+                        <div class="mt-3 grid gap-3 sm:grid-cols-2 text-sm text-gray-600">
+                            <p><span class="font-semibold text-gray-900">Product:</span> Trukai Rice 10kg</p>
+                            <p><span class="font-semibold text-gray-900">Price:</span> PGK 65.00</p>
+                            <p><span class="font-semibold text-gray-900">Business:</span> Stop &amp; Shop Boroko</p>
+                            <p><span class="font-semibold text-gray-900">Notes:</span> Shelf price, taken today, normal white rice bag.</p>
+                            <p><span class="font-semibold text-gray-900">Photo:</span> Clear photo of shelf tag and product.</p>
+                            <p><span class="font-semibold text-gray-900">Location:</span> Store location pinned correctly on the map.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FAQ -->
+            <section id="faq" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Frequently asked questions</h2>
+                    <p class="mt-1 text-gray-600">Straight answers for new users.</p>
+                </div>
+                <div class="p-6 divide-y divide-gray-100">
+                    <details class="group py-4" open>
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-gray-900">
+                            Are Wikonomi prices guaranteed to be current?
+                            <span class="text-brand-purple group-open:rotate-180 transition-transform">⌄</span>
+                        </summary>
+                        <p class="mt-3 text-sm text-gray-600 leading-relaxed">No. Wikonomi is community-driven. A report tells you what someone saw and shared. Always check the report date, rating, notes, and photo before relying on it.</p>
+                    </details>
+                    <details class="group py-4">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-gray-900">
+                            Can I add a price without a photo?
+                            <span class="text-brand-purple group-open:rotate-180 transition-transform">⌄</span>
+                        </summary>
+                        <p class="mt-3 text-sm text-gray-600 leading-relaxed">Yes, but photos make reports more trustworthy. A clear photo is especially important for expensive items, disputed prices, promotions, and products with different sizes.</p>
+                    </details>
+                    <details class="group py-4">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-gray-900">
+                            What if the same product has many names?
+                            <span class="text-brand-purple group-open:rotate-180 transition-transform">⌄</span>
+                        </summary>
+                        <p class="mt-3 text-sm text-gray-600 leading-relaxed">Use the clearest product name you can. Include brand and size. The platform can work with product matching, but clean naming still produces better search and comparison results.</p>
+                    </details>
+                    <details class="group py-4">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-gray-900">
+                            Can businesses upload their full inventory?
+                            <span class="text-brand-purple group-open:rotate-180 transition-transform">⌄</span>
+                        </summary>
+                        <p class="mt-3 text-sm text-gray-600 leading-relaxed">Yes. Use the bulk upload page, download the CSV template, fill in your products and prices, set the store name and location, then preview the upload before confirming.</p>
+                    </details>
+                    <details class="group py-4">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-gray-900">
+                            What should I do if a report is fake or wrong?
+                            <span class="text-brand-purple group-open:rotate-180 transition-transform">⌄</span>
+                        </summary>
+                        <p class="mt-3 text-sm text-gray-600 leading-relaxed">First, add a comment or lower rating if it is unclear. If it is definitely wrong, duplicate, or inappropriate, use the deletion request option and explain the issue.</p>
+                    </details>
+                    <details class="group py-4">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-gray-900">
+                            Why should ordinary shoppers contribute?
+                            <span class="text-brand-purple group-open:rotate-180 transition-transform">⌄</span>
+                        </summary>
+                        <p class="mt-3 text-sm text-gray-600 leading-relaxed">Because every useful report makes the database stronger. One person adding one price helps another shopper save time, compare options, and make a better buying decision.</p>
+                    </details>
+                </div>
+            </section>
+
+            <!-- Final CTA -->
+            <section class="rounded-3xl bg-gradient-to-r from-brand-purple via-brand-blue to-brand-green p-1 shadow-lg">
+                <div class="rounded-[1.35rem] bg-white px-6 py-8 text-center">
+                    <h2 class="text-2xl font-extrabold text-gray-900">Ready to help build PNG's price database?</h2>
+                    <p class="mt-3 max-w-2xl mx-auto text-gray-600">Search before you shop. Share what you see. Correct what is wrong. The more people contribute, the more useful Wikonomi becomes for everyone.</p>
+                    <div class="mt-6 flex flex-wrap justify-center gap-3">
+                        <a href="{% url 'home' %}" class="inline-flex items-center px-5 py-2.5 rounded-full bg-brand-purple text-white text-sm font-semibold shadow hover:bg-brand-purple/90 transition-all">Start Searching</a>
+                        <a href="{% url 'add_price' %}" class="inline-flex items-center px-5 py-2.5 rounded-full border border-brand-green text-brand-green bg-white text-sm font-semibold hover:bg-brand-green/10 transition-all">Add a Price</a>
+                        <a href="{% url 'bulk_upload' %}" class="inline-flex items-center px-5 py-2.5 rounded-full border border-brand-blue text-brand-blue bg-white text-sm font-semibold hover:bg-brand-blue/10 transition-all">Upload Inventory</a>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
