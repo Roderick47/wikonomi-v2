@@ -14,7 +14,7 @@
     <div class="bg-white shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
             <h1 class="text-2xl font-bold text-gray-900 mb-6">Edit Price Report</h1>
-            
+
             {% if messages %}
                 {% for message in messages %}
                     <div class="mb-4 p-4 rounded-md bg-brand-green/10 border border-brand-green/50">
@@ -22,15 +22,32 @@
                     </div>
                 {% endfor %}
             {% endif %}
-            
-            <form method="post" enctype="multipart/form-data">
+
+            <form method="post" enctype="multipart/form-data" data-validate-form data-persist-key="wikonomi:edit-price-form:{{ report.pk }}">
                 {% csrf_token %}
-                
+                <div data-form-errors class="hidden"></div>
+
+                {% if form.errors %}
+                <div class="bg-red-50 border border-red-200 text-red-600 rounded-md p-4 mb-4">
+                    <p class="font-medium">Please correct the errors below.</p>
+                    <ul class="list-disc pl-5 mt-2">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div class="sm:col-span-2">
-                        <label for="product_search" class="block text-sm font-medium text-gray-700">Product</label>
+                        <label for="product_search" class="block text-sm font-medium text-gray-700">Product *</label>
                         <div class="mt-1 flex rounded-md shadow-sm">
-                            <input type="text" name="product_name" id="product_search" value="{{ report.product.name }}" list="product_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm border-gray-300" placeholder="Type a product name..." required>
+                            <input type="text" name="product_name" id="product_search" value="{% if request.POST %}{{ request.POST.product_name }}{% else %}{{ report.product.name }}{% endif %}" list="product_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm border-gray-300" placeholder="Type a product name..." required>
                             <datalist id="product_list">
                                 {% for product in products %}
                                     <option value="{{ product.name }}"></option>
@@ -39,11 +56,11 @@
                         </div>
                         <p class="mt-2 text-sm text-gray-500">Edit product name or select an existing product.</p>
                     </div>
-                    
+
                     <div class="sm:col-span-2">
                         <label for="business_search" class="block text-sm font-medium text-gray-700">Business</label>
                         <div class="mt-1 flex rounded-md shadow-sm">
-                            <input type="text" name="business_name" id="business_search" value="{% if report.business %}{{ report.business.name }}{% endif %}" list="business_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm border-gray-300" placeholder="Type a business name...">
+                            <input type="text" name="business_name" id="business_search" value="{% if request.POST %}{{ request.POST.business_name }}{% elif report.business %}{{ report.business.name }}{% endif %}" list="business_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm border-gray-300" placeholder="Type a business name...">
                             <datalist id="business_list">
                                 {% for business in businesses %}
                                     <option value="{{ business.name }}"></option>
@@ -52,85 +69,68 @@
                         </div>
                         <p class="mt-2 text-sm text-gray-500">Edit business name or select an existing business where you found this price.</p>
                     </div>
-                    
+
                     <div>
                         <label for="id_category" class="block text-sm font-medium text-gray-700">Category</label>
-                        <div class="mt-1">
-                            {{ form.category }}
-                        </div>
+                        <div class="mt-1">{{ form.category }}</div>
                     </div>
 
                     <div>
                         <label for="id_subcategory" class="block text-sm font-medium text-gray-700">Subcategory</label>
-                        <div class="mt-1">
-                            {{ form.subcategory }}
-                        </div>
+                        <div class="mt-1">{{ form.subcategory }}</div>
                         <small id="subcategory-hint" class="mt-1 block text-sm text-gray-500"></small>
                     </div>
 
                     <div>
                         <label for="price" class="block text-sm font-medium text-gray-700">Price *</label>
                         <div class="mt-1">
-                            <input type="number" 
-                                   id="price" 
-                                   name="price" 
-                                   value="{{ report.price }}" 
-                                   step="0.01" 
-                                   required
-                                   class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm">
+                            <input type="number" id="price" name="price" value="{% if request.POST %}{{ request.POST.price }}{% else %}{{ report.price }}{% endif %}" step="0.01" min="0.01" required class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm">
                         </div>
                     </div>
-                    
+
                     <div>
                         <label for="currency" class="block text-sm font-medium text-gray-700">Currency</label>
                         <div class="mt-1">
-                            <input type="text" 
-                                   id="currency" 
-                                   name="currency" 
-                                   value="{{ report.currency }}" 
-                                   maxlength="3"
-                                   class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm">
+                            <input type="text" id="currency" name="currency" value="{% if request.POST %}{{ request.POST.currency }}{% else %}{{ report.currency }}{% endif %}" maxlength="3" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm">
                         </div>
                     </div>
-                    
+
                     <div class="sm:col-span-2">
                         <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
                         <div class="mt-1">
-                            <textarea id="notes" 
-                                      name="notes" 
-                                      rows="3"
-                                      class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm">{{ report.notes }}</textarea>
+                            <textarea id="notes" name="notes" rows="3" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm">{% if request.POST %}{{ request.POST.notes }}{% else %}{{ report.notes }}{% endif %}</textarea>
                         </div>
                     </div>
-                    
+
                     <div class="sm:col-span-2">
                         <label for="tags" class="block text-sm font-medium text-gray-700">Tags</label>
                         <div class="mt-1">
-                            <input type="text" 
-                                   id="tags" 
-                                   name="tags" 
-                                   value="{{ report.product.tags.all|join:',' }}"
-                                   placeholder="Enter tags separated by commas (e.g., electronics, sale, urgent)"
-                                   class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm">
+                            <input type="text" id="tags" name="tags" value="{% if request.POST %}{{ request.POST.tags }}{% else %}{{ report.product.tags.all|join:',' }}{% endif %}" placeholder="Enter tags separated by commas (e.g., electronics, sale, urgent)" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm">
                             <p class="mt-1 text-sm text-gray-500">Separate multiple tags with commas.</p>
                         </div>
                     </div>
-                    
+
                     <div class="sm:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Photos (Optional, Max 5)</label>
-                        <input type="file" name="photos" id="photos-input" accept="image/*" multiple class="hidden">
+                        <input type="file" name="photos" id="photos-input" accept="image/*" multiple class="hidden" data-max-photos="5" data-existing-count="{{ photos|length|default:0 }}">
 
-                        <!-- Existing photos -->
                         {% if photos %}
                         <div class="mb-4">
-                            <p class="text-xs text-gray-500 mb-2">Existing photos ({{ photos|length }}/5)</p>
+                            <p class="text-xs text-gray-500 mb-2">Existing photos ({{ photos|length }}/5). Replace one photo, delete it, or add more below.</p>
                             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 {% for photo in photos %}
-                                <div class="relative group">
-                                    <img src="{{ photo.image.url }}" class="w-full h-32 object-cover rounded-md border border-gray-200" alt="Photo {{ forloop.counter }}">
-                                    <button type="button" onclick="deleteExistingPhoto({{ photo.id }})" class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Photo">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                    </button>
+                                <div class="relative group rounded-md transition-all" data-existing-photo-card="{{ photo.id }}">
+                                    <img id="existing-photo-preview-{{ photo.id }}" src="{{ photo.image.url }}" class="w-full h-32 object-cover rounded-md border border-gray-200" alt="Photo {{ forloop.counter }}">
+                                    <span id="existing-photo-replace-badge-{{ photo.id }}" class="hidden absolute bottom-1 left-1 rounded bg-brand-green/90 text-white text-xs px-2 py-1">Replacement selected</span>
+                                    <div class="absolute top-1 right-1 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                        <button type="button" onclick="replaceExistingPhoto({{ photo.id }})" class="bg-white/90 text-gray-700 rounded-full p-1 shadow" title="Replace Photo">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                        </button>
+                                        <button type="button" onclick="deleteExistingPhoto({{ photo.id }})" class="bg-red-500 text-white rounded-full p-1 shadow" title="Delete Photo">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                        </button>
+                                    </div>
+                                    <input type="file" name="update_photo_{{ photo.id }}" id="update-photo-{{ photo.id }}" accept="image/*" class="hidden" data-existing-photo-input="{{ photo.id }}">
                                     <input type="checkbox" name="delete_photos" value="{{ photo.id }}" id="delete-photo-{{ photo.id }}" class="hidden delete-photo-checkbox">
                                 </div>
                                 {% endfor %}
@@ -138,7 +138,6 @@
                         </div>
                         {% endif %}
 
-                        <!-- Add new photos -->
                         <div class="border-2 border-gray-300 border-dashed rounded-md relative hover:bg-gray-50 transition-colors duration-200" id="photos-drop-zone">
                             <div class="px-6 pt-8 pb-8 text-center" id="photos-upload-content">
                                 <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
@@ -160,16 +159,15 @@
                                 <p class="mt-1 text-xs text-gray-400">or drag and drop here</p>
                             </div>
 
-                            <div id="photos-preview-container" class="hidden w-full p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            </div>
+                            <div id="photos-preview-container" class="hidden w-full p-4 grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
                         </div>
-                        <p id="photo-count" class="mt-2 text-xs text-gray-500">{% if photos %}{{ photos|length }}{% else %}0{% endif %}/5 photos</p>
+                        <p id="photo-count" class="mt-2 text-xs text-gray-500">{{ photos|length|default:0 }}/5 photos</p>
                     </div>
-                    
+
                     <div class="sm:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
                         <p class="text-sm text-gray-500 mb-2">Click on the map to set the exact location where you saw this price.</p>
-                        
+
                         <div class="mb-3 flex items-start">
                             <div class="flex items-center h-5">
                                 <input id="use_my_location" name="use_my_location" type="checkbox" class="focus:ring-brand-purple/50 h-4 w-4 text-brand-purple border-gray-300 rounded">
@@ -181,26 +179,19 @@
                         </div>
 
                         <div id="map" class="rounded-lg border border-gray-300"></div>
-                        
-                        <!-- Hidden inputs for latitude and longitude populated by Leaflet -->
                         {{ form.latitude }}
                         {{ form.longitude }}
                     </div>
                 </div>
-                
+
                 <div class="mt-6 flex justify-end space-x-3">
-                    <a href="{% url 'price_detail' report.pk %}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded">
-                        Cancel
-                    </a>
-                    <button type="submit" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold py-2 px-4 rounded">
-                        Update Price Report
-                    </button>
+                    <a href="{% url 'price_detail' report.pk %}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded">Cancel</a>
+                    <button type="submit" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold py-2 px-4 rounded">Update Price Report</button>
                 </div>
             </form>
         </div>
     </div>
-    
-    <!-- Price History Section -->
+
     {% if report.price_history.all %}
     <div class="mt-8 bg-white shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
@@ -210,13 +201,9 @@
                 <div class="border-l-4 border-brand-blue pl-4 py-2">
                     <div class="flex items-center justify-between">
                         <div>
-                            <span class="text-sm text-gray-500">
-                                {{ history.changed_at|date:"M d, Y H:i" }}
-                            </span>
+                            <span class="text-sm text-gray-500">{{ history.changed_at|date:"M d, Y H:i" }}</span>
                             {% if history.changed_by %}
-                                <span class="text-sm text-gray-500 ml-2">
-                                    by {{ history.changed_by.username }}
-                                </span>
+                                <span class="text-sm text-gray-500 ml-2">by {{ history.changed_by.username }}</span>
                             {% endif %}
                         </div>
                         <div class="text-sm font-medium">
@@ -227,9 +214,7 @@
                             <span class="text-brand-green">{{ history.new_price }} {{ history.new_currency }}</span>
                         </div>
                     </div>
-                    {% if history.notes %}
-                    <div class="text-sm text-gray-600 mt-1">{{ history.notes }}</div>
-                    {% endif %}
+                    {% if history.notes %}<div class="text-sm text-gray-600 mt-1">{{ history.notes }}</div>{% endif %}
                 </div>
                 {% endfor %}
             </div>
@@ -238,267 +223,85 @@
     {% endif %}
 </div>
 
-<!-- Initialize Leaflet -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize map centered on existing location or Port Moresby
         let initialLat = -9.4438;
         let initialLng = 147.1803;
         let initialZoom = 13;
-        
-        // If there's already a location, center on it
         {% if report.latitude and report.longitude %}
         initialLat = {{ report.latitude }};
         initialLng = {{ report.longitude }};
         initialZoom = 15;
         {% endif %}
-        
+
         let marker = null;
-        let latInput, lngInput;
-        
-        try {
-            const map = L.map('map').setView([initialLat, initialLng], initialZoom);
-            
-            // Add OpenStreetMap tiles
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-            
-            latInput = document.getElementById('{{ form.latitude.id_for_label }}');
-            lngInput = document.getElementById('{{ form.longitude.id_for_label }}');
+        const map = L.map('map').setView([initialLat, initialLng], initialZoom);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
 
-            // If there's already a value, load marker
-            if (latInput.value && lngInput.value) {
-                const lat = parseFloat(latInput.value);
-                const lng = parseFloat(lngInput.value);
-                marker = L.marker([lat, lng]).addTo(map);
-                map.setView([lat, lng], 15);
+        const latInput = document.getElementById('{{ form.latitude.id_for_label }}');
+        const lngInput = document.getElementById('{{ form.longitude.id_for_label }}');
+
+        function setMapLocation(lat, lng, zoom = 15) {
+            const latlng = [lat, lng];
+            if (marker) {
+                marker.setLatLng(latlng);
+            } else {
+                marker = L.marker(latlng).addTo(map);
+            }
+            map.setView(latlng, zoom);
+            latInput.value = Number(lat).toFixed(6);
+            lngInput.value = Number(lng).toFixed(6);
+        }
+
+        if (latInput.value && lngInput.value) {
+            setMapLocation(parseFloat(latInput.value), parseFloat(lngInput.value));
+        }
+
+        map.on('click', function(e) {
+            setMapLocation(e.latlng.lat, e.latlng.lng);
+            document.getElementById('use_my_location').checked = false;
+        });
+
+        const locationCheckbox = document.getElementById('use_my_location');
+        const locationStatus = document.getElementById('location_status');
+
+        locationCheckbox.addEventListener('change', function() {
+            if (!this.checked) {
+                locationStatus.textContent = 'Browser will ask for permission.';
+                return;
             }
 
-            // On map click, place marker and update hidden inputs
-            map.on('click', function(e) {
-                const lat = e.latlng.lat;
-                const lng = e.latlng.lng;
-                
-                if (marker) {
-                    marker.setLatLng(e.latlng);
-                } else {
-                    marker = L.marker(e.latlng).addTo(map);
-                }
-                
-                // Update hidden inputs
-                latInput.value = lat.toFixed(6);
-                lngInput.value = lng.toFixed(6);
-                
-                // Uncheck "use my location" if user manually clicks map
-                document.getElementById('use_my_location').checked = false;
-            });
-            
-            // Handle geolocation
-            const locationCheckbox = document.getElementById('use_my_location');
-            const locationStatus = document.getElementById('location_status');
+            if (!navigator.geolocation) {
+                locationStatus.textContent = 'Geolocation is not supported by this browser.';
+                this.checked = false;
+                return;
+            }
 
-            locationCheckbox.addEventListener('change', function() {
-                if (this.checked) {
-                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                    
-                    if (isMobile) {
-                        locationStatus.textContent = 'Getting location...';
-                        navigator.geolocation.getCurrentPosition(
-                            function(position) {
-                                const lat = position.coords.latitude;
-                                const lng = position.coords.longitude;
-                                
-                                if (marker) {
-                                    marker.setLatLng([lat, lng]);
-                                } else {
-                                    marker = L.marker([lat, lng]).addTo(map);
-                                }
-                                
-                                map.setView([lat, lng], 15);
-                                latInput.value = lat.toFixed(6);
-                                lngInput.value = lng.toFixed(6);
-                                
-                                locationStatus.textContent = 'Location updated successfully';
-                            },
-                            function(error) {
-                                let message = 'Unknown error occurred';
-                                switch(error.code) {
-                                    case error.PERMISSION_DENIED:
-                                        message = 'Location access denied by user';
-                                        break;
-                                    case error.POSITION_UNAVAILABLE:
-                                        message = 'Location information unavailable';
-                                        break;
-                                    case error.TIMEOUT:
-                                        message = 'Location request timed out';
-                                        break;
-                                    case error.UNKNOWN_ERROR:
-                                        message = 'Unknown error occurred';
-                                        break;
-                                }
-                                locationStatus.textContent = message;
-                            }
-                        );
-                    } else {
-                        locationStatus.textContent = 'Geolocation not available on this device';
+            locationStatus.textContent = 'Getting location...';
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    setMapLocation(position.coords.latitude, position.coords.longitude);
+                    locationStatus.textContent = 'Location updated successfully.';
+                },
+                function(error) {
+                    let message = 'Unknown error occurred.';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED: message = 'Location access denied by user.'; break;
+                        case error.POSITION_UNAVAILABLE: message = 'Location information unavailable.'; break;
+                        case error.TIMEOUT: message = 'Location request timed out.'; break;
                     }
-                } else {
-                    locationStatus.textContent = '';
-                }
-            });
-
-        } catch (error) {
-            // Silently handle map initialization errors
-        }
-
-        // Multiple photos upload handling
-        const photosInput = document.getElementById('photos-input');
-        const photosDropZone = document.getElementById('photos-drop-zone');
-        const photosUploadContent = document.getElementById('photos-upload-content');
-        const photosPreviewContainer = document.getElementById('photos-preview-container');
-        const photoCount = document.getElementById('photo-count');
-        const maxPhotos = 5;
-        const existingPhotoCount = {{ photos|length|default:0 }};
-        let selectedPhotos = [];
-
-        window.openPhotosFilePicker = function(useCamera) {
-            if (photosInput) {
-                if (useCamera) {
-                    photosInput.setAttribute('capture', 'environment');
-                } else {
-                    photosInput.removeAttribute('capture');
-                }
-                photosInput.click();
-            }
-        };
-
-        window.deleteExistingPhoto = function(photoId) {
-            const checkbox = document.getElementById(`delete-photo-${photoId}`);
-            if (checkbox) {
-                checkbox.checked = !checkbox.checked;
-                // Update the photo count display
-                const currentDeleted = document.querySelectorAll('.delete-photo-checkbox:checked').length;
-                const newCount = existingPhotoCount - currentDeleted + selectedPhotos.length;
-                photoCount.textContent = `${newCount}/${maxPhotos} photos`;
-            }
-        };
-
-        function updatePhotoCount() {
-            const currentDeleted = document.querySelectorAll('.delete-photo-checkbox:checked').length;
-            const totalCount = existingPhotoCount - currentDeleted + selectedPhotos.length;
-            photoCount.textContent = `${totalCount}/${maxPhotos} photos`;
-            if (totalCount >= maxPhotos) {
-                photoCount.classList.add('text-red-500');
-            } else {
-                photoCount.classList.remove('text-red-500');
-            }
-        }
-
-        function addPhotoPreview(file, index) {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = function(e) {
-                const previewDiv = document.createElement('div');
-                previewDiv.className = 'relative group';
-                previewDiv.innerHTML = `
-                    <img src="${e.target.result}" class="w-full h-32 object-cover rounded-md border border-gray-200" alt="Photo preview">
-                    <button type="button" onclick="removeNewPhoto(${index})" class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                `;
-                photosPreviewContainer.appendChild(previewDiv);
-            };
-        }
-
-        window.removeNewPhoto = function(index) {
-            selectedPhotos.splice(index, 1);
-            renderPhotoPreviews();
-            updatePhotoCount();
-        };
-
-        function renderPhotoPreviews() {
-            photosPreviewContainer.innerHTML = '';
-            selectedPhotos.forEach((file, index) => {
-                addPhotoPreview(file, index);
-            });
-
-            if (selectedPhotos.length > 0) {
-                photosUploadContent.classList.add('hidden');
-                photosPreviewContainer.classList.remove('hidden');
-            } else {
-                photosUploadContent.classList.remove('hidden');
-                photosPreviewContainer.classList.add('hidden');
-            }
-        }
-
-        if (photosInput) {
-            photosInput.addEventListener('change', function(e) {
-                const currentDeleted = document.querySelectorAll('.delete-photo-checkbox:checked').length;
-                const availableSlots = maxPhotos - (existingPhotoCount - currentDeleted);
-                const files = Array.from(e.target.files);
-                const filesToAdd = files.slice(0, availableSlots);
-
-                selectedPhotos = selectedPhotos.concat(filesToAdd);
-                renderPhotoPreviews();
-                updatePhotoCount();
-
-                // Reset input so same files can be selected again if needed
-                photosInput.value = '';
-            });
-        }
-
-        if (photosDropZone) {
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                photosDropZone.addEventListener(eventName, preventDefaults, false);
-            });
-
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
-            ['dragenter', 'dragover'].forEach(eventName => {
-                photosDropZone.addEventListener(eventName, () => {
-                    photosDropZone.classList.add('border-brand-purple', 'bg-brand-purple/5');
-                }, false);
-            });
-
-            ['dragleave', 'drop'].forEach(eventName => {
-                photosDropZone.addEventListener(eventName, () => {
-                    photosDropZone.classList.remove('border-brand-purple', 'bg-brand-purple/5');
-                }, false);
-            });
-
-            photosDropZone.addEventListener('drop', function(e) {
-                const currentDeleted = document.querySelectorAll('.delete-photo-checkbox:checked').length;
-                const availableSlots = maxPhotos - (existingPhotoCount - currentDeleted);
-                const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
-                const filesToAdd = files.slice(0, availableSlots);
-
-                selectedPhotos = selectedPhotos.concat(filesToAdd);
-                renderPhotoPreviews();
-                updatePhotoCount();
-            }, false);
-        }
-
-        // Handle form submission to include selected photos
-        const form = document.querySelector('form[method="POST"]');
-        if (form) {
-            form.addEventListener('submit', function(e) {
-                // Clear existing photos input
-                photosInput.value = '';
-
-                // Add selected photos to the input
-                const dataTransfer = new DataTransfer();
-                selectedPhotos.forEach(file => {
-                    dataTransfer.items.add(file);
-                });
-                photosInput.files = dataTransfer.files;
-            });
-        }
+                    locationStatus.textContent = message;
+                    locationCheckbox.checked = false;
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        });
     });
 </script>
+{% include 'includes/multi_photo_upload_script.html' %}
+{% include 'includes/form_state_guard_script.html' %}
 {% include 'includes/category_select_scripts.html' %}
 {% endblock %}
