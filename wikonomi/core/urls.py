@@ -1,12 +1,13 @@
 from django.urls import path
 from . import views
+from . import form_views
 
 urlpatterns = [
     path('', views.home, name='home'),
-    path('add-price/', views.price_report_create, name='add_price'),
+    path('add-price/', form_views.price_report_create, name='add_price'),
     path('add-business/', views.business_create, name='add_business'),
     path('price/<int:pk>/', views.price_report_detail, name='price_detail'),
-    path('price/<int:pk>/edit/', views.edit_price_report, name='edit_price_report'),
+    path('price/<int:pk>/edit/', form_views.edit_price_report, name='edit_price_report'),
     path('price/<int:pk>/like/', views.toggle_price_like, name='toggle_price_like'),
     path('price/<int:pk>/nearby/', views.nearby_prices_detail, name='nearby_prices_detail'),
     path('business/<int:pk>/', views.business_detail, name='business_detail'),
