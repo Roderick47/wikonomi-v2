@@ -1,0 +1,196 @@
+<script>
+(function () {
+    function initPhotoManager() {
+        const photosInput = document.getElementById('photos-input');
+        const photosDropZone = document.getElementById('photos-drop-zone');
+        const photosUploadContent = document.getElementById('photos-upload-content');
+        const photosPreviewContainer = document.getElementById('photos-preview-container');
+        const photoCount = document.getElementById('photo-count');
+        if (!photosInput || !photosDropZone || !photosPreviewContainer || !photoCount) return;
+
+        const maxPhotos = Number(photosInput.dataset.maxPhotos || 5);
+        const maxSizeBytes = Number(photosInput.dataset.maxSizeBytes || (10 * 1024 * 1024));
+        const existingPhotoCount = Number(photosInput.dataset.existingCount || 0);
+        let selectedPhotos = [];
+        let replaceNewIndex = null;
+
+        function deletedExistingCount() {
+            return document.querySelectorAll('.delete-photo-checkbox:checked').length;
+        }
+
+        function activeExistingCount() {
+            return Math.max(0, existingPhotoCount - deletedExistingCount());
+        }
+
+        function currentTotal() {
+            return activeExistingCount() + selectedPhotos.length;
+        }
+
+        function availableSlots() {
+            return Math.max(0, maxPhotos - currentTotal());
+        }
+
+        function updatePhotoCount() {
+            const total = currentTotal();
+            photoCount.textContent = `${total}/${maxPhotos} photos`;
+            photoCount.classList.toggle('text-red-500', total >= maxPhotos);
+        }
+
+        function renderPhotoPreviews() {
+            photosPreviewContainer.innerHTML = '';
+            selectedPhotos.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'relative group';
+                    previewDiv.innerHTML = `
+                        <img src="${event.target.result}" class="w-full h-32 object-cover rounded-md border border-gray-200" alt="New photo preview">
+                        <div class="absolute top-1 right-1 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                            <button type="button" data-replace-new-photo="${index}" class="bg-white/90 text-gray-700 rounded-full p-1 shadow" title="Replace photo">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            </button>
+                            <button type="button" data-remove-new-photo="${index}" class="bg-red-500 text-white rounded-full p-1 shadow" title="Remove photo">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                    `;
+                    photosPreviewContainer.appendChild(previewDiv);
+                };
+                reader.readAsDataURL(file);
+            });
+
+            if (selectedPhotos.length > 0) {
+                if (photosUploadContent) photosUploadContent.classList.add('hidden');
+                photosPreviewContainer.classList.remove('hidden');
+            } else {
+                if (photosUploadContent) photosUploadContent.classList.remove('hidden');
+                photosPreviewContainer.classList.add('hidden');
+            }
+            updatePhotoCount();
+        }
+
+        function addFiles(files) {
+            const imageFiles = Array.from(files || []).filter(file => file.type.startsWith('image/'));
+            if (replaceNewIndex !== null) {
+                const replacement = imageFiles[0];
+                if (replacement && selectedPhotos[replaceNewIndex]) {
+                    selectedPhotos[replaceNewIndex] = replacement;
+                }
+                replaceNewIndex = null;
+            } else {
+                selectedPhotos = selectedPhotos.concat(imageFiles.slice(0, availableSlots()));
+            }
+            renderPhotoPreviews();
+            photosInput.value = '';
+        }
+
+        window.openPhotosFilePicker = function (useCamera, replaceIndex) {
+            replaceNewIndex = Number.isInteger(replaceIndex) ? replaceIndex : null;
+            if (useCamera) {
+                photosInput.setAttribute('capture', 'environment');
+            } else {
+                photosInput.removeAttribute('capture');
+            }
+            photosInput.multiple = replaceNewIndex === null;
+            photosInput.click();
+        };
+
+        window.deleteExistingPhoto = function (photoId) {
+            const checkbox = document.getElementById(`delete-photo-${photoId}`);
+            const card = document.querySelector(`[data-existing-photo-card="${photoId}"]`);
+            if (!checkbox) return;
+            checkbox.checked = !checkbox.checked;
+            if (card) {
+                card.classList.toggle('opacity-40', checkbox.checked);
+                card.classList.toggle('ring-2', checkbox.checked);
+                card.classList.toggle('ring-red-400', checkbox.checked);
+            }
+            updatePhotoCount();
+        };
+
+        window.replaceExistingPhoto = function (photoId) {
+            const input = document.getElementById(`update-photo-${photoId}`);
+            if (input) input.click();
+        };
+
+        document.querySelectorAll('input[type="file"][data-existing-photo-input]').forEach(input => {
+            input.addEventListener('change', function () {
+                const file = this.files && this.files[0];
+                const photoId = this.dataset.existingPhotoInput;
+                const img = document.getElementById(`existing-photo-preview-${photoId}`);
+                const badge = document.getElementById(`existing-photo-replace-badge-${photoId}`);
+                if (!file || !img) return;
+                const reader = new FileReader();
+                reader.onload = event => {
+                    img.src = event.target.result;
+                    if (badge) badge.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+        photosInput.addEventListener('change', event => addFiles(event.target.files));
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            photosDropZone.addEventListener(eventName, event => {
+                event.preventDefault();
+                event.stopPropagation();
+            }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            photosDropZone.addEventListener(eventName, () => {
+                photosDropZone.classList.add('border-brand-purple', 'bg-brand-purple/5');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            photosDropZone.addEventListener(eventName, () => {
+                photosDropZone.classList.remove('border-brand-purple', 'bg-brand-purple/5');
+            }, false);
+        });
+
+        photosDropZone.addEventListener('drop', event => addFiles(event.dataTransfer.files), false);
+
+        photosPreviewContainer.addEventListener('click', function (event) {
+            const replaceButton = event.target.closest('[data-replace-new-photo]');
+            const removeButton = event.target.closest('[data-remove-new-photo]');
+            if (replaceButton) {
+                window.openPhotosFilePicker(false, Number(replaceButton.dataset.replaceNewPhoto));
+            }
+            if (removeButton) {
+                selectedPhotos.splice(Number(removeButton.dataset.removeNewPhoto), 1);
+                renderPhotoPreviews();
+            }
+        });
+
+        window.WikonomiPhotoManager = {
+            validate() {
+                const errors = [];
+                if (currentTotal() > maxPhotos) {
+                    errors.push(`You can upload a maximum of ${maxPhotos} photos.`);
+                }
+                selectedPhotos.forEach(file => {
+                    if (!file.type.startsWith('image/')) {
+                        errors.push(`${file.name} must be an image file.`);
+                    }
+                    if (file.size > maxSizeBytes) {
+                        errors.push(`${file.name} is larger than 10MB.`);
+                    }
+                });
+                return errors;
+            },
+            syncToInput() {
+                const dataTransfer = new DataTransfer();
+                selectedPhotos.forEach(file => dataTransfer.items.add(file));
+                photosInput.files = dataTransfer.files;
+                photosInput.multiple = true;
+            }
+        };
+
+        updatePhotoCount();
+    }
+
+    document.addEventListener('DOMContentLoaded', initPhotoManager);
+})();
+</script>
