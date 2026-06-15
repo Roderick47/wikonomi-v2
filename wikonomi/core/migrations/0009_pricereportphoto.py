@@ -8,7 +8,7 @@ import django_resized.forms
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0008_business_business_subcategory_and_more'),
+        ('core', '0006_alter_notification_notification_type'),
     ]
 
     operations = [
