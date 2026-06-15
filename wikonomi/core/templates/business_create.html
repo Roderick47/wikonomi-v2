@@ -16,17 +16,17 @@
         <div class="px-4 py-5 sm:p-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">
-                        Add a New Business
-                    </h3>
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Add a New Business</h3>
                     <div class="mt-2 text-sm text-gray-500">
                         <p>Help the community by adding a new business to the database.</p>
                     </div>
                 </div>
             </div>
-            <form method="POST" class="mt-5 space-y-6" enctype="multipart/form-data">
+
+            <form method="POST" class="mt-5 space-y-6" enctype="multipart/form-data" data-validate-form data-persist-key="wikonomi:add-business-form">
                 {% csrf_token %}
-                
+                <div data-form-errors class="hidden"></div>
+
                 {% if form.errors %}
                 <div class="bg-red-50 border border-red-200 text-red-600 rounded-md p-4 mb-4">
                     <p class="font-medium">Please correct the errors below.</p>
@@ -49,9 +49,9 @@
                     </div>
 
                     <div class="sm:col-span-6">
-                        <label for="business_search" class="block text-sm font-medium text-gray-700">Business Name</label>
+                        <label for="business_search" class="block text-sm font-medium text-gray-700">Business Name *</label>
                         <div class="mt-1 flex rounded-md shadow-sm">
-                            <input type="text" name="name" id="business_search" list="business_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm border-gray-300" placeholder="Type a business name..." required>
+                            <input type="text" name="name" id="business_search" value="{{ request.POST.name|default:'' }}" list="business_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm border-gray-300" placeholder="Type a business name..." required>
                             <datalist id="business_list">
                                 {% for business in businesses %}
                                     <option value="{{ business.name }}"></option>
@@ -61,37 +61,30 @@
                         <p class="mt-2 text-sm text-gray-500">Enter the name of the business you want to add.</p>
                     </div>
 
+                    {% if form.business_category %}
                     <div class="sm:col-span-3">
                         <label for="id_business_category" class="block text-sm font-medium text-gray-700">Industry / business type</label>
-                        <div class="mt-1">
-                            {{ form.business_category }}
-                        </div>
+                        <div class="mt-1">{{ form.business_category }}</div>
                     </div>
+                    {% endif %}
 
+                    {% if form.business_subcategory %}
                     <div class="sm:col-span-3">
                         <label for="id_business_subcategory" class="block text-sm font-medium text-gray-700">Subcategory</label>
-                        <div class="mt-1">
-                            {{ form.business_subcategory }}
-                        </div>
+                        <div class="mt-1">{{ form.business_subcategory }}</div>
                     </div>
+                    {% endif %}
 
                     <div class="sm:col-span-6">
                         <label for="{{ form.details.id_for_label }}" class="block text-sm font-medium text-gray-700">Business Details (Optional)</label>
-                        <div class="mt-1">
-                            {{ form.details }}
-                        </div>
+                        <div class="mt-1">{{ form.details }}</div>
                         <p class="mt-2 text-sm text-gray-500">Add any additional information about this business such as opening hours, contact information, services offered, etc.</p>
                     </div>
-                    
                 </div>
 
                 <div class="pt-5 flex justify-end">
-                    <a href="{% url 'home' %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
-                        Cancel
-                    </a>
-                    <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-purple hover:bg-brand-purple/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
-                        Save Business
-                    </button>
+                    <a href="{% url 'home' %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">Cancel</a>
+                    <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-purple hover:bg-brand-purple/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">Save Business</button>
                 </div>
             </form>
         </div>
@@ -99,5 +92,6 @@
 </div>
 
 {% include 'includes/image_upload_script.html' %}
+{% include 'includes/form_state_guard_script.html' %}
 {% include 'includes/category_select_scripts.html' %}
 {% endblock %}
