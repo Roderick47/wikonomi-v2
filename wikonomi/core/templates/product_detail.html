@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load custom_filters humanize static %}
+
+{% block page_title %}{{ product.name }} — Product Prices and Nearby Reports | Wikonomi{% endblock %}
+
+{% block og_tags %}
+{% with base_url="https://www.wikonomi.com" default_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
+<link rel="canonical" href="{{ base_url }}{% url 'product_detail' product.pk %}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Wikonomi">
+<meta property="og:url" content="{{ base_url }}{% url 'product_detail' product.pk %}">
+<meta property="og:title" content="{{ product.name }} prices in PNG | Wikonomi">
+<meta property="og:description" content="Compare {{ total_reports }} reported prices for {{ product.name }} across local stores. Find the cheapest, most expensive, and nearest reported prices.">
+{% if product.image %}
+<meta property="og:image" content="{{ product.image.url|absolute_url:base_url }}">
+<meta property="og:image:secure_url" content="{{ product.image.url|absolute_url:base_url }}">
+<meta property="og:image:type" content="{{ product.image|image_mime_type }}">
+{% else %}
+<meta property="og:image" content="{{ default_image }}">
+<meta property="og:image:secure_url" content="{{ default_image }}">
+<meta property="og:image:type" content="image/jpeg">
+{% endif %}
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_PG">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ product.name }} prices in PNG | Wikonomi">
+<meta name="twitter:description" content="Compare {{ total_reports }} reported prices for {{ product.name }} across local stores.">
+{% if product.image %}<meta name="twitter:image" content="{{ product.image.url|absolute_url:base_url }}">{% else %}<meta name="twitter:image" content="{{ default_image }}">{% endif %}
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <a href="{% url 'product_list' %}" class="inline-flex items-center text-sm font-semibold text-brand-purple hover:text-brand-purple/80">
+            <svg class="mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            All products
+        </a>
+        <a href="{% url 'add_price' %}?product_name={{ product.name|urlencode }}" class="inline-flex items-center rounded-full bg-brand-purple px-4 py-2 text-sm font-semibold text-white shadow hover:bg-brand-purple/90">
+            Add a new price
+        </a>
+    </div>
+
+    <section class="overflow-hidden rounded-3xl border border-brand-blue/20 bg-gradient-to-br from-brand-purple/10 via-white to-brand-green/10 shadow-sm">
+        <div class="p-6 sm:p-8 lg:p-10">
+            <div class="grid gap-8 lg:grid-cols-[220px,1fr] lg:items-center">
+                <div class="mx-auto flex h-48 w-48 items-center justify-center overflow-hidden rounded-3xl border border-white bg-white/80 shadow-sm lg:mx-0">
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="h-full w-full object-contain p-3">
+                    {% else %}
+                    <svg class="h-20 w-20 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                    {% endif %}
+                </div>
+                <div>
+                    <span class="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-purple ring-1 ring-brand-purple/20">Product Page</span>
+                    <h1 class="mt-4 text-3xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">{{ product.name }}</h1>
+                    {% if product.description %}
+                    <p class="mt-4 max-w-3xl text-gray-600">{{ product.description }}</p>
+                    {% else %}
+                    <p class="mt-4 max-w-3xl text-gray-600">Aggregated price reports for this product, including cheapest, most expensive, latest, and nearest reports where location data is available.</p>
+                    {% endif %}
+
+                    <div class="mt-5 flex flex-wrap gap-2">
+                        {% for tag in product.tags.all %}
+                        <span class="rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">{{ tag.name }}</span>
+                        {% endfor %}
+                        {% for alias in aliases %}
+                        <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">Also called: {{ alias.alias_name }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Reports</p>
+            <p class="mt-2 text-3xl font-extrabold text-gray-900">{{ total_reports|intcomma }}</p>
+        </div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Stores</p>
+            <p class="mt-2 text-3xl font-extrabold text-gray-900">{{ business_count|intcomma }}</p>
+        </div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Mapped reports</p>
+            <p class="mt-2 text-3xl font-extrabold text-gray-900">{{ location_count|intcomma }}</p>
+        </div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Latest report</p>
+            <p class="mt-2 text-lg font-bold text-gray-900">{% if latest_report %}{{ latest_report.observed_at|rounded_timesince }}{% else %}No reports yet{% endif %}</p>
+        </div>
+    </section>
+
+    <section class="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <form method="get" id="product-sort-form" class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <input type="hidden" name="lat" id="product-lat" value="{{ user_lat|default:'' }}">
+            <input type="hidden" name="lng" id="product-lng" value="{{ user_lng|default:'' }}">
+            <div>
+                <label for="sort" class="block text-sm font-semibold text-gray-700">Sort product reports</label>
+                <select name="sort" id="sort" class="mt-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20" onchange="this.form.submit()">
+                    <option value="recent" {% if current_sort == 'recent' %}selected{% endif %}>Most recent</option>
+                    <option value="nearest" {% if current_sort == 'nearest' %}selected{% endif %}>Nearest to me</option>
+                    <option value="price_asc" {% if current_sort == 'price_asc' %}selected{% endif %}>Cheapest first</option>
+                    <option value="price_desc" {% if current_sort == 'price_desc' %}selected{% endif %}>Most expensive first</option>
+                    <option value="oldest" {% if current_sort == 'oldest' %}selected{% endif %}>Oldest first</option>
+                </select>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button type="button" onclick="useProductLocation()" class="inline-flex items-center rounded-lg border border-brand-blue px-4 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-blue/10">
+                    Use my location
+                </button>
+                {% if user_lat and user_lng %}
+                <a href="{% url 'product_detail' product.pk %}" class="inline-flex items-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Clear location</a>
+                {% endif %}
+            </div>
+        </form>
+        {% if user_lat and user_lng %}
+        <p class="mt-3 text-xs text-gray-500">Location mode is active. Nearest, cheapest nearby, and most expensive nearby are calculated from your browser location.</p>
+        {% else %}
+        <p class="mt-3 text-xs text-gray-500">Use your location to find the nearest reports and the cheapest or most expensive reports near you.</p>
+        {% endif %}
+    </section>
+
+    <section class="mt-6 grid gap-4 lg:grid-cols-3">
+        <div class="rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wide text-brand-green">Cheapest{% if user_lat and user_lng %} nearby{% endif %}</p>
+            {% if nearby_cheapest_report %}
+            <a href="{% url 'price_detail' nearby_cheapest_report.pk %}" class="mt-2 block text-3xl font-extrabold text-gray-900 hover:text-brand-purple">{{ nearby_cheapest_report.currency }} {{ nearby_cheapest_report.price|intcomma }}</a>
+            <p class="mt-1 text-sm text-gray-600">{{ nearby_cheapest_report.get_business_display }}</p>
+            {% else %}
+            <p class="mt-2 text-sm text-gray-500">No price reports yet.</p>
+            {% endif %}
+        </div>
+        <div class="rounded-2xl border border-red-100 bg-red-50 p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wide text-red-600">Most expensive{% if user_lat and user_lng %} nearby{% endif %}</p>
+            {% if nearby_most_expensive_report %}
+            <a href="{% url 'price_detail' nearby_most_expensive_report.pk %}" class="mt-2 block text-3xl font-extrabold text-gray-900 hover:text-brand-purple">{{ nearby_most_expensive_report.currency }} {{ nearby_most_expensive_report.price|intcomma }}</a>
+            <p class="mt-1 text-sm text-gray-600">{{ nearby_most_expensive_report.get_business_display }}</p>
+            {% else %}
+            <p class="mt-2 text-sm text-gray-500">No price reports yet.</p>
+            {% endif %}
+        </div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Currency analysis</p>
+            <div class="mt-3 space-y-2">
+                {% for stat in currency_stats %}
+                <div class="rounded-xl bg-gray-50 px-3 py-2 text-sm">
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="font-bold text-gray-900">{{ stat.currency }}</span>
+                        <span class="text-gray-500">{{ stat.report_count }} report{{ stat.report_count|pluralize }}</span>
+                    </div>
+                    <div class="mt-1 text-xs text-gray-600">Avg {{ stat.avg_price|floatformat:2 }} · Low {{ stat.min_price|intcomma }} · High {{ stat.max_price|intcomma }}</div>
+                </div>
+                {% empty %}
+                <p class="text-sm text-gray-500">No analysis yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    {% if nearest_reports %}
+    <section class="mt-8">
+        <div class="mb-4 flex items-center justify-between gap-3">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900">Nearest reports</h2>
+                <p class="text-sm text-gray-600">Closest mapped price reports for {{ product.name }}.</p>
+            </div>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {% for report in nearest_reports %}
+            {% include "includes/_price_report_card.html" with report=report show_like_button=True price_card_current_user_rating=None %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="mt-8">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900">All reported prices</h2>
+                <p class="text-sm text-gray-600">Every price report connected to this product.</p>
+            </div>
+        </div>
+
+        {% if reports_page.object_list %}
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {% for report in reports_page.object_list %}
+            {% include "includes/_price_report_card.html" with report=report show_like_button=True price_card_current_user_rating=None %}
+            {% endfor %}
+        </div>
+
+        {% if reports_page.has_other_pages %}
+        <nav class="mt-8 flex items-center justify-center gap-2" aria-label="Pagination">
+            {% if reports_page.has_previous %}
+            <a href="?page={{ reports_page.previous_page_number }}&sort={{ current_sort }}{% if user_lat %}&lat={{ user_lat }}&lng={{ user_lng }}{% endif %}" class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Previous</a>
+            {% endif %}
+            <span class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700">Page {{ reports_page.number }} of {{ reports_page.paginator.num_pages }}</span>
+            {% if reports_page.has_next %}
+            <a href="?page={{ reports_page.next_page_number }}&sort={{ current_sort }}{% if user_lat %}&lat={{ user_lat }}&lng={{ user_lng }}{% endif %}" class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Next</a>
+            {% endif %}
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+            <h3 class="text-lg font-bold text-gray-900">No reports for this product yet</h3>
+            <p class="mt-2 text-sm text-gray-600">Be the first to add a local price for {{ product.name }}.</p>
+            <a href="{% url 'add_price' %}?product_name={{ product.name|urlencode }}" class="mt-4 inline-flex rounded-full bg-brand-purple px-5 py-2 text-sm font-semibold text-white hover:bg-brand-purple/90">Add price</a>
+        </div>
+        {% endif %}
+    </section>
+</div>
+
+<script>
+function useProductLocation() {
+    const form = document.getElementById('product-sort-form');
+    const sort = document.getElementById('sort');
+    const latInput = document.getElementById('product-lat');
+    const lngInput = document.getElementById('product-lng');
+
+    if (!navigator.geolocation) {
+        alert('Your browser does not support location sharing.');
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(function(position) {
+        latInput.value = position.coords.latitude;
+        lngInput.value = position.coords.longitude;
+        sort.value = 'nearest';
+        form.submit();
+    }, function() {
+        alert('Could not get your location. Please allow location access and try again.');
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 });
+}
+</script>
+{% endblock %}
