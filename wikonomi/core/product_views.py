@@ -49,7 +49,8 @@ def product_detail(request, pk):
     product = get_object_or_404(Product.objects.prefetch_related('tags', 'aliases'), pk=pk)
     product_ids = _product_family_ids(product)
 
-    base_reports = PriceReport.objects.filter(product_id__in=product_ids).select_related(
+    analysis_reports = PriceReport.objects.filter(product_id__in=product_ids)
+    base_reports = analysis_reports.select_related(
         'product',
         'business',
         'business_branch',
@@ -95,7 +96,7 @@ def product_detail(request, pk):
 
     reports_page.object_list = _with_user_card_state(request, reports_page.object_list)
 
-    currency_stats = list(base_reports.values('currency').annotate(
+    currency_stats = list(analysis_reports.values('currency').annotate(
         report_count=Count('id'),
         min_price=Min('price'),
         max_price=Max('price'),
@@ -119,7 +120,7 @@ def product_detail(request, pk):
     if nearby_most_expensive_report is None:
         nearby_most_expensive_report = most_expensive_report
 
-    reports_with_location = base_reports.filter(
+    reports_with_location = analysis_reports.filter(
         latitude__isnull=False,
         longitude__isnull=False,
     )[:100]
@@ -133,9 +134,9 @@ def product_detail(request, pk):
         'aliases': ProductAlias.objects.filter(canonical_product=product, is_active=True),
         'reports_page': reports_page,
         'currency_stats': currency_stats,
-        'total_reports': base_reports.count(),
-        'business_count': base_reports.exclude(business__isnull=True).values('business_id').distinct().count(),
-        'location_count': base_reports.filter(latitude__isnull=False, longitude__isnull=False).count(),
+        'total_reports': analysis_reports.count(),
+        'business_count': analysis_reports.exclude(business__isnull=True).values('business_id').distinct().count(),
+        'location_count': analysis_reports.filter(latitude__isnull=False, longitude__isnull=False).count(),
         'latest_report': base_reports.first(),
         'cheapest_report': cheapest_report,
         'most_expensive_report': most_expensive_report,
