@@ -128,7 +128,7 @@ def nearby_other_product_reports(report, limit=5):
         return []
 
     try:
-        from h3 import latlng_to_cell, grid_disk
+        import h3
         from core.models import PriceReport
     except Exception:
         return []
@@ -142,8 +142,8 @@ def nearby_other_product_reports(report, limit=5):
         return []
 
     try:
-        center = latlng_to_cell(float(lat), float(lng), 9)
-        nearby_hexes = list(grid_disk(center, 2))
+        center = h3.latlng_to_cell(float(lat), float(lng), 9)
+        nearby_hexes = list(h3.grid_disk(center, 2))
     except Exception:
         return []
 
