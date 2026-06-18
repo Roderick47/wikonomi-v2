@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import mimetypes
 
 from django import template
+from django.db.models import Avg, Count
 from django.utils.timesince import timesince
 
 register = template.Library()
@@ -84,6 +85,7 @@ def rounded_timesince_js(value):
     
     return time_str
 
+
 @register.filter
 def absolute_url(value, base_url="https://www.wikonomi.com"):
     """Return an absolute URL for social preview images."""
@@ -118,3 +120,51 @@ def get_attr(obj, attr):
         return None
     return getattr(obj, attr, None)
 
+
+@register.simple_tag
+def nearby_other_product_reports(report, limit=5):
+    """Return nearby price reports for products other than the current report's product."""
+    if not report:
+        return []
+
+    try:
+        from h3 import latlng_to_cell, grid_disk
+        from core.models import PriceReport
+    except Exception:
+        return []
+
+    lat_lng = report.get_lat_lng() if hasattr(report, 'get_lat_lng') else None
+    if not lat_lng:
+        return []
+
+    lat, lng = lat_lng
+    if lat is None or lng is None:
+        return []
+
+    try:
+        center = latlng_to_cell(float(lat), float(lng), 9)
+        nearby_hexes = list(grid_disk(center, 2))
+    except Exception:
+        return []
+
+    qs = PriceReport.objects.filter(
+        h3_res9__in=nearby_hexes,
+    ).exclude(
+        id=report.id,
+    ).exclude(
+        product_id=report.product_id,
+    ).select_related(
+        'product',
+        'business',
+        'business_branch',
+        'user',
+        'user__profile',
+    ).prefetch_related(
+        'product__tags',
+        'likes',
+    ).annotate(
+        average_rating=Avg('ratings__rating'),
+        rating_count=Count('ratings'),
+    ).order_by('-observed_at')
+
+    return qs[:limit]
