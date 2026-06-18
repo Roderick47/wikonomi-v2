@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% load custom_filters humanize static %}
+
+{% block page_title %}Products — Wikonomi{% endblock %}
+
+{% block og_tags %}
+{% with base_url="https://www.wikonomi.com" og_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
+<link rel="canonical" href="{{ base_url }}{% url 'product_list' %}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Wikonomi">
+<meta property="og:url" content="{{ base_url }}{% url 'product_list' %}">
+<meta property="og:title" content="Products on Wikonomi">
+<meta property="og:description" content="Browse products listed on Wikonomi and compare local price reports from PNG stores.">
+<meta property="og:image" content="{{ og_image }}">
+<meta property="og:image:secure_url" content="{{ og_image }}">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_PG">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Products on Wikonomi">
+<meta name="twitter:description" content="Browse products listed on Wikonomi and compare local price reports from PNG stores.">
+<meta name="twitter:image" content="{{ og_image }}">
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <section class="rounded-3xl border border-brand-blue/20 bg-gradient-to-br from-brand-purple/10 via-white to-brand-green/10 p-6 shadow-sm sm:p-10">
+        <div class="max-w-3xl">
+            <span class="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-purple ring-1 ring-brand-purple/20">Product directory</span>
+            <h1 class="mt-4 text-3xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">All products on Wikonomi</h1>
+            <p class="mt-4 text-lg text-gray-600">Browse every product that has been listed, search by name or tag, and open a product page to compare all its reported prices together.</p>
+        </div>
+    </section>
+
+    <section class="mt-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+        <form method="get" class="grid gap-3 md:grid-cols-[1fr,220px,auto] md:items-end">
+            <div>
+                <label for="q" class="block text-sm font-semibold text-gray-700">Search products</label>
+                <input type="search" name="q" id="q" value="{{ search_query }}" placeholder="Rice, Coca-Cola, exercise book..." class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20">
+            </div>
+            <div>
+                <label for="sort" class="block text-sm font-semibold text-gray-700">Sort</label>
+                <select name="sort" id="sort" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20">
+                    <option value="popular" {% if current_sort == 'popular' %}selected{% endif %}>Most reported</option>
+                    <option value="recent" {% if current_sort == 'recent' %}selected{% endif %}>Recently reported</option>
+                    <option value="name" {% if current_sort == 'name' %}selected{% endif %}>A to Z</option>
+                    <option value="cheapest" {% if current_sort == 'cheapest' %}selected{% endif %}>Lowest reported price</option>
+                    <option value="expensive" {% if current_sort == 'expensive' %}selected{% endif %}>Highest reported price</option>
+                </select>
+            </div>
+            <button type="submit" class="inline-flex justify-center rounded-lg bg-brand-purple px-5 py-2 text-sm font-semibold text-white shadow hover:bg-brand-purple/90">Search</button>
+        </form>
+    </section>
+
+    <section class="mt-8">
+        {% if products_page.object_list %}
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {% for product in products_page.object_list %}
+            <a href="{% url 'product_detail' product.pk %}" class="group rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-brand-purple/30 hover:shadow-md">
+                <div class="flex gap-4">
+                    <div class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-100 bg-gray-50">
+                        {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="h-full w-full object-contain p-2 transition-transform group-hover:scale-105">
+                        {% else %}
+                        <svg class="h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                        {% endif %}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <h2 class="line-clamp-2 text-base font-bold text-gray-900 group-hover:text-brand-purple">{{ product.name }}</h2>
+                        <div class="mt-2 flex flex-wrap gap-1">
+                            {% for tag in product.tags.all|slice:":3" %}
+                            <span class="rounded-full bg-brand-purple/10 px-2 py-0.5 text-xs font-medium text-brand-purple">{{ tag.name }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+                            <div class="rounded-lg bg-gray-50 px-2 py-1">
+                                <span class="block font-bold text-gray-900">{{ product.report_count|intcomma }}</span>
+                                <span class="text-gray-500">reports</span>
+                            </div>
+                            <div class="rounded-lg bg-gray-50 px-2 py-1">
+                                <span class="block font-bold text-gray-900">{{ product.business_count|intcomma }}</span>
+                                <span class="text-gray-500">stores</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 grid gap-2 rounded-xl bg-gray-50 p-3 text-sm">
+                    {% if product.min_price %}
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="text-gray-500">Lowest</span>
+                        <span class="font-bold text-brand-green">PGK {{ product.min_price|intcomma }}</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="text-gray-500">Highest</span>
+                        <span class="font-bold text-gray-900">PGK {{ product.max_price|intcomma }}</span>
+                    </div>
+                    {% else %}
+                    <p class="text-gray-500">No price reports yet.</p>
+                    {% endif %}
+                    {% if product.latest_report %}
+                    <div class="flex items-center justify-between gap-3 border-t border-gray-200 pt-2 text-xs">
+                        <span class="text-gray-500">Latest</span>
+                        <span class="truncate font-medium text-gray-700">{{ product.latest_report.get_business_display }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        {% if products_page.has_other_pages %}
+        <nav class="mt-8 flex items-center justify-center gap-2" aria-label="Pagination">
+            {% if products_page.has_previous %}
+            <a href="?page={{ products_page.previous_page_number }}&q={{ search_query|urlencode }}&sort={{ current_sort }}" class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Previous</a>
+            {% endif %}
+            <span class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700">Page {{ products_page.number }} of {{ products_page.paginator.num_pages }}</span>
+            {% if products_page.has_next %}
+            <a href="?page={{ products_page.next_page_number }}&q={{ search_query|urlencode }}&sort={{ current_sort }}" class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Next</a>
+            {% endif %}
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center">
+            <h2 class="text-xl font-bold text-gray-900">No products found</h2>
+            <p class="mt-2 text-gray-600">Try a different search or add a new price report to create the product.</p>
+            <a href="{% url 'add_price' %}" class="mt-5 inline-flex rounded-full bg-brand-purple px-5 py-2 text-sm font-semibold text-white hover:bg-brand-purple/90">Add price report</a>
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
