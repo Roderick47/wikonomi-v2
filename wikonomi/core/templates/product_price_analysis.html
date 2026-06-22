@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load humanize custom_filters %}
+
+{% block page_title %}Advanced Price Analysis for {{ product.name }} | Wikonomi{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <a href="{% url 'product_detail' product.pk %}" class="inline-flex items-center text-sm font-semibold text-brand-purple hover:text-brand-purple/80">← Back to product page</a>
+        <form method="get" class="flex items-center gap-2">
+            <label for="currency" class="text-sm font-semibold text-gray-700">Currency</label>
+            <select id="currency" name="currency" onchange="this.form.submit()" class="rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                {% for item in currencies %}<option value="{{ item.currency }}" {% if item.currency == currency %}selected{% endif %}>{{ item.currency }} ({{ item.count }})</option>{% endfor %}
+            </select>
+        </form>
+    </div>
+    <section class="rounded-3xl border border-brand-purple/20 bg-white p-6 shadow-sm">
+        <p class="text-xs font-bold uppercase tracking-wide text-brand-purple">Advanced Price Analysis</p>
+        <h1 class="mt-2 text-3xl font-extrabold text-gray-900">{{ product.name }}</h1>
+        <p class="mt-2 text-gray-600">Detailed trend, store, and geographic analysis for reported {{ currency }} prices.</p>
+    </section>
+    <section class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-2xl border bg-white p-5 shadow-sm"><p class="text-xs font-bold uppercase text-gray-500">Reports</p><p class="mt-2 text-3xl font-extrabold">{{ stats.count|default:0|intcomma }}</p></div>
+        <div class="rounded-2xl border bg-white p-5 shadow-sm"><p class="text-xs font-bold uppercase text-gray-500">Average</p><p class="mt-2 text-3xl font-extrabold">{{ currency }} {{ stats.avg_price|floatformat:2|intcomma }}</p></div>
+        <div class="rounded-2xl border bg-white p-5 shadow-sm"><p class="text-xs font-bold uppercase text-gray-500">Lowest</p><p class="mt-2 text-3xl font-extrabold text-brand-green">{{ currency }} {{ stats.min_price|floatformat:2|intcomma }}</p></div>
+        <div class="rounded-2xl border bg-white p-5 shadow-sm"><p class="text-xs font-bold uppercase text-gray-500">Highest</p><p class="mt-2 text-3xl font-extrabold text-red-600">{{ currency }} {{ stats.max_price|floatformat:2|intcomma }}</p></div>
+    </section>
+    <section class="mt-8 grid gap-6 lg:grid-cols-2">
+        <div class="rounded-2xl border bg-white p-5 shadow-sm"><h2 class="text-xl font-bold text-gray-900">Price trend graph</h2><div class="mt-4 h-80"><canvas id="trendChart"></canvas></div></div>
+        <div class="rounded-2xl border bg-white p-5 shadow-sm"><h2 class="text-xl font-bold text-gray-900">Store comparison</h2><div class="mt-4 overflow-x-auto"><table class="min-w-full divide-y divide-gray-200 text-sm"><thead><tr class="text-left text-gray-500"><th class="py-2">Store</th><th>Reports</th><th>Avg</th><th>Range</th></tr></thead><tbody class="divide-y divide-gray-100">{% for row in by_business %}<tr><td class="py-2 font-semibold">{{ row.business__name|default:'Unknown' }}</td><td>{{ row.count }}</td><td>{{ currency }} {{ row.avg_price|floatformat:2 }}</td><td>{{ row.min_price|floatformat:2 }}–{{ row.max_price|floatformat:2 }}</td></tr>{% empty %}<tr><td colspan="4" class="py-6 text-center text-gray-500">No store data yet.</td></tr>{% endfor %}</tbody></table></div></div>
+    </section>
+    {% if heatmap_reports %}<section class="mt-8 rounded-2xl border bg-white p-5 shadow-sm"><h2 class="text-xl font-bold text-gray-900">Price heat map</h2><p class="text-sm text-gray-600">Larger, warmer circles indicate higher reported prices.</p><div id="heat-map" class="mt-4 h-96 rounded-xl border border-gray-200"></div></section>{% endif %}
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const labels = [{% for point in timeline %}'{{ point.observed_at|date:"M j, Y" }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+    const values = [{% for point in timeline %}{{ point.price }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    new Chart(document.getElementById('trendChart'), {type: 'line', data: {labels, datasets: [{label: '{{ currency }} price', data: values, borderColor: '#6D28D9', backgroundColor: 'rgba(109,40,217,.12)', tension: .25, fill: true}]}, options: {responsive: true, maintainAspectRatio: false}});
+    {% if heatmap_reports %}const map = L.map('heat-map').setView([0,0], 2); L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '© OpenStreetMap contributors'}).addTo(map); const bounds = []; {% for report in heatmap_reports %}L.circleMarker([{{ report.latitude }}, {{ report.longitude }}], {radius: Math.max(8, Math.min(28, Number({{ report.price }}) / 2)), color: '#DC2626', fillColor: '#F97316', fillOpacity: .45}).addTo(map).bindPopup('<strong>{{ report.currency }} {{ report.price|intcomma }}</strong><br>{{ report.get_business_display|escapejs }}'); bounds.push([{{ report.latitude }}, {{ report.longitude }}]);{% endfor %} if (bounds.length) map.fitBounds(bounds, {padding: [40,40]});{% endif %}
+});
+</script>
+{% endblock %}

@@ -66,3 +66,22 @@ class ProductPageViewsTest(TestCase):
         self.assertIsNotNone(response.context['user_lat'])
         self.assertIsNotNone(response.context['user_lng'])
         self.assertGreaterEqual(len(response.context['nearest_reports']), 1)
+
+    def test_product_detail_renders_without_reports(self):
+        empty_product = Product.objects.create(
+            name='Empty Product',
+            slug='empty-product',
+            created_by=self.user,
+        )
+
+        response = self.client.get(reverse('product_detail', args=[empty_product.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'No reports for this product yet')
+
+    def test_product_analysis_page_renders(self):
+        response = self.client.get(reverse('product_price_analysis', args=[self.product.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Advanced Price Analysis')
+        self.assertContains(response, 'Price trend graph')
