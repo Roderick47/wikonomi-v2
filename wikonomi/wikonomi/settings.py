@@ -139,16 +139,28 @@ WSGI_APPLICATION = 'wikonomi.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME', 'wikonomi_v2_db'),
-        'USER': os.environ.get('DB_USER', 'wikonomi_v2_db_user'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
-        'HOST': os.environ.get('DB_HOST', 'dpg-d6hucudm5p6s73bqr7m0-a.singapore-postgres.render.com'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
+if os.environ.get('DATABASE_URL'):
+    import dj_database_url
+
+    DATABASES = {
+        'default': dj_database_url.parse(
+            os.environ['DATABASE_URL'],
+            conn_max_age=600,
+            ssl_require=not DEBUG,
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME', 'wikonomi_v2_db'),
+            'USER': os.environ.get('DB_USER', 'wikonomi_v2_db_user'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+            'HOST': os.environ.get('DB_HOST', 'dpg-d6hucudm5p6s73bqr7m0-a.singapore-postgres.render.com'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+            'CONN_MAX_AGE': 600,
+        }
+    }
 
 
 # Password validation
