@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load custom_filters humanize static %}
+
+{% block page_title %}Businesses — Wikonomi{% endblock %}
+
+{% block og_tags %}
+{% with base_url="https://www.wikonomi.com" og_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
+<link rel="canonical" href="{{ base_url }}{% url 'business_list' %}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Wikonomi">
+<meta property="og:url" content="{{ base_url }}{% url 'business_list' %}">
+<meta property="og:title" content="Businesses on Wikonomi">
+<meta property="og:description" content="Browse stores and businesses listed on Wikonomi and compare their community price reports.">
+<meta property="og:image" content="{{ og_image }}">
+<meta property="og:image:secure_url" content="{{ og_image }}">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_PG">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Businesses on Wikonomi">
+<meta name="twitter:description" content="Browse stores and businesses listed on Wikonomi.">
+<meta name="twitter:image" content="{{ og_image }}">
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <section class="rounded-3xl border border-brand-blue/20 bg-gradient-to-br from-brand-purple/10 via-white to-brand-green/10 p-6 shadow-sm sm:p-10">
+        <div class="max-w-3xl">
+            <span class="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-purple ring-1 ring-brand-purple/20">Business directory</span>
+            <h1 class="mt-4 text-3xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">Browse businesses on Wikonomi</h1>
+            <p class="mt-4 text-lg text-gray-600">Find stores and businesses listed by the community, then open a business profile to see its products, prices, ratings, and map locations.</p>
+            <div class="mt-5 flex flex-wrap gap-2">
+                <a href="{% url 'product_list' %}" class="inline-flex rounded-full border border-brand-purple px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/10">Browse Products</a>
+                <a href="{% url 'add_business' %}" class="inline-flex rounded-full bg-brand-purple px-4 py-2 text-sm font-semibold text-white hover:bg-brand-purple/90">Add a business</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="mt-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+        <form method="get" class="grid gap-3 md:grid-cols-[1fr,220px,auto] md:items-end">
+            <div>
+                <label for="q" class="block text-sm font-semibold text-gray-700">Search businesses</label>
+                <input type="search" name="q" id="q" value="{{ search_query }}" placeholder="Stop & Shop, market, pharmacy..." class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20">
+            </div>
+            <div>
+                <label for="sort" class="block text-sm font-semibold text-gray-700">Sort</label>
+                <select name="sort" id="sort" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20">
+                    <option value="popular" {% if current_sort == 'popular' %}selected{% endif %}>Most reports</option>
+                    <option value="recent" {% if current_sort == 'recent' %}selected{% endif %}>Recently reported</option>
+                    <option value="rated" {% if current_sort == 'rated' %}selected{% endif %}>Highest rated</option>
+                    <option value="name" {% if current_sort == 'name' %}selected{% endif %}>A to Z</option>
+                </select>
+            </div>
+            <button type="submit" class="inline-flex justify-center rounded-lg bg-brand-purple px-5 py-2 text-sm font-semibold text-white shadow hover:bg-brand-purple/90">Search</button>
+        </form>
+    </section>
+
+    <section class="mt-8">
+        {% if businesses_page.object_list %}
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {% for business in businesses_page.object_list %}
+            <a href="{% url 'business_detail' business.pk %}" class="group rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-brand-purple/30 hover:shadow-md">
+                <div class="flex gap-4">
+                    <div class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-100 bg-gray-50">
+                        {% if business.image %}
+                        <img src="{{ business.image.url }}" alt="{{ business.name }}" class="h-full w-full object-cover transition-transform group-hover:scale-105">
+                        {% else %}
+                        <img src="{% static 'img/default-business.svg' %}" alt="{{ business.name }}" class="h-12 w-12 opacity-70">
+                        {% endif %}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <h2 class="line-clamp-2 text-base font-bold text-gray-900 group-hover:text-brand-purple">{{ business.name }}</h2>
+                        <p class="mt-1 line-clamp-2 text-sm text-gray-600">{{ business.details|default:'Business profile with community price reports.' }}</p>
+                        <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+                            <div class="rounded-lg bg-gray-50 px-2 py-1"><span class="block font-bold text-gray-900">{{ business.report_count|intcomma }}</span><span class="text-gray-500">reports</span></div>
+                            <div class="rounded-lg bg-gray-50 px-2 py-1"><span class="block font-bold text-gray-900">{{ business.product_count|intcomma }}</span><span class="text-gray-500">products</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 rounded-xl bg-gray-50 p-3 text-sm">
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="text-gray-500">Rating</span>
+                        {% if business.rating_count %}<span class="font-bold text-amber-600">★ {{ business.avg_rating|floatformat:1 }}/5</span>{% else %}<span class="font-medium text-gray-500">No ratings yet</span>{% endif %}
+                    </div>
+                    {% if business.latest_report %}
+                    <div class="mt-2 flex items-center justify-between gap-3 border-t border-gray-200 pt-2 text-xs">
+                        <span class="text-gray-500">Latest</span>
+                        <span class="truncate font-medium text-gray-700">{{ business.latest_report.product.name }} · {{ business.latest_report.currency }} {{ business.latest_report.price|intcomma }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        {% if businesses_page.has_other_pages %}
+        <nav class="mt-8 flex items-center justify-center gap-2" aria-label="Pagination">
+            {% if businesses_page.has_previous %}<a href="?page={{ businesses_page.previous_page_number }}&q={{ search_query|urlencode }}&sort={{ current_sort }}" class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Previous</a>{% endif %}
+            <span class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700">Page {{ businesses_page.number }} of {{ businesses_page.paginator.num_pages }}</span>
+            {% if businesses_page.has_next %}<a href="?page={{ businesses_page.next_page_number }}&q={{ search_query|urlencode }}&sort={{ current_sort }}" class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Next</a>{% endif %}
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center">
+            <h2 class="text-xl font-bold text-gray-900">No businesses found{% if search_query %} for “{{ search_query }}”{% endif %}</h2>
+            <p class="mt-2 text-gray-600">If this store should be on Wikonomi, add it so the community can start reporting prices there.</p>
+            <a href="{% url 'add_business' %}{% if search_query %}?name={{ search_query|urlencode }}{% endif %}" class="mt-5 inline-flex rounded-full bg-brand-purple px-5 py-2 text-sm font-semibold text-white hover:bg-brand-purple/90">Add this business</a>
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

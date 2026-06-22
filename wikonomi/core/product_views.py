@@ -2,7 +2,7 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models import Avg, Count, Max, Min, Q
 from django.shortcuts import get_object_or_404, render
 
-from .models import Product, ProductAlias, PriceLike, PriceReport, PriceReportPhoto, ProductWatchlist
+from .models import Business, Product, ProductAlias, PriceLike, PriceReport, PriceReportPhoto, ProductWatchlist
 from .utils import annotate_with_distance
 
 
@@ -43,6 +43,62 @@ def _with_user_card_state(request, reports):
         for report in reports:
             report.is_liked_by_user = report.id in liked_ids
     return reports
+
+
+def business_list(request):
+    query = request.GET.get('q', '').strip()
+    sort = request.GET.get('sort', 'popular')
+
+    businesses = Business.objects.annotate(
+        report_count=Count('price_reports', distinct=True),
+        product_count=Count('price_reports__product', distinct=True),
+        avg_rating=Avg('ratings__rating'),
+        rating_count=Count('ratings', distinct=True),
+        latest_observed=Max('price_reports__observed_at'),
+    )
+
+    if query:
+        businesses = businesses.filter(
+            Q(name__icontains=query)
+            | Q(details__icontains=query)
+            | Q(branches__name__icontains=query)
+            | Q(branches__address__icontains=query)
+            | Q(price_reports__product__name__icontains=query)
+        ).distinct()
+
+    if sort == 'name':
+        businesses = businesses.order_by('name')
+    elif sort == 'recent':
+        businesses = businesses.order_by('-latest_observed', 'name')
+    elif sort == 'rated':
+        businesses = businesses.order_by('-avg_rating', '-rating_count', 'name')
+    else:
+        businesses = businesses.order_by('-report_count', 'name')
+
+    paginator = Paginator(businesses, 30)
+    page_number = request.GET.get('page', 1)
+    try:
+        businesses_page = paginator.page(page_number)
+    except PageNotAnInteger:
+        businesses_page = paginator.page(1)
+    except EmptyPage:
+        businesses_page = paginator.page(paginator.num_pages or 1)
+
+    latest_reports = PriceReport.objects.filter(
+        business_id__in=[business.id for business in businesses_page.object_list]
+    ).select_related('product', 'business_branch').order_by('business_id', '-observed_at')
+    latest_by_business = {}
+    for report in latest_reports:
+        latest_by_business.setdefault(report.business_id, report)
+
+    for business in businesses_page.object_list:
+        business.latest_report = latest_by_business.get(business.id)
+
+    return render(request, 'business_list.html', {
+        'businesses_page': businesses_page,
+        'search_query': query,
+        'current_sort': sort,
+    })
 
 
 def product_detail(request, pk):
