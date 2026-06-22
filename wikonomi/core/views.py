@@ -26,6 +26,7 @@ from django.views.decorators.cache import cache_page
 from django.templatetags.static import static
 from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, PriceLike, PriceReportRating, BusinessRating, create_like_threshold_notification, PriceReportPhoto
 from comments.models import Comment
+from .utils import annotate_with_distance
 from categories.models import Category as PriceCategory, Subcategory, BusinessCategory, BusinessSubcategory
 
 
@@ -371,7 +372,6 @@ def _get_prices_queryset(request):
         try:
             user_lat = float(user_lat)
             user_lng = float(user_lng)
-            from .utils import annotate_with_distance
             qs = annotate_with_distance(qs, user_lat, user_lng)
         except (ValueError, TypeError):
             qs = qs.order_by('-observed_at')
@@ -673,20 +673,21 @@ class PriceReportDetailView(DetailView):
         context['price_analysis'] = price_analysis
         context['price'] = report
         
-        # Get nearby prices if the report has coordinates
-        if report.latitude and report.longitude:
-            # Exclude the current report from the nearby list
-            nearby = get_nearby_prices(
-                product=report.product,
-                lat=report.latitude,
-                lng=report.longitude
-            ).exclude(id=report.id).annotate(
+        # Keep same-product nearby prices off this detail page; they now live on
+        # the dedicated product detail page. Show different products reported in
+        # the same vicinity here instead.
+        if report.latitude and report.longitude and report.h3_res9:
+            other_nearby = PriceReport.objects.filter(
+                h3_res9=report.h3_res9,
+            ).exclude(id=report.id).exclude(product=report.product).select_related(
+                'product', 'business', 'business_branch', 'user'
+            ).prefetch_related('product__tags', 'likes').annotate(
                 average_rating=Avg('ratings__rating'),
                 rating_count=Count('ratings'),
-            )[:5] # Show up to 5 nearby prices
-            context['nearby_prices'] = nearby
+            ).order_by('-observed_at')[:6]
+            context['other_nearby_products'] = other_nearby
         else:
-            context['nearby_prices'] = None
+            context['other_nearby_products'] = None
             
         if self.request.user.is_authenticated:
             context['is_watching'] = ProductWatchlist.objects.filter(
