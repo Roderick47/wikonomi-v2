@@ -2,7 +2,7 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models import Avg, Count, Max, Min, Q
 from django.shortcuts import get_object_or_404, render
 
-from .models import Product, ProductAlias, PriceLike, PriceReport, ProductWatchlist
+from .models import Business, Product, ProductAlias, PriceLike, PriceReport, PriceReportPhoto, ProductWatchlist
 from .utils import annotate_with_distance
 
 
@@ -45,6 +45,62 @@ def _with_user_card_state(request, reports):
     return reports
 
 
+def business_list(request):
+    query = request.GET.get('q', '').strip()
+    sort = request.GET.get('sort', 'popular')
+
+    businesses = Business.objects.annotate(
+        report_count=Count('price_reports', distinct=True),
+        product_count=Count('price_reports__product', distinct=True),
+        avg_rating=Avg('ratings__rating'),
+        rating_count=Count('ratings', distinct=True),
+        latest_observed=Max('price_reports__observed_at'),
+    )
+
+    if query:
+        businesses = businesses.filter(
+            Q(name__icontains=query)
+            | Q(details__icontains=query)
+            | Q(branches__name__icontains=query)
+            | Q(branches__address__icontains=query)
+            | Q(price_reports__product__name__icontains=query)
+        ).distinct()
+
+    if sort == 'name':
+        businesses = businesses.order_by('name')
+    elif sort == 'recent':
+        businesses = businesses.order_by('-latest_observed', 'name')
+    elif sort == 'rated':
+        businesses = businesses.order_by('-avg_rating', '-rating_count', 'name')
+    else:
+        businesses = businesses.order_by('-report_count', 'name')
+
+    paginator = Paginator(businesses, 30)
+    page_number = request.GET.get('page', 1)
+    try:
+        businesses_page = paginator.page(page_number)
+    except PageNotAnInteger:
+        businesses_page = paginator.page(1)
+    except EmptyPage:
+        businesses_page = paginator.page(paginator.num_pages or 1)
+
+    latest_reports = PriceReport.objects.filter(
+        business_id__in=[business.id for business in businesses_page.object_list]
+    ).select_related('product', 'business_branch').order_by('business_id', '-observed_at')
+    latest_by_business = {}
+    for report in latest_reports:
+        latest_by_business.setdefault(report.business_id, report)
+
+    for business in businesses_page.object_list:
+        business.latest_report = latest_by_business.get(business.id)
+
+    return render(request, 'business_list.html', {
+        'businesses_page': businesses_page,
+        'search_query': query,
+        'current_sort': sort,
+    })
+
+
 def product_detail(request, pk):
     product = get_object_or_404(Product.objects.prefetch_related('tags', 'aliases'), pk=pk)
     product_ids = _product_family_ids(product)
@@ -63,7 +119,15 @@ def product_detail(request, pk):
 
     user_lat, user_lng = _parse_location(request)
     sort = request.GET.get('sort', 'recent')
+    query = request.GET.get('q', '').strip()
     reports = base_reports
+    if query:
+        reports = reports.filter(
+            Q(business__name__icontains=query)
+            | Q(business_branch__name__icontains=query)
+            | Q(notes__icontains=query)
+            | Q(currency__icontains=query)
+        )
 
     nearby_reports = PriceReport.objects.none()
     if user_lat is not None and user_lng is not None:
@@ -92,7 +156,7 @@ def product_detail(request, pk):
     except PageNotAnInteger:
         reports_page = paginator.page(1)
     except EmptyPage:
-        reports_page = paginator.page(paginator.num_pages)
+        reports_page = paginator.page(paginator.num_pages or 1)
 
     reports_page.object_list = _with_user_card_state(request, reports_page.object_list)
 
@@ -123,7 +187,13 @@ def product_detail(request, pk):
     reports_with_location = analysis_reports.filter(
         latitude__isnull=False,
         longitude__isnull=False,
-    )[:100]
+    ).select_related('business')[:100]
+
+    product_photos = PriceReportPhoto.objects.filter(
+        price_report__product_id__in=product_ids,
+    ).select_related('price_report', 'price_report__business').order_by('-price_report__observed_at')[:12]
+    if not product_photos and product.image:
+        product_photos = []
 
     is_watching = False
     if request.user.is_authenticated:
@@ -145,9 +215,11 @@ def product_detail(request, pk):
         'nearest_reports': nearest_reports,
         'reports_with_location': reports_with_location,
         'current_sort': sort,
+        'search_query': query,
         'user_lat': user_lat,
         'user_lng': user_lng,
         'is_watching': is_watching,
+        'product_photos': product_photos,
     }
     return render(request, 'product_detail.html', context)
 
@@ -206,4 +278,26 @@ def product_list(request):
         'products_page': products_page,
         'search_query': query,
         'current_sort': sort,
+    })
+
+
+def product_price_analysis(request, pk):
+    product = get_object_or_404(Product.objects.prefetch_related('tags', 'aliases'), pk=pk)
+    product_ids = _product_family_ids(product)
+    reports = PriceReport.objects.filter(product_id__in=product_ids).select_related('business', 'business_branch').order_by('observed_at')
+
+    currency = request.GET.get('currency') or reports.values_list('currency', flat=True).first() or 'PGK'
+    currency_reports = reports.filter(currency=currency)
+    stats = currency_reports.aggregate(
+        count=Count('id'), min_price=Min('price'), max_price=Max('price'), avg_price=Avg('price')
+    )
+    timeline = list(currency_reports.values('observed_at', 'price', 'business__name')[:250])
+    heatmap_reports = currency_reports.filter(latitude__isnull=False, longitude__isnull=False)[:250]
+    by_business = currency_reports.values('business__name').annotate(
+        count=Count('id'), avg_price=Avg('price'), min_price=Min('price'), max_price=Max('price')
+    ).order_by('-count', 'business__name')[:25]
+    currencies = reports.values('currency').annotate(count=Count('id')).order_by('currency')
+    return render(request, 'product_price_analysis.html', {
+        'product': product, 'reports': currency_reports, 'stats': stats, 'timeline': timeline,
+        'heatmap_reports': heatmap_reports, 'by_business': by_business, 'currencies': currencies, 'currency': currency,
     })

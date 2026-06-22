@@ -66,3 +66,47 @@ class ProductPageViewsTest(TestCase):
         self.assertIsNotNone(response.context['user_lat'])
         self.assertIsNotNone(response.context['user_lng'])
         self.assertGreaterEqual(len(response.context['nearest_reports']), 1)
+
+    def test_product_detail_renders_without_reports(self):
+        empty_product = Product.objects.create(
+            name='Empty Product',
+            slug='empty-product',
+            created_by=self.user,
+        )
+
+        response = self.client.get(reverse('product_detail', args=[empty_product.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'No reports for this product yet')
+
+    def test_product_analysis_page_renders(self):
+        response = self.client.get(reverse('product_price_analysis', args=[self.product.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Advanced Price Analysis')
+        self.assertContains(response, 'Price trend graph')
+
+    def test_business_list_renders_and_searches_businesses(self):
+        response = self.client.get(reverse('business_list'), {'q': 'mart'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Browse businesses on Wikonomi')
+        self.assertContains(response, 'Test Mart')
+        self.assertEqual(response.context['search_query'], 'mart')
+        self.assertEqual(len(response.context['businesses_page'].object_list), 1)
+
+    def test_business_list_empty_search_has_add_business_cta(self):
+        response = self.client.get(reverse('business_list'), {'q': 'Missing Store'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'No businesses found')
+        self.assertContains(response, 'Add this business')
+        self.assertContains(response, 'name=Missing%20Store')
+
+    def test_product_list_empty_search_has_add_product_cta(self):
+        response = self.client.get(reverse('product_list'), {'q': 'Missing Product'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'No products found')
+        self.assertContains(response, 'Add this product price')
+        self.assertContains(response, 'product_name=Missing%20Product')

@@ -37,9 +37,12 @@
             <svg class="mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             All products
         </a>
-        <a href="{% url 'add_price' %}?product_name={{ product.name|urlencode }}" class="inline-flex items-center rounded-full bg-brand-purple px-4 py-2 text-sm font-semibold text-white shadow hover:bg-brand-purple/90">
-            Add a new price
-        </a>
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'product_price_analysis' product.pk %}" class="inline-flex items-center rounded-full border border-brand-purple px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/10">Advanced price analysis</a>
+            <a href="{% url 'add_price' %}?product_name={{ product.name|urlencode }}" class="inline-flex items-center rounded-full bg-brand-purple px-4 py-2 text-sm font-semibold text-white shadow hover:bg-brand-purple/90">
+                Add a new price
+            </a>
+        </div>
     </div>
 
     <section class="overflow-hidden rounded-3xl border border-brand-blue/20 bg-gradient-to-br from-brand-purple/10 via-white to-brand-green/10 shadow-sm">
@@ -97,7 +100,12 @@
         <form method="get" id="product-sort-form" class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <input type="hidden" name="lat" id="product-lat" value="{{ user_lat|default:'' }}">
             <input type="hidden" name="lng" id="product-lng" value="{{ user_lng|default:'' }}">
-            <div>
+            <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                    <label for="product-search" class="block text-sm font-semibold text-gray-700">Search reports</label>
+                    <input id="product-search" name="q" value="{{ search_query }}" placeholder="Store, notes, currency..." class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20">
+                </div>
+                <div>
                 <label for="sort" class="block text-sm font-semibold text-gray-700">Sort product reports</label>
                 <select name="sort" id="sort" class="mt-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20" onchange="this.form.submit()">
                     <option value="recent" {% if current_sort == 'recent' %}selected{% endif %}>Most recent</option>
@@ -106,8 +114,10 @@
                     <option value="price_desc" {% if current_sort == 'price_desc' %}selected{% endif %}>Most expensive first</option>
                     <option value="oldest" {% if current_sort == 'oldest' %}selected{% endif %}>Oldest first</option>
                 </select>
+                </div>
             </div>
             <div class="flex flex-wrap gap-2">
+                <button type="submit" class="inline-flex items-center rounded-lg bg-brand-purple px-4 py-2 text-sm font-semibold text-white hover:bg-brand-purple/90">Search</button>
                 <button type="button" onclick="useProductLocation()" class="inline-flex items-center rounded-lg border border-brand-blue px-4 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-blue/10">
                     Use my location
                 </button>
@@ -160,6 +170,28 @@
         </div>
     </section>
 
+
+    {% if product_photos %}
+    <section class="mt-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 class="text-2xl font-bold text-gray-900">Product photos</h2>
+        <p class="text-sm text-gray-600">Most recent photos submitted with reports for this product.</p>
+        <div class="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
+            {% for photo in product_photos %}
+            <a href="{% url 'price_detail' photo.price_report.pk %}" class="group overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                <img src="{{ photo.image.url }}" alt="{{ product.name }} photo" class="h-32 w-full object-cover transition group-hover:scale-105">
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if reports_with_location %}
+    <section class="mt-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 class="text-2xl font-bold text-gray-900">Price map</h2>
+        <p class="text-sm text-gray-600">Mapped reports for {{ product.name }}.</p>
+        <div id="product-map" class="mt-4 h-96 rounded-xl border border-gray-200"></div>
+    </section>
+    {% endif %}
     {% if nearest_reports %}
     <section class="mt-8">
         <div class="mb-4 flex items-center justify-between gap-3">
@@ -234,4 +266,19 @@ function useProductLocation() {
     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 });
 }
 </script>
+
+{% if reports_with_location %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const map = L.map('product-map').setView([0, 0], 2);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap contributors' }).addTo(map);
+    const bounds = [];
+    {% for report in reports_with_location %}
+    L.marker([{{ report.latitude }}, {{ report.longitude }}]).addTo(map).bindPopup('<strong>{{ report.currency }} {{ report.price|intcomma }}</strong><br>{{ report.get_business_display|escapejs }}<br><a href="{% url "price_detail" report.pk %}">View report</a>');
+    bounds.push([{{ report.latitude }}, {{ report.longitude }}]);
+    {% endfor %}
+    if (bounds.length) map.fitBounds(bounds, { padding: [40, 40] });
+});
+</script>
+{% endif %}
 {% endblock %}

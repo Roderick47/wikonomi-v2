@@ -31,6 +31,10 @@
             <span class="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-purple ring-1 ring-brand-purple/20">Product directory</span>
             <h1 class="mt-4 text-3xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">All products on Wikonomi</h1>
             <p class="mt-4 text-lg text-gray-600">Browse every product that has been listed, search by name or tag, and open a product page to compare all its reported prices together.</p>
+            <div class="mt-5 flex flex-wrap gap-2">
+                <a href="{% url 'business_list' %}" class="inline-flex rounded-full border border-brand-blue px-4 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-blue/10">Browse Businesses</a>
+                <a href="{% url 'add_price' %}" class="inline-flex rounded-full bg-brand-purple px-4 py-2 text-sm font-semibold text-white hover:bg-brand-purple/90">Add a product price</a>
+            </div>
         </div>
     </section>
 
@@ -123,9 +127,12 @@
         {% endif %}
         {% else %}
         <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center">
-            <h2 class="text-xl font-bold text-gray-900">No products found</h2>
-            <p class="mt-2 text-gray-600">Try a different search or add a new price report to create the product.</p>
-            <a href="{% url 'add_price' %}" class="mt-5 inline-flex rounded-full bg-brand-purple px-5 py-2 text-sm font-semibold text-white hover:bg-brand-purple/90">Add price report</a>
+            <h2 class="text-xl font-bold text-gray-900">No products found{% if search_query %} for “{{ search_query }}”{% endif %}</h2>
+            <p class="mt-2 text-gray-600">Try a different search or add a new price report to create this product.</p>
+            <div class="mt-5 flex flex-wrap justify-center gap-2">
+                <a href="{% url 'add_price' %}{% if search_query %}?product_name={{ search_query|urlencode }}{% endif %}" class="inline-flex rounded-full bg-brand-purple px-5 py-2 text-sm font-semibold text-white hover:bg-brand-purple/90">Add this product price</a>
+                <a href="{% url 'business_list' %}?q={{ search_query|urlencode }}" class="inline-flex rounded-full border border-brand-blue px-5 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-blue/10">Search businesses</a>
+            </div>
         </div>
         {% endif %}
     </section>
