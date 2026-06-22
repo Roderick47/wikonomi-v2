@@ -25,7 +25,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+<div class="max-w-7xl mx-auto overflow-x-hidden py-8 px-4 sm:px-6 lg:px-8">
     <section class="rounded-3xl border border-brand-blue/20 bg-gradient-to-br from-brand-purple/10 via-white to-brand-green/10 p-6 shadow-sm sm:p-10">
         <div class="max-w-3xl">
             <span class="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-purple ring-1 ring-brand-purple/20">Business directory</span>
@@ -39,7 +39,7 @@
     </section>
 
     <section class="mt-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-        <form method="get" class="grid gap-3 md:grid-cols-[1fr,220px,auto] md:items-end">
+        <form method="get" class="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr),220px,auto] md:items-end">
             <div>
                 <label for="q" class="block text-sm font-semibold text-gray-700">Search businesses</label>
                 <input type="search" name="q" id="q" value="{{ search_query }}" placeholder="Stop & Shop, market, pharmacy..." class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20">
@@ -59,11 +59,11 @@
 
     <section class="mt-8">
         {% if businesses_page.object_list %}
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div class="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {% for business in businesses_page.object_list %}
-            <a href="{% url 'business_detail' business.pk %}" class="group rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-brand-purple/30 hover:shadow-md">
-                <div class="flex gap-4">
-                    <div class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-100 bg-gray-50">
+            <a href="{% url 'business_detail' business.pk %}" class="group block min-w-0 max-w-full overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-brand-purple/30 hover:shadow-md">
+                <div class="flex min-w-0 gap-3 sm:gap-4">
+                    <div class="flex h-20 w-20 shrink-0 sm:h-24 sm:w-24 items-center justify-center overflow-hidden rounded-xl border border-gray-100 bg-gray-50">
                         {% if business.image %}
                         <img src="{{ business.image.url }}" alt="{{ business.name }}" class="h-full w-full object-cover transition-transform group-hover:scale-105">
                         {% else %}
@@ -79,15 +79,15 @@
                         </div>
                     </div>
                 </div>
-                <div class="mt-4 rounded-xl bg-gray-50 p-3 text-sm">
-                    <div class="flex items-center justify-between gap-3">
+                <div class="mt-4 min-w-0 overflow-hidden rounded-xl bg-gray-50 p-3 text-sm">
+                    <div class="flex min-w-0 items-center justify-between gap-3">
                         <span class="text-gray-500">Rating</span>
-                        {% if business.rating_count %}<span class="font-bold text-amber-600">★ {{ business.avg_rating|floatformat:1 }}/5</span>{% else %}<span class="font-medium text-gray-500">No ratings yet</span>{% endif %}
+                        {% if business.rating_count %}<span class="shrink-0 font-bold text-amber-600">★ {{ business.avg_rating|floatformat:1 }}/5</span>{% else %}<span class="shrink-0 font-medium text-gray-500">No ratings yet</span>{% endif %}
                     </div>
                     {% if business.latest_report %}
-                    <div class="mt-2 flex items-center justify-between gap-3 border-t border-gray-200 pt-2 text-xs">
-                        <span class="text-gray-500">Latest</span>
-                        <span class="truncate font-medium text-gray-700">{{ business.latest_report.product.name }} · {{ business.latest_report.currency }} {{ business.latest_report.price|intcomma }}</span>
+                    <div class="mt-2 flex min-w-0 items-center justify-between gap-3 border-t border-gray-200 pt-2 text-xs">
+                        <span class="shrink-0 text-gray-500">Latest</span>
+                        <span class="min-w-0 flex-1 truncate text-right font-medium text-gray-700">{{ business.latest_report.product.name }} · {{ business.latest_report.currency }} {{ business.latest_report.price|intcomma }}</span>
                     </div>
                     {% endif %}
                 </div>
@@ -96,7 +96,7 @@
         </div>
 
         {% if businesses_page.has_other_pages %}
-        <nav class="mt-8 flex items-center justify-center gap-2" aria-label="Pagination">
+        <nav class="mt-8 flex flex-wrap items-center justify-center gap-2" aria-label="Pagination">
             {% if businesses_page.has_previous %}<a href="?page={{ businesses_page.previous_page_number }}&q={{ search_query|urlencode }}&sort={{ current_sort }}" class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Previous</a>{% endif %}
             <span class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700">Page {{ businesses_page.number }} of {{ businesses_page.paginator.num_pages }}</span>
             {% if businesses_page.has_next %}<a href="?page={{ businesses_page.next_page_number }}&q={{ search_query|urlencode }}&sort={{ current_sort }}" class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Next</a>{% endif %}
