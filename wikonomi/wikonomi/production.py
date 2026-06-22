@@ -17,7 +17,11 @@ ALLOWED_HOSTS = ['wikonomi.com', 'www.wikonomi.com', '.onrender.com']
 if 'DATABASE_URL' in os.environ:
     import dj_database_url
     DATABASES = {
-        'default': dj_database_url.parse(os.environ.get('DATABASE_URL'))
+        'default': dj_database_url.parse(
+            os.environ['DATABASE_URL'],
+            conn_max_age=600,
+            ssl_require=True,
+        )
     }
 
 # Static files configuration
