@@ -15,6 +15,11 @@
                     </div>
                 </div>
                 <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                    {% if analytics_dashboard_url %}
+                    <a href="{% url analytics_dashboard_url %}" class="bg-brand-green hover:bg-brand-green/90 text-slate-900 font-semibold py-2 px-4 rounded text-center sm:text-left">
+                        Analytics Dashboard
+                    </a>
+                    {% endif %}
                     <a href="{% url 'edit_profile' %}" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-medium py-2 px-4 rounded text-center sm:text-left">
                         Edit Profile
                     </a>

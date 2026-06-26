@@ -1,7 +1,8 @@
+from django.utils import timezone
 from django.contrib import admin
 from django.db.models import Count, Avg
 from django.utils.html import format_html
-from .models import UserAnalytics, DailySignupMetrics, UserActivityLog
+from .models import DashboardAccess, UserAnalytics, DailySignupMetrics, UserActivityLog
 
 @admin.register(UserAnalytics)
 class UserAnalyticsAdmin(admin.ModelAdmin):
@@ -65,3 +66,11 @@ class UserActivityLogAdmin(admin.ModelAdmin):
             preview += "..."
         return preview
     metadata_preview.short_description = 'Metadata'
+
+
+@admin.register(DashboardAccess)
+class DashboardAccessAdmin(admin.ModelAdmin):
+    list_display = ['user', 'role', 'is_active', 'created_at', 'updated_at']
+    list_filter = ['role', 'is_active', 'created_at']
+    search_fields = ['user__username', 'user__email', 'notes']
+    autocomplete_fields = ['user']
