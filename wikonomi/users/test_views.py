@@ -7,6 +7,7 @@ from unittest.mock import patch, MagicMock
 import json
 
 from users.models import Profile
+from analytics.models import DashboardAccess
 from users import views
 
 
@@ -103,6 +104,40 @@ class UserProfileTest(TestCase):
         self.assertContains(response, self.user.username)
         self.assertContains(response, self.user.email)
         
+
+    def test_profile_shows_analytics_dashboard_link_for_active_access(self):
+        """Users with active analytics access can navigate to their dashboard from profile."""
+        DashboardAccess.objects.create(
+            user=self.user,
+            role=DashboardAccess.DashboardRole.INVESTOR,
+        )
+
+        response = self.client.get(reverse('profile'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Analytics Dashboard')
+        self.assertContains(response, reverse('analytics:investor'))
+
+    def test_profile_hides_analytics_dashboard_link_without_active_access(self):
+        """Users without active analytics access should not see dashboard navigation."""
+        response = self.client.get(reverse('profile'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Analytics Dashboard')
+
+    def test_profile_hides_analytics_dashboard_link_for_inactive_access(self):
+        """Inactive dashboard grants should not expose profile navigation."""
+        DashboardAccess.objects.create(
+            user=self.user,
+            role=DashboardAccess.DashboardRole.TEAM,
+            is_active=False,
+        )
+
+        response = self.client.get(reverse('profile'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Analytics Dashboard')
+
     def test_edit_profile_updates_user_info(self):
         """Test profile editing updates user information"""
         new_email = 'updated@example.com'
@@ -113,7 +148,8 @@ class UserProfileTest(TestCase):
             'last_name': 'Updated Last Name'
         })
         
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('profile'))
         
         # Verify user was updated
         self.user.refresh_from_db()
