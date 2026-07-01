@@ -1,0 +1,139 @@
+{% load static %}
+<style>
+    .wk-shortcut-dock { bottom: 6.5rem; }
+    .wk-shortcut-panel, .wk-rating-tray { transform-origin: bottom right; }
+    .wk-shortcut-panel.is-open, .wk-rating-tray.is-open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+</style>
+
+<div class="wk-shortcut-dock fixed right-4 z-50 flex flex-col items-end gap-3 sm:right-6" data-shortcut-root>
+    <div class="wk-rating-tray pointer-events-none flex translate-y-2 scale-95 gap-2 rounded-2xl border border-amber-100 bg-white p-2 opacity-0 shadow-xl transition-all" data-shortcut-rating-tray aria-label="Quick rating scale">
+        {% if user.is_authenticated %}
+            {% for value in "12345" %}
+            <button type="button" class="flex h-10 w-10 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-sm font-bold text-amber-700 shadow-sm transition hover:bg-amber-100" data-rating-target="{{ shortcut_rating_target }}" data-object-id="{{ shortcut_object_id }}" data-rating-value="{{ value }}" aria-label="Rate {{ value }} out of 5">{{ value }}</button>
+            {% endfor %}
+        {% else %}
+            <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}" class="rounded-xl bg-brand-purple px-4 py-2 text-sm font-semibold text-white shadow-sm">Log in to rate</a>
+        {% endif %}
+    </div>
+
+    <div class="wk-shortcut-panel pointer-events-none flex translate-y-2 scale-95 flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-2 opacity-0 shadow-xl transition-all" data-shortcut-panel>
+        <button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50" data-shortcut-action="rating">⭐ {{ shortcut_rate_label|default:'Rate this price' }}</button>
+        {% if shortcut_inline_edit %}
+        <button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/5" data-shortcut-action="inline-edit">✏️ {{ shortcut_edit_label|default:'Edit this price' }}</button>
+        {% else %}
+        <a href="{{ shortcut_edit_url }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/5">✏️ {{ shortcut_edit_label|default:'Edit this price' }}</a>
+        {% endif %}
+        {% if shortcut_duplicate_url %}<a href="{{ shortcut_duplicate_url }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-slate-50">📋 Duplicate this price</a>{% endif %}
+        {% if shortcut_mark_delete_url and not shortcut_marked_for_deletion %}<button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50" data-shortcut-action="mark-delete">🗑️ Mark this price for deletion</button>{% endif %}
+        <button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-blue/10" data-shortcut-action="comment">💬 {{ shortcut_comment_label|default:'Write Comment' }}</button>
+        {% if shortcut_share_url %}<button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-green hover:bg-brand-green/10" data-shortcut-action="share">🔗 Share this price</button>{% endif %}
+    </div>
+
+    <button type="button" class="flex h-14 w-14 items-center justify-center rounded-full bg-brand-purple text-2xl text-white shadow-2xl ring-4 ring-white transition hover:bg-brand-purple/90" data-shortcut-toggle aria-expanded="false" aria-label="Open detail shortcuts">＋</button>
+</div>
+
+<div class="fixed inset-0 z-[70] hidden items-center justify-center bg-slate-900/45 px-4" data-quick-comment-modal role="dialog" aria-modal="true" aria-labelledby="quick-comment-title">
+    <form class="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl" data-quick-comment-form>
+        <div class="mb-4 flex items-start justify-between gap-4">
+            <div>
+                <h2 id="quick-comment-title" class="text-lg font-bold text-gray-900">Add a quick comment</h2>
+                <p class="mt-1 text-sm text-gray-500">Share a helpful note without leaving this page.</p>
+            </div>
+            <button type="button" class="text-2xl leading-none text-gray-400 hover:text-gray-700" data-quick-comment-close aria-label="Close quick comment">×</button>
+        </div>
+        <textarea name="body" rows="5" maxlength="2000" required class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-blue focus:ring-2 focus:ring-brand-purple/20" placeholder="Write your comment…"></textarea>
+        <p class="mt-2 hidden text-sm text-red-600" data-quick-comment-error></p>
+        <div class="mt-4 flex justify-end gap-2">
+            <button type="button" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-gray-700" data-quick-comment-close>Cancel</button>
+            {% if user.is_authenticated %}<button type="submit" class="rounded-lg bg-brand-purple px-4 py-2 text-sm font-semibold text-white">Save comment</button>{% else %}<a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}" class="rounded-lg bg-brand-purple px-4 py-2 text-sm font-semibold text-white">Log in to comment</a>{% endif %}
+        </div>
+    </form>
+</div>
+
+{% if shortcut_mark_delete_url %}
+<div class="fixed inset-0 z-[70] hidden items-center justify-center bg-slate-900/45 px-4" data-mark-delete-modal role="dialog" aria-modal="true" aria-labelledby="mark-delete-title">
+    <form class="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" data-mark-delete-form action="{{ shortcut_mark_delete_url }}">
+        <h2 id="mark-delete-title" class="text-lg font-bold text-gray-900">Mark this price for deletion?</h2>
+        <p class="mt-2 text-sm text-gray-600">This will flag the price report for review. Another user must confirm before it can be deleted.</p>
+        <label for="quick-delete-reason" class="mt-4 block text-sm font-semibold text-gray-700">Reason (optional)</label>
+        <textarea id="quick-delete-reason" name="reason" rows="3" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder="Duplicate, wrong price, no longer valid…"></textarea>
+        <p class="mt-2 hidden text-sm text-red-600" data-mark-delete-error></p>
+        <div class="mt-5 flex justify-end gap-2">
+            <button type="button" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-gray-700" data-mark-delete-close>Cancel</button>
+            <button type="submit" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Yes, mark for deletion</button>
+        </div>
+    </form>
+</div>
+{% endif %}
+
+<script>
+(function () {
+    const root = document.querySelector('[data-shortcut-root]');
+    if (!root) return;
+    const toggle = root.querySelector('[data-shortcut-toggle]');
+    const panel = root.querySelector('[data-shortcut-panel]');
+    const ratingTray = root.querySelector('[data-shortcut-rating-tray]');
+    const commentModal = document.querySelector('[data-quick-comment-modal]');
+    const commentForm = document.querySelector('[data-quick-comment-form]');
+    const commentError = document.querySelector('[data-quick-comment-error]');
+    const deleteModal = document.querySelector('[data-mark-delete-modal]');
+    const deleteForm = document.querySelector('[data-mark-delete-form]');
+    const deleteError = document.querySelector('[data-mark-delete-error]');
+    const csrf = '{{ csrf_token }}';
+
+    function setPanel(open) { panel.classList.toggle('is-open', open); toggle.setAttribute('aria-expanded', open ? 'true' : 'false'); toggle.textContent = open ? '×' : '＋'; }
+    function setRating(open) { ratingTray.classList.toggle('is-open', open); }
+    function openCommentModal() { commentModal.classList.remove('hidden'); commentModal.classList.add('flex'); commentModal.querySelector('textarea')?.focus(); }
+    function closeCommentModal() { commentModal.classList.add('hidden'); commentModal.classList.remove('flex'); commentForm?.reset(); commentError?.classList.add('hidden'); }
+    function openDeleteModal(reasonValue = '') { if (!deleteModal) return; deleteModal.classList.remove('hidden'); deleteModal.classList.add('flex'); const input = deleteModal.querySelector('[name="reason"]'); if (input) input.value = reasonValue; input?.focus(); }
+    function closeDeleteModal() { deleteModal?.classList.add('hidden'); deleteModal?.classList.remove('flex'); deleteForm?.reset(); deleteError?.classList.add('hidden'); }
+    function markDeletionTrigger(reasonValue = '') { openDeleteModal(reasonValue); }
+    window.wkConfirmPriceDeletion = markDeletionTrigger;
+
+    toggle.addEventListener('click', () => setPanel(!panel.classList.contains('is-open')));
+    root.addEventListener('click', (event) => {
+        const action = event.target.closest('[data-shortcut-action]')?.dataset.shortcutAction;
+        if (!action) return;
+        if (action === 'rating') setRating(!ratingTray.classList.contains('is-open'));
+        if (action === 'comment') openCommentModal();
+        if (action === 'mark-delete') openDeleteModal();
+        if (action === 'share') sharePriceReport(event, { title: '{{ shortcut_share_title|escapejs }}', text: '{{ shortcut_share_text|escapejs }}', url: '{{ shortcut_share_url|escapejs }}' });
+        if (action === 'inline-edit') {
+            if (window.wkEnterPriceEditMode) window.wkEnterPriceEditMode();
+            else window.location.href = '{{ shortcut_edit_url }}';
+        }
+    });
+    document.querySelectorAll('[data-quick-comment-close]').forEach(btn => btn.addEventListener('click', closeCommentModal));
+    commentModal?.addEventListener('click', event => { if (event.target === commentModal) closeCommentModal(); });
+    commentForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const body = commentForm.body.value.trim();
+        if (!body) return;
+        const submit = commentForm.querySelector('[type="submit"]');
+        submit.disabled = true; submit.textContent = 'Saving…';
+        try {
+            const res = await fetch('/api/comments/', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf }, body: JSON.stringify({ content_type: '{{ shortcut_comment_content_type_id }}', object_id: '{{ shortcut_object_id }}', body }) });
+            if (!res.ok) throw new Error('Unable to save comment');
+            closeCommentModal();
+            window.location.reload();
+        } catch (e) {
+            commentError.textContent = 'Could not save your comment. Please try again.'; commentError.classList.remove('hidden');
+        } finally { submit.disabled = false; submit.textContent = 'Save comment'; }
+    });
+    document.querySelectorAll('[data-mark-delete-close]').forEach(btn => btn.addEventListener('click', closeDeleteModal));
+    deleteModal?.addEventListener('click', event => { if (event.target === deleteModal) closeDeleteModal(); });
+    deleteForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const submit = deleteForm.querySelector('[type="submit"]');
+        submit.disabled = true; submit.textContent = 'Marking…';
+        try {
+            const formData = new FormData(deleteForm);
+            const res = await fetch(deleteForm.action, { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' }, body: formData });
+            if (!res.ok) throw new Error('Unable to mark for deletion');
+            window.location.reload();
+        } catch (e) {
+            deleteError.textContent = 'Could not mark this price for deletion. Please try again.'; deleteError.classList.remove('hidden');
+        } finally { submit.disabled = false; submit.textContent = 'Yes, mark for deletion'; }
+    });
+})();
+</script>
