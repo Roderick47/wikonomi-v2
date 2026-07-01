@@ -17,10 +17,10 @@
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
                     <h3 class="text-lg leading-6 font-medium text-gray-900">
-                        Add a New Price
+                        {{ form_title|default:"Add a New Price" }}
                     </h3>
                     <div class="mt-2 text-sm text-gray-500">
-                        <p>Help the community by sharing the price you found.</p>
+                        <p>{{ form_intro|default:"Help the community by sharing the price you found." }}</p>
                     </div>
                 </div>
                 <div class="flex flex-col items-start sm:items-end shrink-0">
@@ -35,6 +35,13 @@
             </div>
             <form method="POST" class="mt-5 space-y-6" enctype="multipart/form-data">
                 {% csrf_token %}
+                {% if duplicate_source %}
+                <input type="hidden" name="duplicated_from" value="{{ duplicate_source.pk }}">
+                <div class="rounded-md border border-brand-purple/20 bg-brand-purple/5 p-4 text-sm text-gray-700">
+                    <p class="font-semibold text-gray-900">Duplicating report #{{ duplicate_source.pk }}</p>
+                    <p class="mt-1">Copied from {{ duplicate_source.product.name }} at {{ duplicate_source.get_business_display }}. Pick a different business/location and upload a new photo if you have one.</p>
+                </div>
+                {% endif %}
                 
                 {% if form.errors %}
                 <div class="bg-red-50 border border-red-200 text-red-600 rounded-md p-4 mb-4">
@@ -87,7 +94,7 @@
                     <div class="sm:col-span-6">
                         <label for="product_search" class="block text-sm font-medium text-gray-700">Product</label>
                         <div class="mt-1 flex rounded-md shadow-sm">
-                            <input type="text" name="product_name" id="product_search" list="product_list" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="Type a product name...">
+                            <input type="text" name="product_name" id="product_search" list="product_list" value="{{ initial_product_name|default:'' }}" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="Type a product name...">
                             <datalist id="product_list">
                                 {% for product in products %}
                                     <option value="{{ product.name }}"></option>
@@ -100,7 +107,7 @@
                     <div class="sm:col-span-6">
                         <label for="business_search" class="block text-sm font-medium text-gray-700">Business (Optional)</label>
                         <div class="mt-1 flex rounded-md shadow-sm">
-                            <input type="text" name="business_name" id="business_search" list="business_list" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="Type a business name...">
+                            <input type="text" name="business_name" id="business_search" list="business_list" value="{{ initial_business_name|default:'' }}" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="Type a business name...">
                             <datalist id="business_list">
                                 {% for business in businesses %}
                                     <option value="{{ business.name }}"></option>
@@ -142,7 +149,7 @@
                     <div class="sm:col-span-6">
                         <label for="tags" class="block text-sm font-medium text-gray-700">Tags (Optional)</label>
                         <div class="mt-1">
-                            <input type="text" name="tags" id="tags" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="e.g. sale, supermarket, wholesale (comma separated)">
+                            <input type="text" name="tags" id="tags" value="{{ initial_tags|default:'' }}" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="e.g. sale, supermarket, wholesale (comma separated)">
                         </div>
                         <p class="mt-2 text-sm text-gray-500">Add some tags to help categorize this price.</p>
                     </div>
@@ -181,11 +188,11 @@
                 </div>
 
                 <div class="pt-5 flex justify-end">
-                    <a href="{% url 'home' %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
+                    <a href="{{ cancel_url|default:'/' }}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
                         Cancel
                     </a>
                     <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-purple hover:bg-brand-purple/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
-                        Save
+                        {{ submit_label|default:"Save" }}
                     </button>
                 </div>
             </form>
@@ -281,14 +288,14 @@
         }
 
         const urlParams = new URLSearchParams(window.location.search);
-        const productPrefill = urlParams.get('product_name');
-        const businessPrefill = urlParams.get('business_name');
-        if (productPrefill) {
+        const urlProductPrefill = urlParams.get('product_name');
+        const urlBusinessPrefill = urlParams.get('business_name');
+        if (urlProductPrefill) {
             const productInput = document.getElementById('product_search');
-            if (productInput) productInput.value = productPrefill;
+            if (productInput) productInput.value = urlProductPrefill;
         }
-        if (businessPrefill && businessInput) {
-            businessInput.value = businessPrefill;
+        if (urlBusinessPrefill && businessInput) {
+            businessInput.value = urlBusinessPrefill;
             applyBusinessDefaultLocation();
         }
 
