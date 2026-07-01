@@ -1,0 +1,127 @@
+{% load static %}
+<style>
+    .wk-sticky-detail-header {
+        transform: translateY(-110%);
+        transition: transform 180ms ease;
+        top: var(--navbar-height, 4rem);
+    }
+    .wk-sticky-detail-header.is-visible { transform: translateY(0); }
+    .wk-shortcut-dock { bottom: 6.5rem; }
+    .wk-shortcut-panel, .wk-rating-tray { transform-origin: bottom right; }
+    .wk-shortcut-panel.is-open, .wk-rating-tray.is-open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+</style>
+
+<div id="wk-detail-sticky-sentinel" class="h-px" aria-hidden="true"></div>
+<div id="wk-detail-sticky-header" class="wk-sticky-detail-header fixed left-0 right-0 z-40 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+        <div class="min-w-0">
+            <p class="text-xs font-semibold uppercase tracking-wide text-brand-purple">{{ shortcut_label }}</p>
+            <h2 class="truncate text-sm font-bold text-gray-900 sm:text-base">{{ shortcut_title }}</h2>
+        </div>
+        <div class="shrink-0 text-right text-sm font-semibold text-gray-700">{% if shortcut_meta_prefix %}{{ shortcut_meta_prefix }} {% endif %}{{ shortcut_meta }}</div>
+    </div>
+</div>
+
+<div class="wk-shortcut-dock fixed right-4 z-50 flex flex-col items-end gap-3 sm:right-6" data-shortcut-root>
+    <div class="wk-rating-tray pointer-events-none flex translate-y-2 scale-95 gap-2 rounded-2xl border border-amber-100 bg-white p-2 opacity-0 shadow-xl transition-all" data-shortcut-rating-tray aria-label="Quick rating scale">
+        {% if user.is_authenticated %}
+            {% for value in "12345" %}
+            <button type="button" class="flex h-10 w-10 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-sm font-bold text-amber-700 shadow-sm transition hover:bg-amber-100" data-rating-target="{{ shortcut_rating_target }}" data-object-id="{{ shortcut_object_id }}" data-rating-value="{{ value }}" aria-label="Rate {{ value }} out of 5">{{ value }}</button>
+            {% endfor %}
+        {% else %}
+            <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}" class="rounded-xl bg-brand-purple px-4 py-2 text-sm font-semibold text-white shadow-sm">Log in to rate</a>
+        {% endif %}
+    </div>
+
+    <div class="wk-shortcut-panel pointer-events-none flex translate-y-2 scale-95 flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-2 opacity-0 shadow-xl transition-all" data-shortcut-panel>
+        <button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50" data-shortcut-action="rating">⭐ Quick rating</button>
+        <button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/5" data-shortcut-action="edit-menu">✏️ Quick edit{% if shortcut_duplicate_url %} / duplicate{% endif %}</button>
+        <div class="hidden flex-col gap-2 pl-3" data-shortcut-edit-menu>
+            {% if shortcut_inline_edit %}
+            <button type="button" class="rounded-lg bg-brand-purple px-3 py-2 text-left text-sm font-semibold text-white" data-shortcut-action="inline-edit">Edit this price</button>
+            {% else %}
+            <a href="{{ shortcut_edit_url }}" class="rounded-lg bg-brand-purple px-3 py-2 text-sm font-semibold text-white">Edit</a>
+            {% endif %}
+            {% if shortcut_duplicate_url %}<a href="{{ shortcut_duplicate_url }}" class="rounded-lg border border-brand-purple/20 px-3 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/5">Duplicate</a>{% endif %}
+        </div>
+        <button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-blue/10" data-shortcut-action="comment">💬 Quick comment</button>
+        {% if shortcut_duplicate_url %}<a href="{{ shortcut_duplicate_url }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-slate-50">📋 Duplicate form</a>{% endif %}
+    </div>
+
+    <button type="button" class="flex h-14 w-14 items-center justify-center rounded-full bg-brand-purple text-2xl text-white shadow-2xl ring-4 ring-white transition hover:bg-brand-purple/90" data-shortcut-toggle aria-expanded="false" aria-label="Open detail shortcuts">＋</button>
+</div>
+
+<div class="fixed inset-0 z-[70] hidden items-center justify-center bg-slate-900/45 px-4" data-quick-comment-modal role="dialog" aria-modal="true" aria-labelledby="quick-comment-title">
+    <form class="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl" data-quick-comment-form>
+        <div class="mb-4 flex items-start justify-between gap-4">
+            <div>
+                <h2 id="quick-comment-title" class="text-lg font-bold text-gray-900">Add a quick comment</h2>
+                <p class="mt-1 text-sm text-gray-500">Share a helpful note without leaving this page.</p>
+            </div>
+            <button type="button" class="text-2xl leading-none text-gray-400 hover:text-gray-700" data-quick-comment-close aria-label="Close quick comment">×</button>
+        </div>
+        <textarea name="body" rows="5" maxlength="2000" required class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-blue focus:ring-2 focus:ring-brand-purple/20" placeholder="Write your comment…"></textarea>
+        <p class="mt-2 hidden text-sm text-red-600" data-quick-comment-error></p>
+        <div class="mt-4 flex justify-end gap-2">
+            <button type="button" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-gray-700" data-quick-comment-close>Cancel</button>
+            {% if user.is_authenticated %}<button type="submit" class="rounded-lg bg-brand-purple px-4 py-2 text-sm font-semibold text-white">Save comment</button>{% else %}<a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}" class="rounded-lg bg-brand-purple px-4 py-2 text-sm font-semibold text-white">Log in to comment</a>{% endif %}
+        </div>
+    </form>
+</div>
+
+<script>
+(function () {
+    const root = document.querySelector('[data-shortcut-root]');
+    if (!root) return;
+    const toggle = root.querySelector('[data-shortcut-toggle]');
+    const panel = root.querySelector('[data-shortcut-panel]');
+    const ratingTray = root.querySelector('[data-shortcut-rating-tray]');
+    const editMenu = root.querySelector('[data-shortcut-edit-menu]');
+    const modal = document.querySelector('[data-quick-comment-modal]');
+    const form = document.querySelector('[data-quick-comment-form]');
+    const error = document.querySelector('[data-quick-comment-error]');
+    const sticky = document.getElementById('wk-detail-sticky-header');
+    const sentinel = document.getElementById('wk-detail-sticky-sentinel');
+    const csrf = '{{ csrf_token }}';
+
+    function setPanel(open) { panel.classList.toggle('is-open', open); toggle.setAttribute('aria-expanded', open ? 'true' : 'false'); toggle.textContent = open ? '×' : '＋'; }
+    function setRating(open) { ratingTray.classList.toggle('is-open', open); }
+    function openModal() { modal.classList.remove('hidden'); modal.classList.add('flex'); modal.querySelector('textarea')?.focus(); }
+    function closeModal() { modal.classList.add('hidden'); modal.classList.remove('flex'); form?.reset(); error?.classList.add('hidden'); }
+
+    toggle.addEventListener('click', () => setPanel(!panel.classList.contains('is-open')));
+    root.addEventListener('click', (event) => {
+        const action = event.target.closest('[data-shortcut-action]')?.dataset.shortcutAction;
+        if (!action) return;
+        if (action === 'rating') setRating(!ratingTray.classList.contains('is-open'));
+        if (action === 'edit-menu') editMenu?.classList.toggle('hidden');
+        if (action === 'comment') openModal();
+        if (action === 'inline-edit') {
+            if (window.wkEnterPriceEditMode) window.wkEnterPriceEditMode();
+            else window.location.href = '{{ shortcut_edit_url }}';
+        }
+    });
+    document.querySelectorAll('[data-quick-comment-close]').forEach(btn => btn.addEventListener('click', closeModal));
+    modal?.addEventListener('click', event => { if (event.target === modal) closeModal(); });
+    form?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const body = form.body.value.trim();
+        if (!body) return;
+        const submit = form.querySelector('[type="submit"]');
+        submit.disabled = true; submit.textContent = 'Saving…';
+        try {
+            const res = await fetch('/api/comments/', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf }, body: JSON.stringify({ content_type: '{{ shortcut_comment_content_type_id }}', object_id: '{{ shortcut_object_id }}', body }) });
+            if (!res.ok) throw new Error('Unable to save comment');
+            closeModal();
+            window.dispatchEvent(new CustomEvent('wk:toast', { detail: { message: 'Comment saved.', type: 'success' } }));
+            if (window.location.hash !== '#comments') window.location.hash = 'comments';
+            window.location.reload();
+        } catch (e) {
+            error.textContent = 'Could not save your comment. Please try again.'; error.classList.remove('hidden');
+        } finally { submit.disabled = false; submit.textContent = 'Save comment'; }
+    });
+    if (sticky && sentinel && 'IntersectionObserver' in window) {
+        new IntersectionObserver(entries => sticky.classList.toggle('is-visible', !entries[0].isIntersecting), { rootMargin: 'calc(-1 * var(--navbar-height, 4rem)) 0px 0px 0px' }).observe(sentinel);
+    }
+})();
+</script>
