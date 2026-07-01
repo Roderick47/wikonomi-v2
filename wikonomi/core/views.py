@@ -1349,6 +1349,14 @@ def mark_for_deletion(request, pk):
                 message=f"{request.user.username} marked a price report for deletion: {report.product.name}."
             )
     
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({
+            'ok': True,
+            'marked_for_deletion': True,
+            'reason': reason,
+            'message': 'Price report marked for deletion. Another user must confirm to delete it.',
+        })
+
     messages.success(request, 'Price report marked for deletion. Another user must confirm to delete it.')
     return redirect('price_detail', pk=pk)
 

@@ -105,6 +105,8 @@
 {% block content %}
 {% static 'img/default-profile.svg' as default_profile_picture_url %}
 <div class="max-w-7xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
+{% url 'business_edit' business.pk as shortcut_edit_url %}
+{% include "includes/_detail_shortcuts.html" with shortcut_label='Business detail' shortcut_title=business.name shortcut_meta=average_rating|default:0|floatformat:1|add:'/5 rating' shortcut_rating_target='business' shortcut_object_id=business.id shortcut_comment_content_type_id=comment_content_type_id shortcut_edit_url=shortcut_edit_url shortcut_rate_label='Rate this business' shortcut_edit_label='Edit this business' shortcut_comment_label='Write Comment' %}
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <a href="{% url 'home' %}" class="inline-flex items-center text-brand-purple hover:text-brand-purple/80 font-medium">
             <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
@@ -120,7 +122,7 @@
     </div>
 
     <!-- Business Header -->
-    <section class="business-hero overflow-hidden rounded-2xl shadow-lg mb-8 text-white">
+    <section class="business-hero sticky top-[var(--navbar-height,4rem)] z-30 mb-8 overflow-hidden rounded-2xl text-white shadow-lg">
         <div class="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
                 <p class="text-sm font-semibold uppercase tracking-wide text-white/75">Business profile</p>
