@@ -57,6 +57,9 @@
         height: 420px;
         z-index: 10;
     }
+    .wk-price-hero-sticky .wk-price-hero-condensed { display: none; }
+    .wk-price-hero-sticky.is-stuck .wk-price-hero-expanded { display: none; }
+    .wk-price-hero-sticky.is-stuck .wk-price-hero-condensed { display: flex; }
 </style>
 
 
@@ -80,7 +83,19 @@
     </div>
 
     <!-- Hero header -->
-    <div class="sticky top-[var(--navbar-height,4rem)] z-30 mb-8 rounded-2xl bg-white/95 pb-2 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/80">
+    <div id="price-hero-sticky-sentinel" class="h-px" aria-hidden="true"></div>
+    <div id="price-hero-sticky" class="wk-price-hero-sticky sticky top-[var(--navbar-height,4rem)] z-30 mb-8 rounded-2xl bg-white/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/80">
+        <div class="wk-price-hero-condensed min-w-0 items-center gap-3 rounded-2xl border border-slate-200 px-3 py-2 sm:px-4">
+            <div class="min-w-0 flex-1 truncate text-sm font-bold text-gray-900">{{ report.product.name }}</div>
+            <div class="shrink-0 text-sm font-extrabold text-brand-green">{{ report.currency }} {{ report.price|intcomma }}</div>
+            <div class="hidden shrink-0 items-center gap-1 text-xs font-semibold text-amber-600 sm:inline-flex" data-rating-summary data-price-id="{{ report.id }}">★ <span data-rating-score>{{ average_rating|default:0|floatformat:1 }}</span>/5</div>
+            <div class="hidden min-w-0 shrink-0 items-center gap-1 text-xs text-gray-500 md:inline-flex">
+                <span class="max-w-[8rem] truncate font-semibold text-gray-700">{{ report.user.username }}</span>
+                <span>·</span>
+                <span>{% if report.is_updated %}Updated {{ report.updated_at|rounded_timesince }}{% else %}{{ report.observed_at|rounded_timesince }}{% endif %}</span>
+            </div>
+        </div>
+        <div class="wk-price-hero-expanded pb-2">
         {% include "includes/_price_report_card.html" with report=report price_card_static=True price_card_editable=True price_card_show_detail_actions=True average_rating=average_rating rating_count=rating_count current_user_rating=current_user_rating price_card_current_user_rating=current_user_rating %}
 
         {% if report.duplicated_from %}
@@ -170,6 +185,7 @@
             </form>
         </div>
         {% endif %}
+        </div>
     </div>
 
     <!-- Rating widget -->
@@ -504,6 +520,14 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        const stickyHero = document.getElementById('price-hero-sticky');
+        const stickySentinel = document.getElementById('price-hero-sticky-sentinel');
+        if (stickyHero && stickySentinel && 'IntersectionObserver' in window) {
+            new IntersectionObserver(entries => {
+                stickyHero.classList.toggle('is-stuck', !entries[0].isIntersecting);
+            }, { rootMargin: 'calc(-1 * var(--navbar-height, 4rem)) 0px 0px 0px' }).observe(stickySentinel);
+        }
+
         const pageDeleteForm = document.querySelector('[data-page-delete-form]');
         if (pageDeleteForm) {
             pageDeleteForm.addEventListener('submit', function(e) {
