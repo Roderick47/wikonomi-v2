@@ -115,16 +115,6 @@
             <span class="ml-auto inline-flex items-center gap-1">
                 <button type="button" id="watchlist-btn" data-product-id="{{ report.product.id }}" onclick="event.preventDefault(); event.stopPropagation();" class="p-1.5 rounded-full transition-colors {% if is_watching %}text-brand-purple bg-brand-purple/10{% else %}text-gray-500 hover:text-brand-purple hover:bg-brand-purple/10{% endif %}" title="{% if is_watching %}Watching{% else %}Watch product{% endif %}" aria-label="Watch product"><span id="watchlist-icon" class="text-sm leading-none">{% if is_watching %}⭐{% else %}☆{% endif %}</span></button>
                 <button type="button" id="add-to-list-btn" data-product-id="{{ report.product.id }}" onclick="event.preventDefault(); event.stopPropagation();" class="p-1.5 text-gray-500 hover:text-brand-purple hover:bg-brand-purple/10 rounded-full transition-colors" title="Add to shopping list" aria-label="Add to list"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button>
-                <span class="relative">
-                    <button type="button" id="actions-menu-btn" onclick="event.preventDefault(); event.stopPropagation();" class="p-1.5 text-gray-500 hover:text-brand-purple hover:bg-brand-purple/10 rounded-full transition-colors" title="More actions" aria-label="More actions" aria-expanded="false" aria-haspopup="true"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg></button>
-                    <span id="actions-menu" class="hidden absolute right-0 mt-1 w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                        <span onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{% url 'edit_price_report' report.pk %}';" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">Edit report</span>
-                        <span onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{% url 'duplicate_price_report' report.pk %}';" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">Duplicate to another store</span>
-                        {% if not report.marked_for_deletion %}
-                        <button type="button" onclick="event.preventDefault(); event.stopPropagation(); document.getElementById('deletion-form').classList.remove('hidden'); document.getElementById('actions-menu').classList.add('hidden');" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Mark for deletion</button>
-                        {% endif %}
-                    </span>
-                </span>
             </span>
             {% endif %}
         </div>

@@ -1,26 +1,9 @@
 {% load static %}
 <style>
-    .wk-sticky-detail-header {
-        transform: translateY(-110%);
-        transition: transform 180ms ease;
-        top: var(--navbar-height, 4rem);
-    }
-    .wk-sticky-detail-header.is-visible { transform: translateY(0); }
     .wk-shortcut-dock { bottom: 6.5rem; }
     .wk-shortcut-panel, .wk-rating-tray { transform-origin: bottom right; }
     .wk-shortcut-panel.is-open, .wk-rating-tray.is-open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
 </style>
-
-<div id="wk-detail-sticky-sentinel" class="h-px" aria-hidden="true"></div>
-<div id="wk-detail-sticky-header" class="wk-sticky-detail-header fixed left-0 right-0 z-40 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
-    <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-        <div class="min-w-0">
-            <p class="text-xs font-semibold uppercase tracking-wide text-brand-purple">{{ shortcut_label }}</p>
-            <h2 class="truncate text-sm font-bold text-gray-900 sm:text-base">{{ shortcut_title }}</h2>
-        </div>
-        <div class="shrink-0 text-right text-sm font-semibold text-gray-700">{% if shortcut_meta_prefix %}{{ shortcut_meta_prefix }} {% endif %}{{ shortcut_meta }}</div>
-    </div>
-</div>
 
 <div class="wk-shortcut-dock fixed right-4 z-50 flex flex-col items-end gap-3 sm:right-6" data-shortcut-root>
     <div class="wk-rating-tray pointer-events-none flex translate-y-2 scale-95 gap-2 rounded-2xl border border-amber-100 bg-white p-2 opacity-0 shadow-xl transition-all" data-shortcut-rating-tray aria-label="Quick rating scale">
@@ -34,18 +17,16 @@
     </div>
 
     <div class="wk-shortcut-panel pointer-events-none flex translate-y-2 scale-95 flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-2 opacity-0 shadow-xl transition-all" data-shortcut-panel>
-        <button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50" data-shortcut-action="rating">⭐ Quick rating</button>
-        <button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/5" data-shortcut-action="edit-menu">✏️ Quick edit{% if shortcut_duplicate_url %} / duplicate{% endif %}</button>
-        <div class="hidden flex-col gap-2 pl-3" data-shortcut-edit-menu>
-            {% if shortcut_inline_edit %}
-            <button type="button" class="rounded-lg bg-brand-purple px-3 py-2 text-left text-sm font-semibold text-white" data-shortcut-action="inline-edit">Edit this price</button>
-            {% else %}
-            <a href="{{ shortcut_edit_url }}" class="rounded-lg bg-brand-purple px-3 py-2 text-sm font-semibold text-white">Edit</a>
-            {% endif %}
-            {% if shortcut_duplicate_url %}<a href="{{ shortcut_duplicate_url }}" class="rounded-lg border border-brand-purple/20 px-3 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/5">Duplicate</a>{% endif %}
-        </div>
-        <button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-blue/10" data-shortcut-action="comment">💬 Quick comment</button>
-        {% if shortcut_duplicate_url %}<a href="{{ shortcut_duplicate_url }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-slate-50">📋 Duplicate form</a>{% endif %}
+        <button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50" data-shortcut-action="rating">⭐ {{ shortcut_rate_label|default:'Rate this price' }}</button>
+        {% if shortcut_inline_edit %}
+        <button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/5" data-shortcut-action="inline-edit">✏️ {{ shortcut_edit_label|default:'Edit this price' }}</button>
+        {% else %}
+        <a href="{{ shortcut_edit_url }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/5">✏️ {{ shortcut_edit_label|default:'Edit this price' }}</a>
+        {% endif %}
+        {% if shortcut_duplicate_url %}<a href="{{ shortcut_duplicate_url }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-slate-50">📋 Duplicate this price</a>{% endif %}
+        {% if shortcut_mark_delete_url and not shortcut_marked_for_deletion %}<button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50" data-shortcut-action="mark-delete">🗑️ Mark this price for deletion</button>{% endif %}
+        <button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-blue/10" data-shortcut-action="comment">💬 {{ shortcut_comment_label|default:'Write Comment' }}</button>
+        {% if shortcut_share_url %}<button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-green hover:bg-brand-green/10" data-shortcut-action="share">🔗 Share this price</button>{% endif %}
     </div>
 
     <button type="button" class="flex h-14 w-14 items-center justify-center rounded-full bg-brand-purple text-2xl text-white shadow-2xl ring-4 ring-white transition hover:bg-brand-purple/90" data-shortcut-toggle aria-expanded="false" aria-label="Open detail shortcuts">＋</button>
@@ -69,6 +50,22 @@
     </form>
 </div>
 
+{% if shortcut_mark_delete_url %}
+<div class="fixed inset-0 z-[70] hidden items-center justify-center bg-slate-900/45 px-4" data-mark-delete-modal role="dialog" aria-modal="true" aria-labelledby="mark-delete-title">
+    <form class="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" data-mark-delete-form action="{{ shortcut_mark_delete_url }}">
+        <h2 id="mark-delete-title" class="text-lg font-bold text-gray-900">Mark this price for deletion?</h2>
+        <p class="mt-2 text-sm text-gray-600">This will flag the price report for review. Another user must confirm before it can be deleted.</p>
+        <label for="quick-delete-reason" class="mt-4 block text-sm font-semibold text-gray-700">Reason (optional)</label>
+        <textarea id="quick-delete-reason" name="reason" rows="3" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder="Duplicate, wrong price, no longer valid…"></textarea>
+        <p class="mt-2 hidden text-sm text-red-600" data-mark-delete-error></p>
+        <div class="mt-5 flex justify-end gap-2">
+            <button type="button" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-gray-700" data-mark-delete-close>Cancel</button>
+            <button type="submit" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Yes, mark for deletion</button>
+        </div>
+    </form>
+</div>
+{% endif %}
+
 <script>
 (function () {
     const root = document.querySelector('[data-shortcut-root]');
@@ -76,52 +73,67 @@
     const toggle = root.querySelector('[data-shortcut-toggle]');
     const panel = root.querySelector('[data-shortcut-panel]');
     const ratingTray = root.querySelector('[data-shortcut-rating-tray]');
-    const editMenu = root.querySelector('[data-shortcut-edit-menu]');
-    const modal = document.querySelector('[data-quick-comment-modal]');
-    const form = document.querySelector('[data-quick-comment-form]');
-    const error = document.querySelector('[data-quick-comment-error]');
-    const sticky = document.getElementById('wk-detail-sticky-header');
-    const sentinel = document.getElementById('wk-detail-sticky-sentinel');
+    const commentModal = document.querySelector('[data-quick-comment-modal]');
+    const commentForm = document.querySelector('[data-quick-comment-form]');
+    const commentError = document.querySelector('[data-quick-comment-error]');
+    const deleteModal = document.querySelector('[data-mark-delete-modal]');
+    const deleteForm = document.querySelector('[data-mark-delete-form]');
+    const deleteError = document.querySelector('[data-mark-delete-error]');
     const csrf = '{{ csrf_token }}';
 
     function setPanel(open) { panel.classList.toggle('is-open', open); toggle.setAttribute('aria-expanded', open ? 'true' : 'false'); toggle.textContent = open ? '×' : '＋'; }
     function setRating(open) { ratingTray.classList.toggle('is-open', open); }
-    function openModal() { modal.classList.remove('hidden'); modal.classList.add('flex'); modal.querySelector('textarea')?.focus(); }
-    function closeModal() { modal.classList.add('hidden'); modal.classList.remove('flex'); form?.reset(); error?.classList.add('hidden'); }
+    function openCommentModal() { commentModal.classList.remove('hidden'); commentModal.classList.add('flex'); commentModal.querySelector('textarea')?.focus(); }
+    function closeCommentModal() { commentModal.classList.add('hidden'); commentModal.classList.remove('flex'); commentForm?.reset(); commentError?.classList.add('hidden'); }
+    function openDeleteModal(reasonValue = '') { if (!deleteModal) return; deleteModal.classList.remove('hidden'); deleteModal.classList.add('flex'); const input = deleteModal.querySelector('[name="reason"]'); if (input) input.value = reasonValue; input?.focus(); }
+    function closeDeleteModal() { deleteModal?.classList.add('hidden'); deleteModal?.classList.remove('flex'); deleteForm?.reset(); deleteError?.classList.add('hidden'); }
+    function markDeletionTrigger(reasonValue = '') { openDeleteModal(reasonValue); }
+    window.wkConfirmPriceDeletion = markDeletionTrigger;
 
     toggle.addEventListener('click', () => setPanel(!panel.classList.contains('is-open')));
     root.addEventListener('click', (event) => {
         const action = event.target.closest('[data-shortcut-action]')?.dataset.shortcutAction;
         if (!action) return;
         if (action === 'rating') setRating(!ratingTray.classList.contains('is-open'));
-        if (action === 'edit-menu') editMenu?.classList.toggle('hidden');
-        if (action === 'comment') openModal();
+        if (action === 'comment') openCommentModal();
+        if (action === 'mark-delete') openDeleteModal();
+        if (action === 'share') sharePriceReport(event, { title: '{{ shortcut_share_title|escapejs }}', text: '{{ shortcut_share_text|escapejs }}', url: '{{ shortcut_share_url|escapejs }}' });
         if (action === 'inline-edit') {
             if (window.wkEnterPriceEditMode) window.wkEnterPriceEditMode();
             else window.location.href = '{{ shortcut_edit_url }}';
         }
     });
-    document.querySelectorAll('[data-quick-comment-close]').forEach(btn => btn.addEventListener('click', closeModal));
-    modal?.addEventListener('click', event => { if (event.target === modal) closeModal(); });
-    form?.addEventListener('submit', async (event) => {
+    document.querySelectorAll('[data-quick-comment-close]').forEach(btn => btn.addEventListener('click', closeCommentModal));
+    commentModal?.addEventListener('click', event => { if (event.target === commentModal) closeCommentModal(); });
+    commentForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
-        const body = form.body.value.trim();
+        const body = commentForm.body.value.trim();
         if (!body) return;
-        const submit = form.querySelector('[type="submit"]');
+        const submit = commentForm.querySelector('[type="submit"]');
         submit.disabled = true; submit.textContent = 'Saving…';
         try {
             const res = await fetch('/api/comments/', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf }, body: JSON.stringify({ content_type: '{{ shortcut_comment_content_type_id }}', object_id: '{{ shortcut_object_id }}', body }) });
             if (!res.ok) throw new Error('Unable to save comment');
-            closeModal();
-            window.dispatchEvent(new CustomEvent('wk:toast', { detail: { message: 'Comment saved.', type: 'success' } }));
-            if (window.location.hash !== '#comments') window.location.hash = 'comments';
+            closeCommentModal();
             window.location.reload();
         } catch (e) {
-            error.textContent = 'Could not save your comment. Please try again.'; error.classList.remove('hidden');
+            commentError.textContent = 'Could not save your comment. Please try again.'; commentError.classList.remove('hidden');
         } finally { submit.disabled = false; submit.textContent = 'Save comment'; }
     });
-    if (sticky && sentinel && 'IntersectionObserver' in window) {
-        new IntersectionObserver(entries => sticky.classList.toggle('is-visible', !entries[0].isIntersecting), { rootMargin: 'calc(-1 * var(--navbar-height, 4rem)) 0px 0px 0px' }).observe(sentinel);
-    }
+    document.querySelectorAll('[data-mark-delete-close]').forEach(btn => btn.addEventListener('click', closeDeleteModal));
+    deleteModal?.addEventListener('click', event => { if (event.target === deleteModal) closeDeleteModal(); });
+    deleteForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const submit = deleteForm.querySelector('[type="submit"]');
+        submit.disabled = true; submit.textContent = 'Marking…';
+        try {
+            const formData = new FormData(deleteForm);
+            const res = await fetch(deleteForm.action, { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' }, body: formData });
+            if (!res.ok) throw new Error('Unable to mark for deletion');
+            window.location.reload();
+        } catch (e) {
+            deleteError.textContent = 'Could not mark this price for deletion. Please try again.'; deleteError.classList.remove('hidden');
+        } finally { submit.disabled = false; submit.textContent = 'Yes, mark for deletion'; }
+    });
 })();
 </script>
