@@ -577,6 +577,76 @@ class APIEndpointsTest(TestCase):
         data = json.loads(response.content)
         self.assertFalse(data['has_more'])
 
+    def test_duplicate_form_prefills_report_data_except_store_location_and_image(self):
+        """Duplicate form copies report details but leaves store/location/photo fields blank."""
+        source = PriceReport.objects.create(
+            product=self.product,
+            business=self.business,
+            user=self.user,
+            price=Decimal('12.75'),
+            currency='PGK',
+            latitude=-9.4438,
+            longitude=147.1803,
+            notes='Shelf price',
+        )
+
+        self.client.login(username='testuser', password='testpass')
+        response = self.client.get(reverse('duplicate_price_report', args=[source.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['duplicate_source'], source)
+        self.assertEqual(response.context['initial_product_name'], 'Test Product')
+        self.assertEqual(response.context['initial_business_name'], '')
+        self.assertEqual(response.context['form'].initial['price'], Decimal('12.75'))
+        self.assertEqual(response.context['form'].initial['currency'], 'PGK')
+        self.assertNotIn('latitude', response.context['form'].initial)
+        self.assertNotIn('longitude', response.context['form'].initial)
+
+    def test_duplicate_submit_links_new_report_to_source(self):
+        """Saving duplicate creates a separate price report linked to the source report."""
+        source = PriceReport.objects.create(
+            product=self.product,
+            business=self.business,
+            user=self.user,
+            price=Decimal('12.75'),
+            currency='PGK',
+            notes='Shelf price',
+        )
+        new_business = Business.objects.create(name='Second Store')
+
+        self.client.login(username='testuser', password='testpass')
+        response = self.client.post(reverse('duplicate_price_report', args=[source.pk]), {
+            'price': '12.75',
+            'currency': 'PGK',
+            'product_name': 'Test Product',
+            'business_name': 'Second Store',
+            'latitude': '-8.0000',
+            'longitude': '148.0000',
+            'notes': 'Shelf price',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        duplicate = PriceReport.objects.get(duplicated_from=source)
+        self.assertEqual(duplicate.duplicated_from, source)
+        self.assertEqual(duplicate.product, self.product)
+        self.assertEqual(duplicate.business, new_business)
+        self.assertEqual(duplicate.price, Decimal('12.75'))
+
+    def test_duplicate_trust_and_verify_votes_are_mutually_exclusive(self):
+        """Users can vote on whether a duplicated report is trusted or needs verification."""
+        source = PriceReport.objects.create(product=self.product, business=self.business, user=self.user, price=Decimal('12.75'))
+        duplicate = PriceReport.objects.create(product=self.product, business=self.business, user=self.user, price=Decimal('12.75'), duplicated_from=source)
+
+        self.client.login(username='testuser', password='testpass')
+        trust_response = self.client.post(reverse('vote_duplicate_report', args=[duplicate.pk]), {'vote': 'trust'})
+        self.assertEqual(trust_response.status_code, 302)
+        self.assertTrue(duplicate.duplicate_trust_votes.filter(pk=self.user.pk).exists())
+
+        verify_response = self.client.post(reverse('vote_duplicate_report', args=[duplicate.pk]), {'vote': 'verify'})
+        self.assertEqual(verify_response.status_code, 302)
+        self.assertFalse(duplicate.duplicate_trust_votes.filter(pk=self.user.pk).exists())
+        self.assertTrue(duplicate.duplicate_verify_votes.filter(pk=self.user.pk).exists())
+
 
 class HomeViewTest(TestCase):
     def setUp(self):

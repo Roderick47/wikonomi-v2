@@ -134,6 +134,10 @@ class PriceReportForm(forms.ModelForm):
                 self.fields['subcategory'].queryset = Subcategory.objects.filter(category_id=cat_id)
             except (ValueError, TypeError):
                 pass
+        elif self.initial.get('subcategory'):
+            subcategory = self.initial['subcategory']
+            self.fields['subcategory'].queryset = Subcategory.objects.filter(category=subcategory.category)
+            self.fields['category'].initial = subcategory.category
         elif self.instance.pk and self.instance.subcategory:
             self.fields['subcategory'].queryset = Subcategory.objects.filter(
                 category=self.instance.subcategory.category
@@ -193,6 +197,12 @@ class PriceReportCreateView(CreateView):
             self._get_business_default_locations(businesses),
             cls=DjangoJSONEncoder,
         )
+        context.setdefault('form_title', 'Add a New Price')
+        context.setdefault('form_intro', 'Help the community by sharing the price you found.')
+        context.setdefault('submit_label', 'Save')
+        context.setdefault('cancel_url', reverse('home'))
+        context.setdefault('initial_product_name', self.request.GET.get('product_name', ''))
+        context.setdefault('initial_business_name', self.request.GET.get('business_name', ''))
         return context
 
     def _get_business_default_locations(self, businesses):
@@ -321,6 +331,16 @@ class PriceReportCreateView(CreateView):
                 if tag_list:
                     product.tags.add(*tag_list)
 
+            duplicate_source_id = self.request.POST.get('duplicated_from')
+            if duplicate_source_id:
+                try:
+                    source_report = PriceReport.objects.get(pk=duplicate_source_id)
+                    if form.instance.duplicated_from_id != source_report.pk:
+                        form.instance.duplicated_from = source_report
+                        form.instance.save(update_fields=['duplicated_from'])
+                except PriceReport.DoesNotExist:
+                    pass
+
             return response
             
         except Exception as e:
@@ -331,6 +351,48 @@ class PriceReportCreateView(CreateView):
             return self.form_invalid(form)
 
 price_report_create = PriceReportCreateView.as_view()
+
+class PriceReportDuplicateView(PriceReportCreateView):
+    """Create a new report from an existing one, excluding store/location/photos."""
+
+    def dispatch(self, request, *args, **kwargs):
+        self.source_report = get_object_or_404(
+            PriceReport.objects.select_related('product', 'business', 'business_branch', 'subcategory__category'),
+            pk=kwargs['pk'],
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial.update({
+            'price': self.source_report.price,
+            'currency': self.source_report.currency,
+            'notes': self.source_report.notes,
+            'subcategory': self.source_report.subcategory,
+        })
+        return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'form_title': 'Duplicate price report',
+            'form_intro': 'The product, price, category, tags, and notes are copied. Choose the new store/location and add fresh photos for this report.',
+            'submit_label': 'Save duplicate report',
+            'cancel_url': reverse('price_detail', args=[self.source_report.pk]),
+            'duplicate_source': self.source_report,
+            'initial_product_name': self.source_report.product.name,
+            'initial_business_name': '',
+            'initial_tags': ', '.join(self.source_report.product.tags.names()),
+        })
+        return context
+
+    def form_valid(self, form):
+        form.instance.duplicated_from = self.source_report
+        return super().form_valid(form)
+
+
+price_report_duplicate = PriceReportDuplicateView.as_view()
+
 
 def _get_prices_queryset(request):
     """Helper to get and sort prices uniformly across feed and map endpoints."""
@@ -1138,6 +1200,24 @@ def rate_price_report(request, pk):
         'average_rating': summary['average_rating'],
         'rating_count': summary['rating_count'],
     })
+
+
+@login_required
+@require_POST
+def vote_duplicate_report(request, pk):
+    report = get_object_or_404(PriceReport, pk=pk, duplicated_from__isnull=False)
+    vote = request.POST.get('vote')
+    if vote == 'trust':
+        report.duplicate_verify_votes.remove(request.user)
+        report.duplicate_trust_votes.add(request.user)
+        messages.success(request, 'Thanks — your trust vote was recorded.')
+    elif vote == 'verify':
+        report.duplicate_trust_votes.remove(request.user)
+        report.duplicate_verify_votes.add(request.user)
+        messages.success(request, 'Thanks — your verification request was recorded.')
+    else:
+        messages.error(request, 'Choose whether you trust or want to verify this duplicate report.')
+    return redirect('price_detail', pk=report.pk)
 
 
 @login_required

@@ -765,6 +765,10 @@ class PriceReport(models.Model):
     h3_res9 = models.CharField(max_length=16, null=True, blank=True, db_index=True)
     h3_res8 = models.CharField(max_length=16, null=True, blank=True, db_index=True)
 
+    duplicated_from = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='duplicates')
+    duplicate_trust_votes = models.ManyToManyField(User, related_name='trusted_duplicate_reports', blank=True)
+    duplicate_verify_votes = models.ManyToManyField(User, related_name='verified_duplicate_reports', blank=True)
+
     # Deletion request fields
     marked_for_deletion = models.BooleanField(default=False)
     marked_for_deletion_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='marked_for_deletion_reports')
