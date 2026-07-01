@@ -8,6 +8,32 @@ from django.db.models import Count, Avg, Q
 from datetime import timedelta
 import json
 
+
+class DashboardAccess(models.Model):
+    """Grants a user access to a non-admin analytics dashboard experience."""
+
+    class DashboardRole(models.TextChoices):
+        FOUNDER = 'founder', 'Founder'
+        TEAM = 'team', 'Team'
+        INVESTOR = 'investor', 'Investor'
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='dashboard_access')
+    role = models.CharField(max_length=20, choices=DashboardRole.choices, default=DashboardRole.INVESTOR)
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['user__username']
+        verbose_name = 'Dashboard Access'
+        verbose_name_plural = 'Dashboard Access'
+
+    def __str__(self):
+        status = 'active' if self.is_active else 'inactive'
+        return f"{self.user.username} — {self.get_role_display()} ({status})"
+
+
 class UserAnalytics(models.Model):
     """Track user-level analytics and engagement metrics"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='analytics')
@@ -77,6 +103,35 @@ class DailySignupMetrics(models.Model):
             'conversion_rate': (metrics.aggregate(total=Count('price_contributor_signups'))['total'] or 0) / max(1, metrics.aggregate(total=Count('total_signups'))['total'] or 1) * 100,
         }
 
+
+class SiteVisit(models.Model):
+    """Lightweight traffic analytics for public site page visits."""
+
+    class PageType(models.TextChoices):
+        PAGE = 'page', 'Page'
+        ABOUT = 'about', 'About page'
+        PRICE_DETAIL = 'price_detail', 'Price detail'
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='site_visits')
+    visitor_key = models.CharField(max_length=80, db_index=True)
+    path = models.CharField(max_length=500)
+    page_type = models.CharField(max_length=30, choices=PageType.choices, default=PageType.PAGE, db_index=True)
+    referrer = models.CharField(max_length=500, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    timestamp = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['timestamp', 'page_type']),
+            models.Index(fields=['visitor_key', 'timestamp']),
+        ]
+
+    def __str__(self):
+        return f"{self.get_page_type_display()} visit to {self.path} at {self.timestamp}"
+
+
 class UserActivityLog(models.Model):
     """Log specific user activities for funnel analysis"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activity_logs')
@@ -94,33 +149,47 @@ class UserActivityLog(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.activity_type} at {self.timestamp}"
 
-# Signals to track user activities - temporarily disabled to prevent timezone issues
-# @receiver(post_save, sender=User)
-# def create_user_analytics(sender, instance, created, **kwargs):
-#     """Create analytics record for new users"""
-#     if created:
-#         UserAnalytics.objects.create(user=instance, signup_date=timezone.now())
-#         
-#         # Update daily signup metrics
-#         today = timezone.now().date()
-#         metrics, created = DailySignupMetrics.objects.get_or_create(date=today)
-#         metrics.total_signups += 1
-#         metrics.save()
+# Signals to track user activities
+@receiver(post_save, sender=User)
+def create_user_analytics(sender, instance, created, **kwargs):
+    """Create analytics records and daily signup metrics for new users."""
+    if not created:
+        return
 
-# @receiver(user_logged_in)
-# def track_user_login(sender, request, user, **kwargs):
-#     """Track user logins"""
-#     analytics, created = UserAnalytics.objects.get_or_create(user=user)
-#     analytics.last_login_at = timezone.now()
-#     analytics.login_count += 1
-#     analytics.update_activity()
-#     
-#     # Log activity
-#     UserActivityLog.objects.create(
-#         user=user,
-#         activity_type='login',
-#         metadata={'ip_address': request.META.get('REMOTE_ADDR', 'unknown')}
-#     )
+    UserAnalytics.objects.get_or_create(
+        user=instance,
+        defaults={'signup_date': instance.date_joined or timezone.now()},
+    )
+
+    today = (instance.date_joined or timezone.now()).date()
+    metrics, _created = DailySignupMetrics.objects.get_or_create(date=today)
+    metrics.total_signups += 1
+    metrics.save(update_fields=['total_signups'])
+
+
+@receiver(user_logged_in)
+def track_user_login(sender, request, user, **kwargs):
+    """Track user logins without relying on naive datetimes."""
+    now = timezone.now()
+    analytics, _created = UserAnalytics.objects.get_or_create(
+        user=user,
+        defaults={'signup_date': user.date_joined or now},
+    )
+    analytics.last_login_at = now
+    analytics.login_count += 1
+    analytics.last_activity_at = now
+    analytics.is_active_user = True
+    analytics.save(update_fields=['last_login_at', 'login_count', 'last_activity_at', 'is_active_user'])
+
+    metadata = {}
+    if request is not None:
+        metadata['ip_address'] = request.META.get('REMOTE_ADDR', 'unknown')
+
+    UserActivityLog.objects.create(
+        user=user,
+        activity_type='login',
+        metadata=metadata,
+    )
 
 def track_price_report(user):
     """Track when user creates a price report"""

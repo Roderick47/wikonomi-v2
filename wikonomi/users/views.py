@@ -77,10 +77,31 @@ def user_login(request):
         form = AuthenticationForm()
     return render(request, 'users/login.html', {'form': form})
 
+def get_analytics_dashboard_url(user):
+    """Return the analytics dashboard URL name available to this user, if any."""
+    if user.is_superuser:
+        return 'analytics:dashboard'
+
+    access = getattr(user, 'dashboard_access', None)
+    if not access or not access.is_active:
+        return None
+
+    role_url_names = {
+        'founder': 'analytics:dashboard',
+        'team': 'analytics:users',
+        'investor': 'analytics:investor',
+    }
+    return role_url_names.get(access.role)
+
+
 @login_required
 def profile(request):
     profile, created = Profile.objects.get_or_create(user=request.user)
-    return render(request, 'users/profile.html', {'profile': profile})
+    analytics_dashboard_url = get_analytics_dashboard_url(request.user)
+    return render(request, 'users/profile.html', {
+        'profile': profile,
+        'analytics_dashboard_url': analytics_dashboard_url,
+    })
 
 @login_required
 def edit_profile(request):
