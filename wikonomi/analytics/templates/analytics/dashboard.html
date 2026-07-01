@@ -38,6 +38,49 @@
         <div class="rounded-3xl bg-white p-6 shadow"><p class="text-sm font-bold text-slate-500">Businesses covered</p><p class="mt-3 text-4xl font-black text-slate-950">{{ total_businesses }}</p><p class="mt-2 text-sm text-slate-500">{{ new_users_30 }} new users in 30 days</p></div>
       </section>
 
+
+      {% if view_mode == 'founder' %}
+      <section class="mt-6 rounded-3xl bg-white p-6 shadow">
+        <div class="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+          <div>
+            <h3 class="text-xl font-black text-slate-950">Visitor activity by window</h3>
+            <p class="text-sm text-slate-500">Unique visitors, anonymous visitors, price-detail clicks, and about-page visits.</p>
+          </div>
+          <span class="rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-purple">Founder only</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-left text-sm">
+            <thead>
+              <tr class="border-b text-slate-500">
+                <th class="py-3 pr-4">Window</th>
+                <th class="py-3 pr-4">Unique visitors</th>
+                <th class="py-3 pr-4">Total visits</th>
+                <th class="py-3 pr-4">No signup</th>
+                <th class="py-3 pr-4">Signed in</th>
+                <th class="py-3 pr-4">Price clicks</th>
+                <th class="py-3 pr-4">About visits</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in founder_visitor_windows %}
+              <tr class="border-b last:border-b-0">
+                <td class="py-3 pr-4 font-bold text-slate-900">{{ row.label }}</td>
+                <td class="py-3 pr-4">{{ row.unique_visitors }}</td>
+                <td class="py-3 pr-4">{{ row.total_visits }}</td>
+                <td class="py-3 pr-4">{{ row.anonymous_visitors }}</td>
+                <td class="py-3 pr-4">{{ row.signed_in_visitors }}</td>
+                <td class="py-3 pr-4">{{ row.price_clicks }}</td>
+                <td class="py-3 pr-4">{{ row.about_visits }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="7" class="py-4 text-center text-slate-500">No visitor data has been tracked yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {% endif %}
+
       <section class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div class="rounded-3xl bg-white p-6 shadow xl:col-span-2">
           <h3 class="text-xl font-black text-slate-950">Growth trend</h3>

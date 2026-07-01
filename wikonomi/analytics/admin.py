@@ -2,7 +2,7 @@ from django.utils import timezone
 from django.contrib import admin
 from django.db.models import Count, Avg
 from django.utils.html import format_html
-from .models import DashboardAccess, UserAnalytics, DailySignupMetrics, UserActivityLog
+from .models import DashboardAccess, SiteVisit, UserAnalytics, DailySignupMetrics, UserActivityLog
 
 @admin.register(UserAnalytics)
 class UserAnalyticsAdmin(admin.ModelAdmin):
@@ -74,3 +74,12 @@ class DashboardAccessAdmin(admin.ModelAdmin):
     list_filter = ['role', 'is_active', 'created_at']
     search_fields = ['user__username', 'user__email', 'notes']
     autocomplete_fields = ['user']
+
+
+@admin.register(SiteVisit)
+class SiteVisitAdmin(admin.ModelAdmin):
+    list_display = ['timestamp', 'page_type', 'path', 'user', 'visitor_key']
+    list_filter = ['page_type', 'timestamp']
+    search_fields = ['path', 'visitor_key', 'user__username', 'referrer']
+    readonly_fields = ['user', 'visitor_key', 'path', 'page_type', 'referrer', 'user_agent', 'ip_address', 'timestamp']
+    date_hierarchy = 'timestamp'

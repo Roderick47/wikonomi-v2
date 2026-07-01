@@ -10,7 +10,7 @@ from django.views.generic import TemplateView
 from core.models import Business, PriceReport, Product
 
 from .mixins import DashboardAccessMixin
-from .models import DashboardAccess, UserActivityLog, UserAnalytics
+from .models import DashboardAccess, SiteVisit, UserActivityLog, UserAnalytics
 
 
 class AnalyticsDashboardView(DashboardAccessMixin, TemplateView):
@@ -40,6 +40,30 @@ class InvestorDashboardView(AnalyticsDashboardView):
         DashboardAccess.DashboardRole.FOUNDER,
         DashboardAccess.DashboardRole.INVESTOR,
     )
+
+
+def build_founder_visitor_windows(now):
+    windows = [
+        ('24 hours', 1),
+        ('3 days', 3),
+        ('7 days', 7),
+        ('1 month', 30),
+        ('3 months', 90),
+    ]
+    rows = []
+    for label, days in windows:
+        since = now - timedelta(days=days)
+        visits = SiteVisit.objects.filter(timestamp__gte=since)
+        rows.append({
+            'label': label,
+            'unique_visitors': visits.values('visitor_key').distinct().count(),
+            'total_visits': visits.count(),
+            'anonymous_visitors': visits.filter(user__isnull=True).values('visitor_key').distinct().count(),
+            'signed_in_visitors': visits.filter(user__isnull=False).values('visitor_key').distinct().count(),
+            'price_clicks': visits.filter(page_type=SiteVisit.PageType.PRICE_DETAIL).count(),
+            'about_visits': visits.filter(page_type=SiteVisit.PageType.ABOUT).count(),
+        })
+    return rows
 
 
 def pct(numerator, denominator):
@@ -121,6 +145,7 @@ def build_dashboard_context(view_mode):
         'donut_data': json.dumps([total_products, total_businesses, total_price_reports]),
         'top_products': top_products,
         'top_businesses': top_businesses,
+        'founder_visitor_windows': build_founder_visitor_windows(now) if view_mode == DashboardAccess.DashboardRole.FOUNDER else [],
     }
 
     if view_mode != DashboardAccess.DashboardRole.INVESTOR:

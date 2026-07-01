@@ -103,6 +103,35 @@ class DailySignupMetrics(models.Model):
             'conversion_rate': (metrics.aggregate(total=Count('price_contributor_signups'))['total'] or 0) / max(1, metrics.aggregate(total=Count('total_signups'))['total'] or 1) * 100,
         }
 
+
+class SiteVisit(models.Model):
+    """Lightweight traffic analytics for public site page visits."""
+
+    class PageType(models.TextChoices):
+        PAGE = 'page', 'Page'
+        ABOUT = 'about', 'About page'
+        PRICE_DETAIL = 'price_detail', 'Price detail'
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='site_visits')
+    visitor_key = models.CharField(max_length=80, db_index=True)
+    path = models.CharField(max_length=500)
+    page_type = models.CharField(max_length=30, choices=PageType.choices, default=PageType.PAGE, db_index=True)
+    referrer = models.CharField(max_length=500, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    timestamp = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['timestamp', 'page_type']),
+            models.Index(fields=['visitor_key', 'timestamp']),
+        ]
+
+    def __str__(self):
+        return f"{self.get_page_type_display()} visit to {self.path} at {self.timestamp}"
+
+
 class UserActivityLog(models.Model):
     """Log specific user activities for funnel analysis"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activity_logs')
