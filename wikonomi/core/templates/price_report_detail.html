@@ -85,14 +85,12 @@
     <!-- Hero header -->
     <div id="price-hero-sticky-sentinel" class="h-px" aria-hidden="true"></div>
     <div id="price-hero-sticky" class="wk-price-hero-sticky sticky top-[var(--navbar-height,4rem)] z-30 mb-8 rounded-2xl bg-white/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/80">
-        <div class="wk-price-hero-condensed min-w-0 items-center gap-3 rounded-2xl border border-slate-200 px-3 py-2 sm:px-4">
+        <div class="wk-price-hero-condensed min-w-0 flex-col gap-1 rounded-2xl border border-slate-200 px-3 py-2 sm:flex-row sm:items-center sm:gap-3 sm:px-4" aria-label="Condensed price report header">
             <div class="min-w-0 flex-1 truncate text-sm font-bold text-gray-900">{{ report.product.name }}</div>
-            <div class="shrink-0 text-sm font-extrabold text-brand-green">{{ report.currency }} {{ report.price|intcomma }}</div>
-            <div class="hidden shrink-0 items-center gap-1 text-xs font-semibold text-amber-600 sm:inline-flex" data-rating-summary data-price-id="{{ report.id }}">★ <span data-rating-score>{{ average_rating|default:0|floatformat:1 }}</span>/5</div>
-            <div class="hidden min-w-0 shrink-0 items-center gap-1 text-xs text-gray-500 md:inline-flex">
-                <span class="max-w-[8rem] truncate font-semibold text-gray-700">{{ report.user.username }}</span>
-                <span>·</span>
-                <span>{% if report.is_updated %}Updated {{ report.updated_at|rounded_timesince }}{% else %}{{ report.observed_at|rounded_timesince }}{% endif %}</span>
+            <div class="flex min-w-0 items-center gap-2 text-sm sm:shrink-0">
+                <span class="shrink-0 font-extrabold text-brand-green">{{ report.currency }} {{ report.price|intcomma }}</span>
+                <span class="text-gray-300" aria-hidden="true">·</span>
+                <span class="min-w-0 truncate font-semibold text-gray-600">{{ report.get_business_display|default:report.business.name|default:'Unknown shop' }}</span>
             </div>
         </div>
         <div class="wk-price-hero-expanded pb-2">
