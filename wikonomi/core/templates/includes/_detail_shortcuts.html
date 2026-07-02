@@ -81,8 +81,16 @@
     const deleteError = document.querySelector('[data-mark-delete-error]');
     const csrf = '{{ csrf_token }}';
 
-    function setPanel(open) { panel.classList.toggle('is-open', open); toggle.setAttribute('aria-expanded', open ? 'true' : 'false'); toggle.textContent = open ? '×' : '＋'; }
-    function setRating(open) { ratingTray.classList.toggle('is-open', open); }
+    function setPanel(open) {
+        panel.classList.toggle('is-open', open);
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.textContent = open ? '×' : '＋';
+        if (!open) setRating(false);
+    }
+    function setRating(open) {
+        const shouldOpen = Boolean(open) && panel.classList.contains('is-open');
+        ratingTray.classList.toggle('is-open', shouldOpen);
+    }
     function openCommentModal() { commentModal.classList.remove('hidden'); commentModal.classList.add('flex'); commentModal.querySelector('textarea')?.focus(); }
     function closeCommentModal() { commentModal.classList.add('hidden'); commentModal.classList.remove('flex'); commentForm?.reset(); commentError?.classList.add('hidden'); }
     function openDeleteModal(reasonValue = '') { if (!deleteModal) return; deleteModal.classList.remove('hidden'); deleteModal.classList.add('flex'); const input = deleteModal.querySelector('[name="reason"]'); if (input) input.value = reasonValue; input?.focus(); }
@@ -102,6 +110,18 @@
             if (window.wkEnterPriceEditMode) window.wkEnterPriceEditMode();
             else window.location.href = '{{ shortcut_edit_url }}';
         }
+    });
+    document.addEventListener('click', (event) => {
+        if (root.contains(event.target)) return;
+        setRating(false);
+        setPanel(false);
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        setRating(false);
+        setPanel(false);
+        closeCommentModal();
+        closeDeleteModal();
     });
     document.querySelectorAll('[data-quick-comment-close]').forEach(btn => btn.addEventListener('click', closeCommentModal));
     commentModal?.addEventListener('click', event => { if (event.target === commentModal) closeCommentModal(); });
