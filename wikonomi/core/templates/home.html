@@ -944,6 +944,15 @@ function initPriceMap() {
 
             showCoverageOnHover: false,
 
+            // Our price-tag markers are ~88px wide, much larger than the library's
+            // default pin icon. The default spiderfy spacing (built around small pins)
+            // leaves the spread-out tags overlapping, so taps meant for a tag miss it,
+            // land on the map instead, and immediately collapse the spiderfy back in.
+            // Multiplying the spacing gives each tag enough room to be tapped reliably.
+            spiderfyDistanceMultiplier: 3.2,
+
+            spiderLegPolylineOptions: { weight: 1.5, color: '#94a3b8', opacity: 0.7 },
+
         });
 
 
@@ -1313,4 +1322,3 @@ function handleSortChange(sortValue) {
 </script>
 
 {% endblock %}
-
