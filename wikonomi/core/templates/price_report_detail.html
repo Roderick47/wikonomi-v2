@@ -57,9 +57,11 @@
         height: 420px;
         z-index: 10;
     }
-    .wk-price-hero-sticky .wk-price-hero-condensed { display: none; }
+    .wk-price-hero-sticky { transition: border-radius 180ms ease, box-shadow 180ms ease, margin-bottom 180ms ease; }
+    .wk-price-hero-sticky .wk-price-hero-condensed { display: none; opacity: 0; transform: translateY(-0.25rem); transition: opacity 180ms ease, transform 180ms ease; }
     .wk-price-hero-sticky.is-stuck .wk-price-hero-expanded { display: none; }
-    .wk-price-hero-sticky.is-stuck .wk-price-hero-condensed { display: flex; }
+    .wk-price-hero-sticky.is-stuck { margin-bottom: 1rem; border-radius: 0.75rem; box-shadow: 0 10px 30px rgb(15 23 42 / 0.10); }
+    .wk-price-hero-sticky.is-stuck .wk-price-hero-condensed { display: flex; opacity: 1; transform: translateY(0); }
 </style>
 
 
@@ -85,13 +87,13 @@
     <!-- Hero header -->
     <div id="price-hero-sticky-sentinel" class="h-px" aria-hidden="true"></div>
     <div id="price-hero-sticky" class="wk-price-hero-sticky sticky top-[var(--navbar-height,4rem)] z-30 mb-8 rounded-2xl bg-white/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/80">
-        <div class="wk-price-hero-condensed min-w-0 flex-col gap-1 rounded-2xl border border-slate-200 px-3 py-2 sm:flex-row sm:items-center sm:gap-3 sm:px-4" aria-label="Condensed price report header">
-            <div class="min-w-0 flex-1 truncate text-sm font-bold text-gray-900">{{ report.product.name }}</div>
-            <div class="flex min-w-0 items-center gap-2 text-sm sm:shrink-0">
-                <span class="shrink-0 font-extrabold text-brand-green">{{ report.currency }} {{ report.price|intcomma }}</span>
-                <span class="text-gray-300" aria-hidden="true">·</span>
-                <span class="min-w-0 truncate font-semibold text-gray-600">{{ report.get_business_display|default:report.business.name|default:'Unknown shop' }}</span>
+        <div class="wk-price-hero-condensed min-w-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-1.5" aria-label="Condensed price report header">
+            <div class="min-w-0 flex-1 truncate text-sm font-bold text-gray-900">
+                <span class="truncate">{{ report.product.name }}</span>
+                <span class="mx-1 text-gray-300" aria-hidden="true">—</span>
+                <span class="whitespace-nowrap font-extrabold text-brand-green">{{ report.currency }} {{ report.price|intcomma }}</span>
             </div>
+            <button type="button" class="hidden shrink-0 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-semibold text-gray-600 transition hover:bg-slate-50 sm:inline-flex" data-price-hero-back-top>Back to top</button>
         </div>
         <div class="wk-price-hero-expanded pb-2">
         {% include "includes/_price_report_card.html" with report=report price_card_static=True price_card_editable=True price_card_show_detail_actions=True average_rating=average_rating rating_count=rating_count current_user_rating=current_user_rating price_card_current_user_rating=current_user_rating %}
@@ -520,11 +522,15 @@
     document.addEventListener('DOMContentLoaded', function() {
         const stickyHero = document.getElementById('price-hero-sticky');
         const stickySentinel = document.getElementById('price-hero-sticky-sentinel');
+        const backTopButton = document.querySelector('[data-price-hero-back-top]');
         if (stickyHero && stickySentinel && 'IntersectionObserver' in window) {
             new IntersectionObserver(entries => {
                 stickyHero.classList.toggle('is-stuck', !entries[0].isIntersecting);
             }, { rootMargin: 'calc(-1 * var(--navbar-height, 4rem)) 0px 0px 0px' }).observe(stickySentinel);
         }
+        backTopButton?.addEventListener('click', () => {
+            stickySentinel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
 
         const pageDeleteForm = document.querySelector('[data-page-delete-form]');
         if (pageDeleteForm) {
