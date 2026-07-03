@@ -199,11 +199,24 @@
     <!-- ═══════════════════════ PREVIEW / CONFIRM ═══════════════════════ -->
     <div class="bg-white shadow sm:rounded-lg">
         <div class="px-4 py-5 sm:p-6">
+            {% if retry_mode %}
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-1">Fix and resubmit</h3>
+            <p class="text-sm text-gray-500 mb-4">The rows below couldn't be saved — the reason is shown for each. Everything else from your upload was already created. Fix these and confirm again.</p>
+            {% else %}
             <h3 class="text-lg leading-6 font-medium text-gray-900 mb-1">Preview Upload</h3>
             <p class="text-sm text-gray-500 mb-4">Review and edit the fields below before confirming — nothing has been saved yet.</p>
+            {% endif %}
 
             <!-- Summary -->
             <div class="flex flex-wrap gap-3 mb-5">
+                {% if retry_mode %}
+                <div class="flex items-center gap-2 px-3 py-2 bg-amber-50 rounded-lg border border-amber-200">
+                    <svg class="h-5 w-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span class="text-sm font-medium text-amber-800">{{ total_valid }} row{{ total_valid|pluralize }} need{{ total_valid|pluralize:"s," }} fixing</span>
+                </div>
+                {% else %}
                 <div class="flex items-center gap-2 px-3 py-2 bg-brand-green/10 rounded-lg border border-brand-green/50">
                     <svg class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -218,6 +231,7 @@
                     <span class="text-sm font-medium text-red-800">{{ total_errors }} error{{ total_errors|pluralize }}</span>
                 </div>
                 {% endif %}
+                {% endif %}
                 {% if business_name %}
                 <div class="flex items-center gap-2 px-3 py-2 bg-brand-purple/5 rounded-lg border border-brand-blue/50">
                     <span class="text-sm text-brand-purple">📍 {{ business_name }}</span>
@@ -228,7 +242,7 @@
             <!-- Errors -->
             {% if preview_errors %}
             <div class="mb-5 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <h4 class="text-sm font-semibold text-red-800 mb-2">Rows with errors (will be skipped)</h4>
+                <h4 class="text-sm font-semibold text-red-800 mb-2">{% if retry_mode %}Fix these before confirming{% else %}Rows with errors (will be skipped){% endif %}</h4>
                 <ul class="text-sm text-red-700 space-y-1">
                     {% for err in preview_errors %}
                     <li class="flex items-start gap-2">
