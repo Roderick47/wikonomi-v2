@@ -36,5 +36,6 @@ urlpatterns = [
     path('how-to-use/', views.how_to_use_view, name='how_to_use'),
     path('api/map-prices/', views.api_map_prices, name='api_map_prices'),
     path('bulk-upload/', views.bulk_upload, name='bulk_upload'),
+    path('bulk-upload/success/', views.bulk_upload_success, name='bulk_upload_success'),
     path('bulk-upload/template/', views.download_csv_template, name='download_csv_template'),
 ]
