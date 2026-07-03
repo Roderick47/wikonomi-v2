@@ -20,19 +20,7 @@
         </a>
     </div>
 
-    <!-- Messages -->
-    {% if messages %}
-    <div class="mb-4 space-y-2">
-        {% for message in messages %}
-        <div class="p-3 rounded-md text-sm font-medium
-            {% if message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200
-            {% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-200
-            {% else %}bg-brand-green/10 text-brand-green/80 border border-brand-green/50{% endif %}">
-            {{ message }}
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
+    <!-- Messages now render globally as toasts (see base.html) -->
 
     {% if not show_preview %}
     <!-- ═══════════════════════ UPLOAD FORM ═══════════════════════ -->
@@ -256,9 +244,18 @@
 
             <!-- Preview Table -->
             {% if preview_rows %}
-            <div class="overflow-x-auto border border-gray-200 rounded-lg">
+            {% if preview_rows|length > 15 %}
+            <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div class="max-w-xs">
+                    <label class="sr-only" for="preview-row-search">Search rows</label>
+                    <input type="text" id="preview-row-search" placeholder="Search by product name…" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-blue focus:ring-2 focus:ring-brand-purple/20">
+                </div>
+                <p class="text-sm text-gray-500" id="preview-row-count">Showing {{ preview_rows|length }} of {{ preview_rows|length }} rows</p>
+            </div>
+            {% endif %}
+            <div class="overflow-x-auto overflow-y-auto max-h-[32rem] border border-gray-200 rounded-lg">
                 <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
+                    <thead class="bg-gray-50 sticky top-0 z-10">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Row</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
@@ -268,9 +265,9 @@
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tags</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody class="bg-white divide-y divide-gray-200" id="preview-table-body">
                         {% for row in preview_rows %}
-                        <tr class="hover:bg-gray-50 preview-row" data-index="{{ forloop.index0 }}">
+                        <tr class="hover:bg-gray-50 preview-row" data-index="{{ forloop.index0 }}" data-search="{{ row.product_name|lower }}">
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 font-mono">{{ row.row_num }}</td>
                             <td class="px-2 py-2 text-sm font-medium text-gray-900">
                                 <input type="text" value="{{ row.product_name }}" data-field="product_name" class="editable-input w-full min-w-[10rem] rounded border border-transparent px-2 py-1.5 hover:border-gray-300 focus:border-brand-purple focus:ring-1 focus:ring-brand-purple focus:outline-none">
@@ -433,8 +430,31 @@
                 const index = this.closest('.preview-row').dataset.index;
                 const field = this.dataset.field;
                 bulkData[index][field] = this.value;
+
+                // Keep the row's search text in sync so filtering still finds it
+                // after the product name itself has been edited.
+                if (field === 'product_name') {
+                    this.closest('.preview-row').dataset.search = this.value.toLowerCase();
+                }
             });
         });
+
+        // Row search/filter — mainly useful once there are a lot of rows to scan.
+        const rowSearch = document.getElementById('preview-row-search');
+        const rowCount = document.getElementById('preview-row-count');
+        if (rowSearch) {
+            const rows = Array.from(document.querySelectorAll('.preview-row'));
+            rowSearch.addEventListener('input', function() {
+                const query = this.value.trim().toLowerCase();
+                let visible = 0;
+                rows.forEach(row => {
+                    const matches = !query || (row.dataset.search || '').includes(query);
+                    row.classList.toggle('hidden', !matches);
+                    if (matches) visible += 1;
+                });
+                if (rowCount) rowCount.textContent = `Showing ${visible} of ${rows.length} rows`;
+            });
+        }
 
         if (confirmForm) {
             confirmForm.addEventListener('submit', function(e) {
