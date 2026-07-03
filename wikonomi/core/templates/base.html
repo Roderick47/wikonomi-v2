@@ -137,11 +137,8 @@
         </div>
     </div>
 
-    <!-- Global Toast Notification -->
-    <div id="global-toast" class="fixed bottom-4 right-4 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-[100] flex items-center space-x-2">
-        <span id="toast-icon"></span>
-        <span id="toast-message"></span>
-    </div>
+    <!-- Global Toast Notifications -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-[100] flex flex-col items-end gap-2 max-w-sm w-full pointer-events-none" aria-live="polite" aria-atomic="false"></div>
 
     <script>
         function acceptCookies() {
@@ -380,28 +377,75 @@
             }
         });
 
-        function showToast(message, type = 'info') {
-            const toast = document.getElementById('global-toast');
-            const messageEl = document.getElementById('toast-message');
-            const iconEl = document.getElementById('toast-icon');
-            
-            messageEl.textContent = message;
-            
-            // Set icons based on type
-            if (type === 'success') {
-                iconEl.innerHTML = '<svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>';
-            } else if (type === 'error') {
-                iconEl.innerHTML = '<svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>';
-            } else {
-                iconEl.innerHTML = '<svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>';
-            }
+        const TOAST_STYLES = {
+            success: {
+                bg: 'bg-gray-900', accent: 'text-green-400',
+                icon: '<svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>'
+            },
+            error: {
+                bg: 'bg-gray-900', accent: 'text-red-400',
+                icon: '<svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>'
+            },
+            warning: {
+                bg: 'bg-gray-900', accent: 'text-amber-400',
+                icon: '<svg class="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l6.518 11.59c.75 1.334-.213 2.987-1.743 2.987H3.482c-1.53 0-2.493-1.653-1.743-2.987L8.257 3.1zM11 14a1 1 0 11-2 0 1 1 0 012 0zm-1-2a1 1 0 01-1-1V8a1 1 0 112 0v3a1 1 0 01-1 1z" clip-rule="evenodd"></path></svg>'
+            },
+            info: {
+                bg: 'bg-gray-900', accent: 'text-blue-400',
+                icon: '<svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>'
+            },
+        };
 
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const style = TOAST_STYLES[type] || TOAST_STYLES.info;
+
+            const toast = document.createElement('div');
+            toast.className = `${style.bg} text-white px-4 py-3 rounded-lg shadow-2xl flex items-start gap-2 pointer-events-auto transform translate-y-2 opacity-0 transition-all duration-300 w-full`;
+            toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
+            const iconWrap = document.createElement('span');
+            iconWrap.className = 'shrink-0 mt-0.5';
+            iconWrap.innerHTML = style.icon; // static markup, not user data
+
+            const messageEl = document.createElement('span');
+            messageEl.className = 'text-sm flex-1';
+            messageEl.textContent = message; // textContent — never parsed as HTML
+
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'shrink-0 text-gray-400 hover:text-white -mr-1 -mt-0.5';
+            closeBtn.setAttribute('aria-label', 'Dismiss');
+            closeBtn.innerHTML = '<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+
+            toast.appendChild(iconWrap);
+            toast.appendChild(messageEl);
+            toast.appendChild(closeBtn);
+            container.appendChild(toast);
+
+            // Animate in
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            const dismiss = () => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            };
+            closeBtn.addEventListener('click', dismiss);
+            setTimeout(dismiss, type === 'error' || type === 'warning' ? 6000 : 4000);
         }
+
+        // Surface every server-side Django message (messages.success/error/warning/info
+        // from any view) as a toast — this used to only be wired up on a handful of
+        // pages that hand-rendered their own message boxes, so messages set by views
+        // backing other pages (e.g. a redirect to the home page) were silently dropped.
+        document.addEventListener('DOMContentLoaded', function() {
+            {% for message in messages %}
+            showToast('{{ message|escapejs }}', '{{ message.tags|escapejs|default:"info" }}');
+            {% endfor %}
+        });
     </script>
     {% block extra_scripts %}{% endblock %}
 </body>
