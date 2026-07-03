@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white shadow sm:rounded-lg text-center">
+        <div class="px-4 py-10 sm:p-10">
+            <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-green/10">
+                <svg class="h-9 w-9 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+
+            <h1 class="mt-5 text-2xl font-bold text-gray-900">Upload complete</h1>
+            <p class="mt-2 text-base text-gray-600">
+                <span class="font-semibold text-gray-900">{{ created_count }} price{{ created_count|pluralize }}</span>
+                {% if business_name %}added for <span class="font-semibold text-gray-900">{{ business_name }}</span>{% else %}added{% endif %}.
+            </p>
+
+            <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+                {% if business_id %}
+                <a href="{% url 'business_detail' business_id %}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md bg-brand-purple px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-purple/90 transition-colors">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                    View {{ business_name }}
+                </a>
+                {% endif %}
+                <a href="{% url 'bulk_upload' %}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    Upload another file
+                </a>
+                <a href="{% url 'home' %}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md px-5 py-2.5 text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors">
+                    Back to home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
