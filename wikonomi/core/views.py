@@ -1730,6 +1730,7 @@ def bulk_upload(request):
             created_count = 0
             error_count = 0
             row_errors = []
+            failed_rows = []
             
             try:
                 with transaction.atomic():
@@ -1741,7 +1742,8 @@ def bulk_upload(request):
                             # through _parse_csv's cleanup (currency symbols, commas, etc.)
                             product_name = str(row.get('product_name', '')).strip()
                             if not product_name:
-                                row_errors.append(f'Row {row_num}: product name is required.')
+                                row_errors.append({'row': row_num, 'error': 'Product name is required.'})
+                                failed_rows.append(row)
                                 error_count += 1
                                 continue
                             
@@ -1751,13 +1753,14 @@ def bulk_upload(request):
                                 if price <= 0:
                                     raise InvalidOperation('non-positive price')
                             except (InvalidOperation, ValueError):
-                                row_errors.append(f'Row {row_num} ("{product_name}"): invalid price "{row.get("price", "")}".')
+                                row_errors.append({'row': row_num, 'error': f'Invalid price "{row.get("price", "")}" for "{product_name}".'})
+                                failed_rows.append(row)
                                 error_count += 1
                                 continue
                             
                             currency = str(row.get('currency', '')).strip().upper() or 'PGK'
                             if len(currency) != 3 or not currency.isalpha():
-                                row_errors.append(f'Row {row_num} ("{product_name}"): invalid currency "{currency}", used PGK instead.')
+                                row_errors.append({'row': row_num, 'error': f'Invalid currency "{currency}" for "{product_name}" — used PGK instead.'})
                                 currency = 'PGK'
                             
                             # Get or create product
@@ -1796,28 +1799,47 @@ def bulk_upload(request):
                             
                             created_count += 1
                         except Exception as row_exc:
-                            row_errors.append(f'Row {row_num}: {row_exc}')
+                            row_errors.append({'row': row_num, 'error': str(row_exc)})
+                            failed_rows.append(row)
                             error_count += 1
                             continue
             except Exception as e:
                 messages.error(request, f'An error occurred during bulk creation: {str(e)}')
                 return render(request, 'bulk_upload.html', context)
             
-            # Clean up session
+            if created_count:
+                messages.success(request, f'{created_count} price(s) created successfully.')
+            
+            if error_count:
+                # Don't discard the successfully-created rows' progress or bounce the
+                # person away from what they were doing — keep the failed rows (with
+                # whatever they'd already typed) in the same editable preview so they
+                # can fix just those and resubmit, instead of starting the whole
+                # upload over from scratch.
+                messages.warning(request, f'{error_count} row(s) need fixing before they can be saved — see below.')
+                
+                request.session['bulk_upload_data'] = failed_rows
+                request.session['bulk_upload_errors'] = row_errors
+                # business/latitude/longitude stay as-is in the session for the retry
+                
+                context.update({
+                    'preview_rows': failed_rows,
+                    'preview_rows_json': json.dumps(failed_rows),
+                    'preview_errors': row_errors,
+                    'total_valid': len(failed_rows),
+                    'total_errors': len(row_errors),
+                    'business_name': business_name,
+                    'latitude': lat_str,
+                    'longitude': lng_str,
+                    'show_preview': True,
+                    'retry_mode': True,
+                })
+                return render(request, 'bulk_upload.html', context)
+            
+            # Everything saved cleanly — clean up session and head back
             for key in ['bulk_upload_data', 'bulk_upload_errors', 'bulk_upload_business',
                         'bulk_upload_latitude', 'bulk_upload_longitude']:
                 request.session.pop(key, None)
-            
-            if created_count:
-                messages.success(request, f'Bulk upload complete! {created_count} price(s) created successfully.')
-            if error_count:
-                # Show exactly which rows failed and why, instead of just a count,
-                # so edits that didn't make it in are actually visible to the user.
-                shown = row_errors[:10]
-                detail = ' '.join(shown)
-                if len(row_errors) > 10:
-                    detail += f' (+{len(row_errors) - 10} more)'
-                messages.warning(request, f'{error_count} row(s) were not saved — {detail}')
             
             return redirect('home')
     
