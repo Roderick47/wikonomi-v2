@@ -1729,22 +1729,48 @@ def bulk_upload(request):
             
             created_count = 0
             error_count = 0
+            row_errors = []
             
             try:
                 with transaction.atomic():
-                    for row in session_rows:
+                    for idx, row in enumerate(session_rows):
+                        row_num = row.get('row_num', idx + 1)
                         try:
+                            # Re-validate/sanitize here too — this data may have just come
+                            # straight from the edit-in-preview table, so it hasn't been
+                            # through _parse_csv's cleanup (currency symbols, commas, etc.)
+                            product_name = str(row.get('product_name', '')).strip()
+                            if not product_name:
+                                row_errors.append(f'Row {row_num}: product name is required.')
+                                error_count += 1
+                                continue
+                            
+                            price_str = re.sub(r'[^\d.]', '', str(row.get('price', '')))
+                            try:
+                                price = Decimal(price_str)
+                                if price <= 0:
+                                    raise InvalidOperation('non-positive price')
+                            except (InvalidOperation, ValueError):
+                                row_errors.append(f'Row {row_num} ("{product_name}"): invalid price "{row.get("price", "")}".')
+                                error_count += 1
+                                continue
+                            
+                            currency = str(row.get('currency', '')).strip().upper() or 'PGK'
+                            if len(currency) != 3 or not currency.isalpha():
+                                row_errors.append(f'Row {row_num} ("{product_name}"): invalid currency "{currency}", used PGK instead.')
+                                currency = 'PGK'
+                            
                             # Get or create product
-                            product = Product.objects.filter(name__iexact=row['product_name']).first()
+                            product = Product.objects.filter(name__iexact=product_name).first()
                             if not product:
-                                product_slug = slugify(row['product_name'])
+                                product_slug = slugify(product_name)
                                 original_slug = product_slug
                                 counter = 1
                                 while Product.objects.filter(slug=product_slug).exists():
                                     product_slug = f"{original_slug}-{counter}"
                                     counter += 1
                                 product = Product.objects.create(
-                                    name=row['product_name'],
+                                    name=product_name,
                                     slug=product_slug,
                                     created_by=request.user
                                 )
@@ -1754,22 +1780,23 @@ def bulk_upload(request):
                                 product=product,
                                 business=business,
                                 user=request.user,
-                                price=Decimal(row['price']),
-                                currency=row['currency'],
+                                price=price,
+                                currency=currency,
                                 latitude=latitude,
                                 longitude=longitude,
-                                notes=row.get('notes', ''),
+                                notes=str(row.get('notes', ''))[:1000],
                             )
                             
                             # Handle tags
-                            tags_str = row.get('tags', '').strip()
+                            tags_str = str(row.get('tags', '')).strip()
                             if tags_str:
                                 tag_list = [t.strip() for t in tags_str.split(',') if t.strip()]
                                 if tag_list:
                                     product.tags.add(*tag_list)
                             
                             created_count += 1
-                        except Exception:
+                        except Exception as row_exc:
+                            row_errors.append(f'Row {row_num}: {row_exc}')
                             error_count += 1
                             continue
             except Exception as e:
@@ -1781,9 +1808,16 @@ def bulk_upload(request):
                         'bulk_upload_latitude', 'bulk_upload_longitude']:
                 request.session.pop(key, None)
             
-            messages.success(request, f'Bulk upload complete! {created_count} price(s) created successfully.')
+            if created_count:
+                messages.success(request, f'Bulk upload complete! {created_count} price(s) created successfully.')
             if error_count:
-                messages.warning(request, f'{error_count} row(s) failed during creation.')
+                # Show exactly which rows failed and why, instead of just a count,
+                # so edits that didn't make it in are actually visible to the user.
+                shown = row_errors[:10]
+                detail = ' '.join(shown)
+                if len(row_errors) > 10:
+                    detail += f' (+{len(row_errors) - 10} more)'
+                messages.warning(request, f'{error_count} row(s) were not saved — {detail}')
             
             return redirect('home')
     
