@@ -200,7 +200,7 @@
     <div class="bg-white shadow sm:rounded-lg">
         <div class="px-4 py-5 sm:p-6">
             <h3 class="text-lg leading-6 font-medium text-gray-900 mb-1">Preview Upload</h3>
-            <p class="text-sm text-gray-500 mb-4">Review the data below before confirming. Nothing has been saved yet.</p>
+            <p class="text-sm text-gray-500 mb-4">Review and edit the fields below before confirming — nothing has been saved yet.</p>
 
             <!-- Summary -->
             <div class="flex flex-wrap gap-3 mb-5">
@@ -258,11 +258,21 @@
                         {% for row in preview_rows %}
                         <tr class="hover:bg-gray-50 preview-row" data-index="{{ forloop.index0 }}">
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 font-mono">{{ row.row_num }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 cursor-pointer hover:bg-brand-purple/5 transition-colors editable-cell" data-field="product_name">{{ row.product_name }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 cursor-pointer hover:bg-brand-purple/5 transition-colors editable-cell" data-field="price">{{ row.price }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 cursor-pointer hover:bg-brand-purple/5 transition-colors editable-cell" data-field="currency">{{ row.currency }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 max-w-xs truncate cursor-pointer hover:bg-brand-purple/5 transition-colors editable-cell" data-field="notes">{{ row.notes|default:"" }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 cursor-pointer hover:bg-brand-purple/5 transition-colors editable-cell" data-field="tags">{{ row.tags|default:"" }}</td>
+                            <td class="px-2 py-2 text-sm font-medium text-gray-900">
+                                <input type="text" value="{{ row.product_name }}" data-field="product_name" class="editable-input w-full min-w-[10rem] rounded border border-transparent px-2 py-1.5 hover:border-gray-300 focus:border-brand-purple focus:ring-1 focus:ring-brand-purple focus:outline-none">
+                            </td>
+                            <td class="px-2 py-2 text-sm text-gray-900">
+                                <input type="text" inputmode="decimal" value="{{ row.price }}" data-field="price" class="editable-input w-full min-w-[6rem] rounded border border-transparent px-2 py-1.5 hover:border-gray-300 focus:border-brand-purple focus:ring-1 focus:ring-brand-purple focus:outline-none">
+                            </td>
+                            <td class="px-2 py-2 text-sm text-gray-500">
+                                <input type="text" value="{{ row.currency }}" data-field="currency" maxlength="3" class="editable-input w-16 uppercase rounded border border-transparent px-2 py-1.5 hover:border-gray-300 focus:border-brand-purple focus:ring-1 focus:ring-brand-purple focus:outline-none">
+                            </td>
+                            <td class="px-2 py-2 text-sm text-gray-500">
+                                <input type="text" value="{{ row.notes|default:'' }}" data-field="notes" class="editable-input w-full min-w-[8rem] rounded border border-transparent px-2 py-1.5 hover:border-gray-300 focus:border-brand-purple focus:ring-1 focus:ring-brand-purple focus:outline-none">
+                            </td>
+                            <td class="px-2 py-2 text-sm text-gray-500">
+                                <input type="text" value="{{ row.tags|default:'' }}" data-field="tags" class="editable-input w-full min-w-[8rem] rounded border border-transparent px-2 py-1.5 hover:border-gray-300 focus:border-brand-purple focus:ring-1 focus:ring-brand-purple focus:outline-none">
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -397,58 +407,25 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Parse the JSON data from Django
         let bulkData = JSON.parse('{{ preview_rows_json|escapejs }}');
-        const editableCells = document.querySelectorAll('.editable-cell');
+        const editableInputs = document.querySelectorAll('.editable-input');
         const confirmForm = document.getElementById('confirm-upload-form');
         const editedDataInput = document.getElementById('edited_data_input');
 
-        editableCells.forEach(cell => {
-            cell.addEventListener('click', function() {
-                if (this.querySelector('input')) return;
-
-                const originalValue = this.innerText;
-                const field = this.dataset.field;
+        // Fields sync to bulkData on every keystroke (not just on blur/click-away),
+        // so there's no dependency on focus/blur timing before the form submits —
+        // whatever is visible in the field is exactly what gets sent.
+        editableInputs.forEach(input => {
+            input.addEventListener('input', function() {
                 const index = this.closest('.preview-row').dataset.index;
-
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.value = originalValue;
-                input.className = 'w-full px-2 py-1 text-sm border border-brand-purple rounded focus:ring-1 focus:ring-brand-purple focus:border-brand-purple';
-                
-                this.innerHTML = '';
-                this.appendChild(input);
-                input.focus();
-
-                const save = () => {
-                    const newValue = input.value;
-                    this.innerText = newValue;
-                    bulkData[index][field] = newValue;
-                };
-
-                input.addEventListener('blur', save);
-                input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        input.blur();
-                    }
-                    if (e.key === 'Escape') {
-                        input.value = originalValue;
-                        input.blur();
-                    }
-                });
+                const field = this.dataset.field;
+                bulkData[index][field] = this.value;
             });
         });
 
         if (confirmForm) {
             confirmForm.addEventListener('submit', function(e) {
-                // Remove any active inputs by blurring them
-                const activeInput = document.activeElement;
-                if (activeInput && activeInput.tagName === 'INPUT' && activeInput.closest('.editable-cell')) {
-                    activeInput.blur();
-                }
-
-                // Serialize for the form
                 editedDataInput.value = JSON.stringify(bulkData);
-                
+
                 // Visual feedback
                 const btn = this.querySelector('button[type="submit"]');
                 btn.disabled = true;
