@@ -809,8 +809,10 @@ class PriceReport(models.Model):
         return (self.latitude, self.longitude) if self.latitude and self.longitude else None
 
     def can_delete(self, user):
-        """Check if user can delete this report (admin or has deletion votes)"""
+        """Check if user can delete this report (owner, admin, or after community vote)"""
         if user.is_staff or user.is_superuser:
+            return True
+        if user == self.user:
             return True
         if self.marked_for_deletion and self.deletion_votes.count() >= 1:
             return True
