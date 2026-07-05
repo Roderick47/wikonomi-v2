@@ -1400,7 +1400,10 @@ def unmark_for_deletion(request, pk):
     """Unmark a price report from deletion (only by the marker or admin)"""
     report = get_object_or_404(PriceReport, pk=pk)
     
-    if request.user != report.marked_for_deletion_by and not request.user.is_staff and not request.user.is_superuser:
+    if (request.user != report.marked_for_deletion_by
+            and request.user != report.user
+            and not request.user.is_staff
+            and not request.user.is_superuser):
         messages.error(request, 'You can only unmark deletion requests you created.')
         return redirect('price_detail', pk=pk)
     
@@ -1450,6 +1453,102 @@ def delete_price_report(request, pk):
     report.delete()
     messages.success(request, 'Price report has been deleted.')
     return redirect('home')
+
+
+STALE_PRICE_DAYS = 30
+
+
+@login_required
+@require_POST
+def confirm_price_still_accurate(request, pk):
+    """Bump updated_at on the caller's own report without changing anything else —
+    lets a contributor clear a 'stale' flag when the price is still correct."""
+    report = get_object_or_404(PriceReport, pk=pk, user=request.user)
+    report.save(update_fields=['updated_at'])
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'ok': True})
+    messages.success(request, f'Marked "{report.product.name}" as still current.')
+    return redirect(request.POST.get('next') or 'my_prices')
+
+
+@login_required
+@require_POST
+def refresh_business_prices(request, business_id):
+    """Bulk version of the above, scoped to the caller's own stale reports for one business."""
+    stale_cutoff = timezone.now() - timedelta(days=STALE_PRICE_DAYS)
+    updated = PriceReport.objects.filter(
+        user=request.user, business_id=business_id, updated_at__lt=stale_cutoff,
+    ).update(updated_at=timezone.now())
+    messages.success(request, f'Refreshed {updated} price(s) as still current.')
+    return redirect(request.POST.get('next') or 'my_prices')
+
+
+@login_required
+def my_prices(request):
+    """Dashboard for a user to review and manage all the prices they've contributed."""
+    base_qs = PriceReport.objects.filter(user=request.user).select_related(
+        'product', 'business', 'business_branch'
+    ).prefetch_related('deletion_votes', 'duplicate_trust_votes', 'duplicate_verify_votes')
+
+    stale_cutoff = timezone.now() - timedelta(days=STALE_PRICE_DAYS)
+
+    flagged_reports = base_qs.filter(marked_for_deletion=True).order_by('-marked_for_deletion_at')
+    disputed_reports = base_qs.filter(duplicated_from__isnull=False).order_by('-observed_at')
+    stale_reports = base_qs.filter(
+        marked_for_deletion=False, duplicated_from__isnull=True, updated_at__lt=stale_cutoff
+    ).order_by('updated_at')
+
+    needs_attention_count = base_qs.filter(
+        Q(marked_for_deletion=True) | Q(duplicated_from__isnull=False) | Q(updated_at__lt=stale_cutoff)
+    ).distinct().count()
+
+    total_count = base_qs.count()
+    business_count = base_qs.exclude(business__isnull=True).values('business').distinct().count()
+    product_count = base_qs.values('product').distinct().count()
+
+    # Group the main list by business for display — a business with a handful of
+    # reports shows inline, one with hundreds (a store's bulk-uploaded catalog)
+    # reads as a collapsible group with its own bulk toolbar. Paginate first so a
+    # contributor with a long history doesn't load their entire lifetime of
+    # reports in one request; grouping happens only within the current page.
+    all_reports = base_qs.order_by('business__name', '-updated_at')
+    paginator = Paginator(all_reports, 150)
+    page_number = request.GET.get('page')
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
+    grouped = []
+    current_key = object()  # sentinel guaranteed to not equal any business
+    current_group = None
+    for report in page_obj.object_list:
+        key = report.business_id
+        if key != current_key:
+            current_key = key
+            current_group = {
+                'business': report.business,
+                'business_name': report.get_business_display() if report.business or report.business_branch else 'No business listed',
+                'reports': [],
+            }
+            grouped.append(current_group)
+        current_group['reports'].append(report)
+
+    context = {
+        'total_count': total_count,
+        'business_count': business_count,
+        'product_count': product_count,
+        'needs_attention_count': needs_attention_count,
+        'flagged_reports': flagged_reports,
+        'disputed_reports': disputed_reports,
+        'stale_reports': stale_reports,
+        'stale_days': STALE_PRICE_DAYS,
+        'grouped': grouped,
+        'page_obj': page_obj,
+    }
+    return render(request, 'my_prices.html', context)
 
 
 # ── Bulk CSV Upload ──────────────────────────────────────────────────────────
