@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto mt-8 px-4 sm:px-6 lg:px-8 pb-16">
+
+    <div class="mb-6 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">My Prices</h1>
+            <p class="text-sm text-gray-500">Everything you've contributed, in one place.</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'add_price' %}" class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Add a price
+            </a>
+            <a href="{% url 'bulk_upload' %}" class="inline-flex items-center gap-1.5 rounded-md bg-brand-purple px-3 py-2 text-sm font-medium text-white hover:bg-brand-purple/90 transition-colors">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                Bulk upload
+            </a>
+        </div>
+    </div>
+
+    {% if total_count == 0 %}
+    <!-- Empty state -->
+    <div class="bg-white shadow sm:rounded-lg text-center py-16 px-6">
+        <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+        <h2 class="mt-4 text-lg font-semibold text-gray-900">No prices yet</h2>
+        <p class="mt-1 text-sm text-gray-500">Once you add a price — one at a time or as a bulk upload — it'll show up here.</p>
+    </div>
+    {% else %}
+
+    <!-- Stats strip -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div class="bg-white shadow-sm rounded-lg border border-gray-100 px-4 py-3">
+            <p class="text-2xl font-bold text-gray-900">{{ total_count }}</p>
+            <p class="text-xs text-gray-500">Price{{ total_count|pluralize }} contributed</p>
+        </div>
+        <div class="bg-white shadow-sm rounded-lg border border-gray-100 px-4 py-3">
+            <p class="text-2xl font-bold text-gray-900">{{ business_count }}</p>
+            <p class="text-xs text-gray-500">Business{{ business_count|pluralize:"es" }} covered</p>
+        </div>
+        <div class="bg-white shadow-sm rounded-lg border border-gray-100 px-4 py-3">
+            <p class="text-2xl font-bold text-gray-900">{{ product_count }}</p>
+            <p class="text-xs text-gray-500">Product{{ product_count|pluralize }} tracked</p>
+        </div>
+        <a href="{% if needs_attention_count %}#needs-attention{% endif %}" class="rounded-lg border px-4 py-3 shadow-sm transition-colors {% if needs_attention_count %}bg-amber-50 border-amber-200 hover:bg-amber-100{% else %}bg-white border-gray-100{% endif %}">
+            <p class="text-2xl font-bold {% if needs_attention_count %}text-amber-700{% else %}text-gray-900{% endif %}">{{ needs_attention_count }}</p>
+            <p class="text-xs {% if needs_attention_count %}text-amber-700{% else %}text-gray-500{% endif %}">Need{{ needs_attention_count|pluralize:"s," }} attention</p>
+        </a>
+    </div>
+
+    {% if flagged_reports or disputed_reports or stale_reports %}
+    <div id="needs-attention" class="mb-8 scroll-mt-20">
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Needs attention</h2>
+
+        {% if flagged_reports %}
+        <div class="mb-4 bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+            <div class="px-4 py-2.5 border-b border-red-200 bg-red-100/50">
+                <h3 class="text-sm font-semibold text-red-800">Flagged for deletion by another user</h3>
+            </div>
+            <ul class="divide-y divide-red-200">
+                {% for report in flagged_reports %}
+                <li class="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div class="min-w-0">
+                        <a href="{% url 'price_detail' report.pk %}" class="font-medium text-gray-900 hover:text-brand-purple">{{ report.product.name }}</a>
+                        <span class="text-gray-400">—</span>
+                        <span class="text-gray-600">{{ report.currency }} {{ report.price|intcomma }}</span>
+                        <span class="text-gray-400">at {{ report.get_business_display }}</span>
+                        {% if report.deletion_reason %}
+                        <p class="text-sm text-red-700 mt-0.5">"{{ report.deletion_reason }}" — {{ report.marked_for_deletion_by.username }}, {{ report.deletion_votes.count }} vote{{ report.deletion_votes.count|pluralize }} so far</p>
+                        {% endif %}
+                    </div>
+                    <div class="flex shrink-0 gap-2">
+                        <form method="post" action="{% url 'unmark_for_deletion' report.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{% url 'my_prices' %}">
+                            <button type="submit" class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">Keep it</button>
+                        </form>
+                        <form method="post" action="{% url 'delete_price_report' report.pk %}" onsubmit="return confirm('Delete this price report permanently?');">
+                            {% csrf_token %}
+                            <button type="submit" class="rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50">Delete</button>
+                        </form>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if disputed_reports %}
+        <div class="mb-4 bg-amber-50 border border-amber-200 rounded-lg overflow-hidden">
+            <div class="px-4 py-2.5 border-b border-amber-200 bg-amber-100/50">
+                <h3 class="text-sm font-semibold text-amber-800">Flagged as a possible duplicate</h3>
+            </div>
+            <ul class="divide-y divide-amber-200">
+                {% for report in disputed_reports %}
+                <li class="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div class="min-w-0">
+                        <a href="{% url 'price_detail' report.pk %}" class="font-medium text-gray-900 hover:text-brand-purple">{{ report.product.name }}</a>
+                        <span class="text-gray-400">—</span>
+                        <span class="text-gray-600">{{ report.currency }} {{ report.price|intcomma }}</span>
+                        <span class="text-gray-400">at {{ report.get_business_display }}</span>
+                        <p class="text-sm text-amber-700 mt-0.5">
+                            {{ report.duplicate_trust_votes.count }} think it's a duplicate, {{ report.duplicate_verify_votes.count }} say it's distinct
+                        </p>
+                    </div>
+                    <a href="{% url 'price_detail' report.pk %}" class="shrink-0 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">View & respond</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if stale_reports %}
+        <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg overflow-hidden">
+            <div class="px-4 py-2.5 border-b border-blue-200 bg-blue-100/50">
+                <h3 class="text-sm font-semibold text-blue-800">Not updated in {{ stale_days }}+ days</h3>
+            </div>
+            <ul class="divide-y divide-blue-200">
+                {% for report in stale_reports %}
+                <li class="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div class="min-w-0">
+                        <a href="{% url 'price_detail' report.pk %}" class="font-medium text-gray-900 hover:text-brand-purple">{{ report.product.name }}</a>
+                        <span class="text-gray-400">—</span>
+                        <span class="text-gray-600">{{ report.currency }} {{ report.price|intcomma }}</span>
+                        <span class="text-gray-400">at {{ report.get_business_display }}</span>
+                        <p class="text-sm text-blue-700 mt-0.5">Last confirmed {{ report.updated_at|naturaltime }}</p>
+                    </div>
+                    <form method="post" action="{% url 'confirm_price_still_accurate' report.pk %}" class="shrink-0">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{% url 'my_prices' %}">
+                        <button type="submit" class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">Still accurate</button>
+                    </form>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Grouped list -->
+    <h2 class="text-lg font-semibold text-gray-900 mb-3">All contributions</h2>
+    <div class="space-y-4">
+        {% for group in grouped %}
+        <div class="bg-white shadow-sm rounded-lg border border-gray-100 overflow-hidden">
+            <button type="button" class="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group-toggle" data-target="group-{{ forloop.counter }}">
+                <span class="flex items-center gap-2 min-w-0">
+                    <svg class="h-4 w-4 text-gray-400 shrink-0 transition-transform toggle-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    <span class="font-semibold text-gray-900 truncate">{{ group.business_name }}</span>
+                    <span class="shrink-0 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ group.reports|length }}</span>
+                </span>
+                {% if group.business %}
+                <span class="shrink-0" onclick="event.stopPropagation()">
+                    <form method="post" action="{% url 'refresh_business_prices' group.business.id %}" onsubmit="return confirm('Mark all stale prices for {{ group.business_name|escapejs }} as still accurate?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{% url 'my_prices' %}">
+                        <button type="submit" class="text-xs font-semibold text-brand-purple hover:text-brand-purple/80">Refresh stale prices</button>
+                    </form>
+                </span>
+                {% endif %}
+            </button>
+            <div class="group-body border-t border-gray-100 hidden" id="group-{{ forloop.counter }}">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-100">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for report in group.reports %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-2.5 text-sm font-medium text-gray-900">{{ report.product.name }}</td>
+                                <td class="px-4 py-2.5 text-sm text-gray-700 whitespace-nowrap">{{ report.currency }} {{ report.price|intcomma }}</td>
+                                <td class="px-4 py-2.5 text-sm text-gray-500 whitespace-nowrap">{{ report.updated_at|naturaltime }}</td>
+                                <td class="px-4 py-2.5 text-sm">
+                                    {% if report.marked_for_deletion %}
+                                    <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">Flagged</span>
+                                    {% elif report.duplicated_from_id %}
+                                    <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Disputed</span>
+                                    {% else %}
+                                    <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Active</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-2.5 text-right whitespace-nowrap">
+                                    <a href="{% url 'price_detail' report.pk %}" class="text-xs font-medium text-gray-600 hover:text-brand-purple mr-3">View</a>
+                                    <a href="{% url 'edit_price_report' report.pk %}" class="text-xs font-medium text-gray-600 hover:text-brand-purple mr-3">Edit</a>
+                                    <form method="post" action="{% url 'delete_price_report' report.pk %}" onsubmit="return confirm('Delete this price report permanently?');" class="inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-xs font-medium text-red-600 hover:text-red-800">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="mt-6 flex justify-center gap-2">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">Previous</a>
+        {% endif %}
+        <span class="px-3 py-1.5 text-sm text-gray-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% endif %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.group-toggle').forEach(function(btn, idx) {
+            const body = document.getElementById(btn.dataset.target);
+            const chevron = btn.querySelector('.toggle-chevron');
+            // First group starts open, the rest start collapsed.
+            if (idx === 0 && body) {
+                body.classList.remove('hidden');
+                chevron.classList.add('rotate-90');
+            }
+            btn.addEventListener('click', function() {
+                if (!body) return;
+                const isOpen = !body.classList.contains('hidden');
+                body.classList.toggle('hidden', isOpen);
+                chevron.classList.toggle('rotate-90', !isOpen);
+            });
+        });
+    });
+</script>
+{% endblock %}
