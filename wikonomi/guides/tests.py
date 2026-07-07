@@ -19,7 +19,7 @@ class GuideBackendTests(TestCase):
             created_by=self.user,
         )
         self.version = GuideVersion.objects.create(guide=self.guide, edited_by=self.user)
-        self.step = Step.objects.create(version=self.version, position=2.0, instruction='Bring ID')
+        self.step = Step.objects.create(version=self.version, position=2.0, title='Prepare documents', instruction='Bring ID')
         self.guide.current_version = self.version
         self.guide.save(update_fields=['current_version'])
 
@@ -49,8 +49,8 @@ class GuideBackendTests(TestCase):
         self.client.force_login(self.user)
         response = self.client.post(reverse('guides:edit', args=[self.guide.slug]), {
             'steps_json': json.dumps([
-                {'id': str(self.step.id), 'instruction': 'Bring ID and IPA certificate', 'position': 2.5},
-                {'id': None, 'instruction': 'Fill in the form', 'position': 3.5},
+                {'id': str(self.step.id), 'title': 'Prepare documents', 'instruction': 'Bring ID and IPA certificate', 'position': 2.5},
+                {'id': None, 'title': 'Submit application', 'instruction': 'Fill in the form', 'position': 3.5},
             ]),
             'deleted_step_ids': json.dumps([]),
             'edit_summary': 'Add form step',
@@ -59,6 +59,7 @@ class GuideBackendTests(TestCase):
         self.guide.refresh_from_db()
         self.assertNotEqual(self.guide.current_version_id, self.version.id)
         self.assertEqual(list(self.guide.current_version.steps.values_list('position', flat=True)), [2.5, 3.5])
+        self.assertEqual(list(self.guide.current_version.steps.values_list('title', flat=True)), ['Prepare documents', 'Submit application'])
         tip.refresh_from_db()
         self.assertEqual(tip.step.version, self.guide.current_version)
 
@@ -71,5 +72,26 @@ class GuideBackendTests(TestCase):
         self.assertRedirects(response, reverse('guides:detail', args=[fork.slug]))
         self.assertEqual(fork.organization, new_business)
         self.assertEqual(fork.current_version.steps.count(), 1)
+        self.assertEqual(fork.current_version.steps.first().title, self.step.title)
         self.assertEqual(fork.current_version.steps.first().instruction, self.step.instruction)
         self.assertEqual(StepTip.objects.filter(step__version=fork.current_version).count(), 0)
+
+    def test_create_accepts_inline_steps_with_titles(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('guides:create'), {
+            'title': 'Get a passport',
+            'organization_name': 'ICA PNG',
+            'category_name': 'Government services',
+            'summary': 'Passport application basics',
+            'steps_json': json.dumps([
+                {'title': 'Collect forms', 'instruction': 'Download and print the application.', 'position': 1},
+                {'title': '', 'instruction': 'Submit the application in person.', 'position': 2},
+            ]),
+            'deleted_step_ids': json.dumps([]),
+        })
+        guide = Guide.objects.get(title='Get a passport')
+        self.assertRedirects(response, reverse('guides:detail', args=[guide.slug]))
+        self.assertEqual(guide.current_version.steps.count(), 2)
+        self.assertEqual(list(guide.current_version.steps.values_list('title', flat=True)), ['Collect forms', ''])
+        self.assertEqual(guide.organization.name, 'ICA PNG')
+        self.assertEqual(guide.category.name, 'Government services')

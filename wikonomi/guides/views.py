@@ -51,6 +51,27 @@ def _category_from_name(name):
     )
 
 
+
+def _steps_payload_from_post(request):
+    try:
+        return json.loads(request.POST.get('steps_json', '[]'))
+    except json.JSONDecodeError:
+        return []
+
+
+def _create_steps_from_payload(version, steps_payload):
+    for index, item in enumerate(steps_payload, start=1):
+        title = (item.get('title') or '').strip()[:120]
+        instruction = (item.get('instruction') or '').strip()
+        if not title and not instruction:
+            continue
+        Step.objects.create(
+            version=version,
+            title=title,
+            instruction=instruction,
+            position=float(item.get('position') or index),
+        )
+
 def _guide_form_context(form, **extra):
     context = {
         'form': form,
@@ -116,9 +137,10 @@ def guide_create(request):
             guide.created_by = request.user
             guide.save()
             version = GuideVersion.objects.create(guide=guide, edited_by=request.user, edit_summary='Initial draft')
+            _create_steps_from_payload(version, _steps_payload_from_post(request))
             guide.current_version = version
             guide.save(update_fields=['current_version'])
-            return redirect('guides:edit', slug=guide.slug)
+            return redirect('guides:detail', slug=guide.slug)
     else:
         form = GuideForm()
     return render(request, 'guides/guide_create.html', _guide_form_context(form))
@@ -152,7 +174,7 @@ def guide_edit(request, slug):
     if request.method == 'POST':
         if not form.is_valid():
             return render(request, 'guides/edit.html', _guide_form_context(form, guide=guide, steps=_steps_for_version(guide.current_version)))
-        steps_payload = json.loads(request.POST.get('steps_json', '[]'))
+        steps_payload = _steps_payload_from_post(request)
         deleted_ids = set(str(step_id) for step_id in json.loads(request.POST.get('deleted_step_ids', '[]')))
         with transaction.atomic():
             guide = form.save(commit=False)
@@ -168,9 +190,14 @@ def guide_edit(request, slug):
             tip_moves = []
             for item in steps_payload:
                 old_id = item.get('id')
+                title = (item.get('title') or '').strip()[:120]
+                instruction = (item.get('instruction') or '').strip()
+                if not title and not instruction:
+                    continue
                 step = Step.objects.create(
                     version=version,
-                    instruction=(item.get('instruction') or '').strip(),
+                    title=title,
+                    instruction=instruction,
                     position=float(item.get('position')),
                 )
                 if old_id and str(old_id) not in deleted_ids:
@@ -201,7 +228,7 @@ def guide_fork(request, slug):
                 )
                 version = GuideVersion.objects.create(guide=guide, edited_by=request.user, edit_summary='Forked guide')
                 for step in _steps_for_version(source.current_version):
-                    Step.objects.create(version=version, position=step.position, instruction=step.instruction)
+                    Step.objects.create(version=version, position=step.position, title=step.title, instruction=step.instruction)
                 guide.current_version = version
                 guide.save(update_fields=['current_version'])
             return redirect('guides:detail', slug=guide.slug)

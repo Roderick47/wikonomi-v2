@@ -95,6 +95,7 @@ function initStepEditor() {
     if (!editor) return;
     const template = document.getElementById('step-row-template');
     const deletedIds = [];
+    ensureTrailingInsert(editor, template);
     renumberSteps(editor);
     editor.addEventListener('click', function (event) {
         const insertBtn = event.target.closest('[data-insert-after]');
@@ -106,12 +107,18 @@ function initStepEditor() {
             if (row.dataset.stepId) deletedIds.push(row.dataset.stepId);
             row.remove();
             if (divider && divider.querySelector('[data-insert-after]')) divider.remove();
+            ensureTrailingInsert(editor, template);
             renumberSteps(editor);
         }
     });
     const form = document.getElementById('guide-editor-form');
     if (form) form.addEventListener('submit', function () {
-        const steps = Array.from(editor.querySelectorAll('[data-step-row]')).map((row) => ({id: row.dataset.stepId || null, instruction: row.querySelector('[data-step-instruction]').value.trim(), position: parseFloat(row.dataset.position)}));
+        const steps = Array.from(editor.querySelectorAll('[data-step-row]')).map((row, index) => ({
+            id: row.dataset.stepId || null,
+            title: (row.querySelector('[data-step-title]')?.value || '').trim(),
+            instruction: row.querySelector('[data-step-instruction]').value.trim(),
+            position: parseFloat(row.dataset.position) || index + 1,
+        }));
         addHidden(form, 'steps_json', JSON.stringify(steps));
         addHidden(form, 'deleted_step_ids', JSON.stringify(deletedIds));
     });
@@ -133,8 +140,28 @@ function insertStepAfter(editor, template, insertBtn) {
     const newRow = fragment.querySelector('[data-step-row]');
     newRow.dataset.position = (prevPos + nextPos) / 2;
     dividerRow.after(fragment);
+    ensureTrailingInsert(editor, template);
     renumberSteps(editor);
-    newRow.querySelector('[data-step-instruction]').focus();
+    newRow.querySelector('[data-step-title]').focus();
+}
+
+function ensureTrailingInsert(editor, template) {
+    if (!template) return;
+    const hasInsertButton = editor.querySelector('[data-insert-after]');
+    if (!hasInsertButton) {
+        const fragment = template.content.cloneNode(true);
+        const row = fragment.querySelector('[data-step-row]');
+        if (row) row.remove();
+        editor.appendChild(fragment);
+        return;
+    }
+    const last = editor.lastElementChild;
+    if (last && last.matches('[data-step-row]')) {
+        const fragment = template.content.cloneNode(true);
+        const row = fragment.querySelector('[data-step-row]');
+        if (row) row.remove();
+        editor.appendChild(fragment);
+    }
 }
 
 function renumberSteps(editor) {

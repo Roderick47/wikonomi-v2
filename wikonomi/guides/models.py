@@ -66,13 +66,14 @@ class GuideVersion(models.Model):
 class Step(models.Model):
     version = models.ForeignKey(GuideVersion, on_delete=models.CASCADE, related_name='steps')
     position = models.FloatField()
+    title = models.CharField(max_length=120, blank=True)
     instruction = models.TextField()
 
     class Meta:
         ordering = ['position']
 
     def __str__(self):
-        return self.instruction[:80]
+        return self.title or self.instruction[:80]
 
 
 class StepTip(models.Model):
