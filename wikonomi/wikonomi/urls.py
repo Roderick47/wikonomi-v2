@@ -31,6 +31,7 @@ urlpatterns = [
     path('categories/', include('categories.urls')),
     path('', include('core.urls')),
     path('analytics/', include('analytics.urls')),
+    path('guides/', include('guides.urls')),
     path('api/comments/', include('comments.urls')),
 ]
 
