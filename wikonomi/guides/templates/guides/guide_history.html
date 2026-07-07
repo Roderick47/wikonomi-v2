@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% block page_title %}History for {{ guide.title }} — Wikonomi{% endblock %}
+{% block content %}<div class="max-w-3xl mx-auto"><h1 class="text-2xl font-bold text-gray-900 mb-6">History: {{ guide.title }}</h1><div class="bg-white rounded shadow-sm divide-y">{% for version in versions %}<a class="block p-4 hover:bg-gray-50" href="{% url 'guides:version_detail' guide.slug version.id %}"><div class="font-semibold text-gray-900">{{ version.created_at }} · {{ version.status }}</div><div class="text-sm text-gray-500">{{ version.edit_summary|default:'No edit summary' }}{% if version.edited_by %} by {{ version.edited_by }}{% endif %}</div></a>{% empty %}<div class="p-4 text-gray-500">No versions yet.</div>{% endfor %}</div></div>{% endblock %}

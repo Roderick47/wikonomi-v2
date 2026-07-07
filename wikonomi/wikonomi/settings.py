@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'comments',
     'users',
     'analytics',
+    'guides',
     'taggit',
 ]
 
