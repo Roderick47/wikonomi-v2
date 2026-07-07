@@ -14,6 +14,73 @@ from .forms import GuideForkForm, GuideForm
 from .models import Guide, GuideRating, GuideVersion, Step, StepTip
 
 
+
+def _unique_model_slug(model, name):
+    base = slugify(name) or 'item'
+    slug = base
+    counter = 2
+    while model.objects.filter(slug=slug).exists():
+        slug = f'{base}-{counter}'
+        counter += 1
+    return slug
+
+
+def _business_from_name(name, user=None):
+    name = (name or '').strip()
+    if not name:
+        return None
+    business = Business.objects.filter(name__iexact=name).first()
+    if business:
+        return business
+    return Business.objects.create(
+        name=name,
+        slug=_unique_model_slug(Business, name),
+    )
+
+
+def _category_from_name(name):
+    name = (name or '').strip()
+    if not name:
+        return None
+    category = BusinessCategory.objects.filter(name__iexact=name).first()
+    if category:
+        return category
+    return BusinessCategory.objects.create(
+        name=name,
+        slug=_unique_model_slug(BusinessCategory, name),
+    )
+
+
+
+def _steps_payload_from_post(request):
+    try:
+        return json.loads(request.POST.get('steps_json', '[]'))
+    except json.JSONDecodeError:
+        return []
+
+
+def _create_steps_from_payload(version, steps_payload):
+    for index, item in enumerate(steps_payload, start=1):
+        title = (item.get('title') or '').strip()[:120]
+        instruction = (item.get('instruction') or '').strip()
+        if not title and not instruction:
+            continue
+        Step.objects.create(
+            version=version,
+            title=title,
+            instruction=instruction,
+            position=float(item.get('position') or index),
+        )
+
+def _guide_form_context(form, **extra):
+    context = {
+        'form': form,
+        'businesses': Business.objects.order_by('name'),
+        'categories': BusinessCategory.objects.order_by('order', 'name'),
+    }
+    context.update(extra)
+    return context
+
 def _unique_slug(title):
     base = slugify(title) or 'guide'
     slug = base
@@ -64,16 +131,19 @@ def guide_create(request):
         form = GuideForm(request.POST)
         if form.is_valid():
             guide = form.save(commit=False)
+            guide.organization = _business_from_name(form.cleaned_data.get('organization_name'), request.user)
+            guide.category = _category_from_name(form.cleaned_data.get('category_name'))
             guide.slug = _unique_slug(guide.title)
             guide.created_by = request.user
             guide.save()
             version = GuideVersion.objects.create(guide=guide, edited_by=request.user, edit_summary='Initial draft')
+            _create_steps_from_payload(version, _steps_payload_from_post(request))
             guide.current_version = version
             guide.save(update_fields=['current_version'])
-            return redirect('guides:edit', slug=guide.slug)
+            return redirect('guides:detail', slug=guide.slug)
     else:
         form = GuideForm()
-    return render(request, 'guides/guide_create.html', {'form': form})
+    return render(request, 'guides/guide_create.html', _guide_form_context(form))
 
 
 def guide_detail(request, slug):
@@ -93,10 +163,24 @@ def guide_detail(request, slug):
 @login_required
 def guide_edit(request, slug):
     guide = get_object_or_404(_guide_queryset(), slug=slug)
+    post_data = None
     if request.method == 'POST':
-        steps_payload = json.loads(request.POST.get('steps_json', '[]'))
+        post_data = request.POST.copy()
+        post_data.setdefault('title', guide.title)
+        post_data.setdefault('summary', guide.summary)
+        post_data.setdefault('organization_name', guide.organization.name if guide.organization else '')
+        post_data.setdefault('category_name', guide.category.name if guide.category else '')
+    form = GuideForm(post_data, instance=guide)
+    if request.method == 'POST':
+        if not form.is_valid():
+            return render(request, 'guides/edit.html', _guide_form_context(form, guide=guide, steps=_steps_for_version(guide.current_version)))
+        steps_payload = _steps_payload_from_post(request)
         deleted_ids = set(str(step_id) for step_id in json.loads(request.POST.get('deleted_step_ids', '[]')))
         with transaction.atomic():
+            guide = form.save(commit=False)
+            guide.organization = _business_from_name(form.cleaned_data.get('organization_name'), request.user)
+            guide.category = _category_from_name(form.cleaned_data.get('category_name'))
+            guide.save(update_fields=['title', 'organization', 'category', 'summary'])
             version = GuideVersion.objects.create(
                 guide=guide,
                 edited_by=request.user,
@@ -106,9 +190,14 @@ def guide_edit(request, slug):
             tip_moves = []
             for item in steps_payload:
                 old_id = item.get('id')
+                title = (item.get('title') or '').strip()[:120]
+                instruction = (item.get('instruction') or '').strip()
+                if not title and not instruction:
+                    continue
                 step = Step.objects.create(
                     version=version,
-                    instruction=(item.get('instruction') or '').strip(),
+                    title=title,
+                    instruction=instruction,
                     position=float(item.get('position')),
                 )
                 if old_id and str(old_id) not in deleted_ids:
@@ -118,7 +207,7 @@ def guide_edit(request, slug):
             guide.current_version = version
             guide.save(update_fields=['current_version'])
         return redirect('guides:detail', slug=guide.slug)
-    return render(request, 'guides/edit.html', {'guide': guide, 'steps': _steps_for_version(guide.current_version)})
+    return render(request, 'guides/edit.html', _guide_form_context(form, guide=guide, steps=_steps_for_version(guide.current_version)))
 
 
 @login_required
@@ -139,7 +228,7 @@ def guide_fork(request, slug):
                 )
                 version = GuideVersion.objects.create(guide=guide, edited_by=request.user, edit_summary='Forked guide')
                 for step in _steps_for_version(source.current_version):
-                    Step.objects.create(version=version, position=step.position, instruction=step.instruction)
+                    Step.objects.create(version=version, position=step.position, title=step.title, instruction=step.instruction)
                 guide.current_version = version
                 guide.save(update_fields=['current_version'])
             return redirect('guides:detail', slug=guide.slug)
