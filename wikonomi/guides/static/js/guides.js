@@ -55,15 +55,21 @@ function initTips() {
         const body = input.value.trim();
         if (!body) return;
         try {
+            const formData = new FormData();
+            formData.append('body', body);
+            form.querySelectorAll('input[type="file"]').forEach((fileInput) => {
+                Array.from(fileInput.files || []).forEach((file) => formData.append('photos', file));
+            });
             const response = await fetch(`/guides/${slug}/steps/${form.dataset.stepId}/tips/`, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'},
-                body: JSON.stringify({body}),
+                headers: {'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'},
+                body: formData,
             });
             if (!response.ok) throw new Error('Failed to add tip');
             const tip = await response.json();
             form.insertAdjacentElement('beforebegin', buildTipElement(tip));
             input.value = '';
+            form.querySelectorAll('input[type="file"]').forEach((fileInput) => { fileInput.value = ''; });
             form.classList.add('hidden');
             showToast('Tip added', 'success');
         } catch (err) { console.error(err); showToast('Could not add your tip', 'error'); }
@@ -74,7 +80,8 @@ function buildTipElement(tip) {
     const div = document.createElement('div');
     div.className = 'inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 text-xs rounded px-2.5 py-1.5 mr-1.5 mb-1.5';
     div.dataset.tipId = tip.id;
-    div.innerHTML = `<span>💡</span><span>${escapeHtml(tip.body)}</span><button type="button" data-tip-vote data-tip-id="${tip.id}" class="flex items-center gap-0.5 text-amber-600 hover:text-amber-900 font-semibold">↑ <span data-tip-votes>0</span></button>`;
+    const photos = (tip.photos || []).map((photo) => `<a href="${escapeHtml(photo.url)}" target="_blank"><img src="${escapeHtml(photo.url)}" alt="Tip photo" class="h-10 w-10 rounded object-cover border border-amber-200"></a>`).join('');
+    div.innerHTML = `<span>💡</span><span>${escapeHtml(tip.body)}</span>${photos}<button type="button" data-tip-vote data-tip-id="${tip.id}" class="flex items-center gap-0.5 text-amber-600 hover:text-amber-900 font-semibold">↑ <span data-tip-votes>0</span></button>`;
     return div;
 }
 
@@ -95,6 +102,7 @@ function initStepEditor() {
     if (!editor) return;
     const template = document.getElementById('step-row-template');
     const deletedIds = [];
+    ensureTrailingInsert(editor, template);
     renumberSteps(editor);
     editor.addEventListener('click', function (event) {
         const insertBtn = event.target.closest('[data-insert-after]');
@@ -106,12 +114,53 @@ function initStepEditor() {
             if (row.dataset.stepId) deletedIds.push(row.dataset.stepId);
             row.remove();
             if (divider && divider.querySelector('[data-insert-after]')) divider.remove();
+            ensureTrailingInsert(editor, template);
             renumberSteps(editor);
+        }
+    });
+    editor.addEventListener('dragstart', function (event) {
+        const row = event.target.closest('[data-step-row]');
+        if (!row || !event.target.closest('[data-drag-handle]')) return;
+        row.draggable = true;
+        row.classList.add('opacity-60');
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', row.dataset.stepId || 'new-step');
+    });
+    editor.addEventListener('dragend', function (event) {
+        const row = event.target.closest('[data-step-row]');
+        if (row) { row.classList.remove('opacity-60'); row.draggable = false; }
+        refreshStepPositions(editor);
+        ensureTrailingInsert(editor, template);
+        renumberSteps(editor);
+    });
+    editor.addEventListener('dragover', function (event) {
+        const dragging = editor.querySelector('[data-step-row].opacity-60');
+        const target = event.target.closest('[data-step-row]');
+        if (!dragging || !target || dragging === target) return;
+        event.preventDefault();
+        const rect = target.getBoundingClientRect();
+        const after = event.clientY > rect.top + rect.height / 2;
+        const draggingDivider = dragging.nextElementSibling && dragging.nextElementSibling.querySelector('[data-insert-after]') ? dragging.nextElementSibling : null;
+        const targetDivider = target.nextElementSibling && target.nextElementSibling.querySelector('[data-insert-after]') ? target.nextElementSibling : null;
+        if (after) {
+            if (targetDivider) targetDivider.after(dragging); else target.after(dragging);
+            if (draggingDivider) dragging.after(draggingDivider);
+        } else {
+            target.before(dragging);
+            if (draggingDivider) dragging.after(draggingDivider);
         }
     });
     const form = document.getElementById('guide-editor-form');
     if (form) form.addEventListener('submit', function () {
-        const steps = Array.from(editor.querySelectorAll('[data-step-row]')).map((row) => ({id: row.dataset.stepId || null, instruction: row.querySelector('[data-step-instruction]').value.trim(), position: parseFloat(row.dataset.position)}));
+        const steps = Array.from(editor.querySelectorAll('[data-step-row]')).map((row, index) => ({
+            id: row.dataset.stepId || null,
+            title: (row.querySelector('[data-step-title]')?.value || '').trim(),
+            instruction: row.querySelector('[data-step-instruction]').value.trim(),
+            position: index + 1,
+        }));
+        editor.querySelectorAll('[data-step-row]').forEach((row, index) => {
+            row.querySelectorAll('[data-step-photo-input]').forEach((input) => { input.name = `step_photos_${index}`; });
+        });
         addHidden(form, 'steps_json', JSON.stringify(steps));
         addHidden(form, 'deleted_step_ids', JSON.stringify(deletedIds));
     });
@@ -133,13 +182,38 @@ function insertStepAfter(editor, template, insertBtn) {
     const newRow = fragment.querySelector('[data-step-row]');
     newRow.dataset.position = (prevPos + nextPos) / 2;
     dividerRow.after(fragment);
+    ensureTrailingInsert(editor, template);
     renumberSteps(editor);
-    newRow.querySelector('[data-step-instruction]').focus();
+    newRow.querySelector('[data-step-title]').focus();
+}
+
+function ensureTrailingInsert(editor, template) {
+    if (!template) return;
+    const hasInsertButton = editor.querySelector('[data-insert-after]');
+    if (!hasInsertButton) {
+        const fragment = template.content.cloneNode(true);
+        const row = fragment.querySelector('[data-step-row]');
+        if (row) row.remove();
+        editor.appendChild(fragment);
+        return;
+    }
+    const last = editor.lastElementChild;
+    if (last && last.matches('[data-step-row]')) {
+        const fragment = template.content.cloneNode(true);
+        const row = fragment.querySelector('[data-step-row]');
+        if (row) row.remove();
+        editor.appendChild(fragment);
+    }
+}
+
+function refreshStepPositions(editor) {
+    editor.querySelectorAll('[data-step-row]').forEach((row, index) => { row.dataset.position = index + 1; });
 }
 
 function renumberSteps(editor) {
     editor.querySelectorAll('[data-step-row]').forEach((row, index) => {
         const badge = row.querySelector('[data-step-number]');
+        row.dataset.position = index + 1;
         if (badge && !badge.querySelector('svg')) badge.textContent = index + 1;
     });
 }

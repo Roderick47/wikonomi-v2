@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django_resized import ResizedImageField
 
 
 class Guide(models.Model):
@@ -66,13 +67,28 @@ class GuideVersion(models.Model):
 class Step(models.Model):
     version = models.ForeignKey(GuideVersion, on_delete=models.CASCADE, related_name='steps')
     position = models.FloatField()
+    title = models.CharField(max_length=120, blank=True)
     instruction = models.TextField()
 
     class Meta:
         ordering = ['position']
 
     def __str__(self):
-        return self.instruction[:80]
+        return self.title or self.instruction[:80]
+
+
+class StepPhoto(models.Model):
+    step = models.ForeignKey(Step, on_delete=models.CASCADE, related_name='photos')
+    image = ResizedImageField(upload_to='guide_step_photos/', size=[1200, 1200], quality=80, force_format='JPEG')
+    caption = models.CharField(max_length=160, blank=True)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return self.caption or f'Photo for step {self.step_id}'
 
 
 class StepTip(models.Model):
@@ -97,3 +113,17 @@ class GuideRating(models.Model):
 
     class Meta:
         unique_together = ('guide', 'user')
+
+
+class StepTipPhoto(models.Model):
+    tip = models.ForeignKey(StepTip, on_delete=models.CASCADE, related_name='photos')
+    image = ResizedImageField(upload_to='guide_tip_photos/', size=[1200, 1200], quality=80, force_format='JPEG')
+    caption = models.CharField(max_length=160, blank=True)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return self.caption or f'Photo for tip {self.tip_id}'

@@ -11,8 +11,82 @@ from django.views.decorators.http import require_POST
 from categories.models import BusinessCategory
 from core.models import Business
 from .forms import GuideForkForm, GuideForm
-from .models import Guide, GuideRating, GuideVersion, Step, StepTip
+from .models import Guide, GuideRating, GuideVersion, Step, StepPhoto, StepTip, StepTipPhoto
 
+
+
+def _unique_model_slug(model, name):
+    base = slugify(name) or 'item'
+    slug = base
+    counter = 2
+    while model.objects.filter(slug=slug).exists():
+        slug = f'{base}-{counter}'
+        counter += 1
+    return slug
+
+
+def _business_from_name(name, user=None):
+    name = (name or '').strip()
+    if not name:
+        return None
+    business = Business.objects.filter(name__iexact=name).first()
+    if business:
+        return business
+    return Business.objects.create(
+        name=name,
+        slug=_unique_model_slug(Business, name),
+    )
+
+
+def _category_from_name(name):
+    name = (name or '').strip()
+    if not name:
+        return None
+    category = BusinessCategory.objects.filter(name__iexact=name).first()
+    if category:
+        return category
+    return BusinessCategory.objects.create(
+        name=name,
+        slug=_unique_model_slug(BusinessCategory, name),
+    )
+
+
+
+def _steps_payload_from_post(request):
+    try:
+        return json.loads(request.POST.get('steps_json', '[]'))
+    except json.JSONDecodeError:
+        return []
+
+
+def _photo_files_for_step(request, index):
+    return request.FILES.getlist(f'step_photos_{index}')
+
+
+def _create_steps_from_payload(version, steps_payload, request=None):
+    for index, item in enumerate(steps_payload, start=1):
+        title = (item.get('title') or '').strip()[:120]
+        instruction = (item.get('instruction') or '').strip()
+        if not title and not instruction:
+            continue
+        step = Step.objects.create(
+            version=version,
+            title=title,
+            instruction=instruction,
+            position=float(item.get('position') or index),
+        )
+        if request is not None:
+            for image in _photo_files_for_step(request, index - 1):
+                StepPhoto.objects.create(step=step, image=image, uploaded_by=request.user)
+
+def _guide_form_context(form, **extra):
+    context = {
+        'form': form,
+        'businesses': Business.objects.order_by('name'),
+        'categories': BusinessCategory.objects.order_by('order', 'name'),
+    }
+    context.update(extra)
+    return context
 
 def _unique_slug(title):
     base = slugify(title) or 'guide'
@@ -38,7 +112,7 @@ def _guide_queryset():
 def _steps_for_version(version):
     if not version:
         return Step.objects.none()
-    return version.steps.prefetch_related('tips').order_by('position')
+    return version.steps.prefetch_related('photos', 'tips__photos').order_by('position')
 
 
 def guide_list(request):
@@ -64,16 +138,19 @@ def guide_create(request):
         form = GuideForm(request.POST)
         if form.is_valid():
             guide = form.save(commit=False)
+            guide.organization = _business_from_name(form.cleaned_data.get('organization_name'), request.user)
+            guide.category = _category_from_name(form.cleaned_data.get('category_name'))
             guide.slug = _unique_slug(guide.title)
             guide.created_by = request.user
             guide.save()
             version = GuideVersion.objects.create(guide=guide, edited_by=request.user, edit_summary='Initial draft')
+            _create_steps_from_payload(version, _steps_payload_from_post(request), request)
             guide.current_version = version
             guide.save(update_fields=['current_version'])
-            return redirect('guides:edit', slug=guide.slug)
+            return redirect('guides:detail', slug=guide.slug)
     else:
         form = GuideForm()
-    return render(request, 'guides/guide_create.html', {'form': form})
+    return render(request, 'guides/guide_create.html', _guide_form_context(form))
 
 
 def guide_detail(request, slug):
@@ -93,10 +170,24 @@ def guide_detail(request, slug):
 @login_required
 def guide_edit(request, slug):
     guide = get_object_or_404(_guide_queryset(), slug=slug)
+    post_data = None
     if request.method == 'POST':
-        steps_payload = json.loads(request.POST.get('steps_json', '[]'))
+        post_data = request.POST.copy()
+        post_data.setdefault('title', guide.title)
+        post_data.setdefault('summary', guide.summary)
+        post_data.setdefault('organization_name', guide.organization.name if guide.organization else '')
+        post_data.setdefault('category_name', guide.category.name if guide.category else '')
+    form = GuideForm(post_data, instance=guide)
+    if request.method == 'POST':
+        if not form.is_valid():
+            return render(request, 'guides/edit.html', _guide_form_context(form, guide=guide, steps=_steps_for_version(guide.current_version)))
+        steps_payload = _steps_payload_from_post(request)
         deleted_ids = set(str(step_id) for step_id in json.loads(request.POST.get('deleted_step_ids', '[]')))
         with transaction.atomic():
+            guide = form.save(commit=False)
+            guide.organization = _business_from_name(form.cleaned_data.get('organization_name'), request.user)
+            guide.category = _category_from_name(form.cleaned_data.get('category_name'))
+            guide.save(update_fields=['title', 'organization', 'category', 'summary'])
             version = GuideVersion.objects.create(
                 guide=guide,
                 edited_by=request.user,
@@ -104,21 +195,29 @@ def guide_edit(request, slug):
                 edit_summary=request.POST.get('edit_summary', '').strip(),
             )
             tip_moves = []
-            for item in steps_payload:
+            for index, item in enumerate(steps_payload):
                 old_id = item.get('id')
+                title = (item.get('title') or '').strip()[:120]
+                instruction = (item.get('instruction') or '').strip()
+                if not title and not instruction:
+                    continue
                 step = Step.objects.create(
                     version=version,
-                    instruction=(item.get('instruction') or '').strip(),
+                    title=title,
+                    instruction=instruction,
                     position=float(item.get('position')),
                 )
                 if old_id and str(old_id) not in deleted_ids:
                     tip_moves.append((old_id, step.id))
+                    StepPhoto.objects.filter(step_id=old_id).update(step_id=step.id)
+                for image in _photo_files_for_step(request, index):
+                    StepPhoto.objects.create(step=step, image=image, uploaded_by=request.user)
             for old_id, new_id in tip_moves:
                 StepTip.objects.filter(step_id=old_id).update(step_id=new_id)
             guide.current_version = version
             guide.save(update_fields=['current_version'])
         return redirect('guides:detail', slug=guide.slug)
-    return render(request, 'guides/edit.html', {'guide': guide, 'steps': _steps_for_version(guide.current_version)})
+    return render(request, 'guides/edit.html', _guide_form_context(form, guide=guide, steps=_steps_for_version(guide.current_version)))
 
 
 @login_required
@@ -139,7 +238,9 @@ def guide_fork(request, slug):
                 )
                 version = GuideVersion.objects.create(guide=guide, edited_by=request.user, edit_summary='Forked guide')
                 for step in _steps_for_version(source.current_version):
-                    Step.objects.create(version=version, position=step.position, instruction=step.instruction)
+                    new_step = Step.objects.create(version=version, position=step.position, title=step.title, instruction=step.instruction)
+                    for photo in step.photos.all():
+                        StepPhoto.objects.create(step=new_step, image=photo.image, caption=photo.caption, uploaded_by=request.user)
                 guide.current_version = version
                 guide.save(update_fields=['current_version'])
             return redirect('guides:detail', slug=guide.slug)
@@ -183,14 +284,21 @@ def tip_create(request, slug, step_id):
         return JsonResponse({'error': 'Authentication required'}, status=401)
     guide = get_object_or_404(Guide, slug=slug)
     step = get_object_or_404(Step, id=step_id, version=guide.current_version)
-    data = _json_body(request)
-    if data is None:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-    body = (data.get('body') or '').strip()[:300]
+    if request.content_type and request.content_type.startswith('multipart/form-data'):
+        body = (request.POST.get('body') or '').strip()[:300]
+    else:
+        data = _json_body(request)
+        if data is None:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        body = (data.get('body') or '').strip()[:300]
     if not body:
         return JsonResponse({'error': 'Tip body is required'}, status=400)
     tip = StepTip.objects.create(step=step, body=body, submitted_by=request.user)
-    return JsonResponse({'id': tip.id, 'body': tip.body, 'upvotes': 0})
+    photos = []
+    for image in request.FILES.getlist('photos'):
+        photo = StepTipPhoto.objects.create(tip=tip, image=image, uploaded_by=request.user)
+        photos.append({'url': photo.image.url})
+    return JsonResponse({'id': tip.id, 'body': tip.body, 'upvotes': 0, 'photos': photos})
 
 
 @require_POST

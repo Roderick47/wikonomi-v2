@@ -457,6 +457,7 @@
                         <a href="{% url 'add_business' %}?name={{ request.GET.q|urlencode }}" class="inline-flex rounded-full border border-brand-blue px-4 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-blue/10">Add business</a>
                         <a href="{% url 'product_list' %}?q={{ request.GET.q|urlencode }}" class="inline-flex rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Search products</a>
                         <a href="{% url 'business_list' %}?q={{ request.GET.q|urlencode }}" class="inline-flex rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Search businesses</a>
+                        <a href="{% url 'guides:list' %}" class="inline-flex rounded-full border border-brand-purple px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/10">Browse guides</a>
                     </div>
                 </div>
                 {% endif %}
