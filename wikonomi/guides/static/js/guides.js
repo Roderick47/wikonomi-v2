@@ -38,43 +38,119 @@ function initGuideRating() {
 
 function initTips() {
     const slug = window.WIKONOMI_GUIDE_SLUG;
+    const modal = document.querySelector('[data-tip-modal]');
+    const form = document.querySelector('[data-tip-modal-form]');
+    const stepInput = document.querySelector('[data-tip-step-id]');
+    const bodyInput = document.querySelector('[data-tip-body]');
+    const photoInput = document.querySelector('[data-tip-photo-input]');
+    const previewWrap = document.querySelector('[data-tip-preview-wrap]');
+    const preview = document.querySelector('[data-tip-preview]');
+    const error = document.querySelector('[data-tip-error]');
+    const submitButton = document.querySelector('[data-tip-submit]');
+
+    function openModal(stepId) {
+        if (!modal || !form) return;
+        resetModal(false);
+        stepInput.value = stepId;
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('overflow-hidden');
+        setTimeout(() => bodyInput.focus(), 0);
+    }
+
+    function closeModal() {
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('overflow-hidden');
+        resetModal(true);
+    }
+
+    function resetModal(clearStep) {
+        if (!form) return;
+        form.reset();
+        if (clearStep && stepInput) stepInput.value = '';
+        if (preview) preview.src = '';
+        if (previewWrap) previewWrap.classList.add('hidden');
+        if (error) { error.textContent = ''; error.classList.add('hidden'); }
+        if (submitButton) { submitButton.disabled = false; submitButton.textContent = 'Post Tip'; }
+    }
+
+    function showFormError(message) {
+        if (!error) return;
+        error.textContent = message;
+        error.classList.remove('hidden');
+    }
+
     document.addEventListener('click', function (event) {
         const toggle = event.target.closest('[data-add-tip]');
-        if (toggle) {
-            const form = document.querySelector(`[data-add-tip-form][data-step-id="${toggle.dataset.stepId}"]`);
-            if (form) form.classList.toggle('hidden');
-        }
+        if (toggle) openModal(toggle.dataset.stepId);
+        if (event.target.closest('[data-tip-modal-close]')) closeModal();
         const voteBtn = event.target.closest('[data-tip-vote]');
         if (voteBtn) voteTip(slug, voteBtn);
     });
-    document.addEventListener('submit', async function (event) {
-        const form = event.target.closest('[data-add-tip-form]');
-        if (!form) return;
-        event.preventDefault();
-        const input = form.querySelector('input');
-        const body = input.value.trim();
-        if (!body) return;
-        try {
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && modal && !modal.classList.contains('hidden')) closeModal();
+    });
+
+    if (photoInput) {
+        photoInput.addEventListener('change', function () {
+            const file = photoInput.files && photoInput.files[0];
+            if (!file) { if (previewWrap) previewWrap.classList.add('hidden'); return; }
+            if (!file.type.startsWith('image/')) { showFormError('Please choose an image file.'); photoInput.value = ''; return; }
+            if (preview) preview.src = URL.createObjectURL(file);
+            if (previewWrap) previewWrap.classList.remove('hidden');
+        });
+    }
+
+    if (form) {
+        form.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const stepId = stepInput.value;
+            const body = bodyInput.value.trim();
+            if (!stepId) { showFormError('Choose a step before posting a tip.'); return; }
+            if (!body) { showFormError('Write a tip before posting.'); return; }
             const formData = new FormData();
             formData.append('body', body);
-            form.querySelectorAll('input[type="file"]').forEach((fileInput) => {
-                Array.from(fileInput.files || []).forEach((file) => formData.append('photos', file));
-            });
-            const response = await fetch(`/guides/${slug}/steps/${form.dataset.stepId}/tips/`, {
-                method: 'POST',
-                headers: {'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'},
-                body: formData,
-            });
-            if (!response.ok) throw new Error('Failed to add tip');
-            const tip = await response.json();
-            form.insertAdjacentElement('beforebegin', buildTipElement(tip));
-            input.value = '';
-            form.querySelectorAll('input[type="file"]').forEach((fileInput) => { fileInput.value = ''; });
-            form.classList.add('hidden');
-            showToast('Tip added', 'success');
-        } catch (err) { console.error(err); showToast('Could not add your tip', 'error'); }
-    });
+            if (photoInput.files && photoInput.files[0]) formData.append('photos', photoInput.files[0]);
+            try {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Posting...';
+                const response = await fetch(`/guides/${slug}/steps/${stepId}/tips/`, {
+                    method: 'POST',
+                    headers: {'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'},
+                    body: formData,
+                });
+                const data = await response.json().catch(() => ({}));
+                if (response.status === 401 || response.status === 403) { window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`; return; }
+                if (!response.ok) throw new Error(data.error || firstFormError(data.errors) || 'Failed to add tip');
+                const tipList = document.querySelector(`[data-step-tips][data-step-id="${stepId}"]`);
+                if (tipList) tipList.appendChild(buildTipElement(data));
+                closeModal();
+                showToast('Tip added', 'success');
+            } catch (err) {
+                console.error(err);
+                showFormError(err.message || 'Could not add your tip');
+                showToast('Could not add your tip', 'error');
+                if (submitButton) { submitButton.disabled = false; submitButton.textContent = 'Post Tip'; }
+            }
+        });
+    }
 }
+
+function firstFormError(errors) {
+    if (!errors) return '';
+    const firstKey = Object.keys(errors)[0];
+    if (!firstKey) return '';
+    const value = errors[firstKey];
+    if (Array.isArray(value)) {
+        const firstValue = value[0];
+        return firstValue && firstValue.message ? firstValue.message : String(firstValue);
+    }
+    return value && value.message ? value.message : String(value);
+}
+
 
 function buildTipElement(tip) {
     const div = document.createElement('div');
