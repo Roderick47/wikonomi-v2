@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST
 
 from categories.models import BusinessCategory
 from core.models import Business
-from .forms import GuideForkForm, GuideForm
+from .forms import GuideForkForm, GuideForm, StepTipForm
 from .models import Guide, GuideRating, GuideVersion, Step, StepPhoto, StepTip, StepTipPhoto
 
 
@@ -285,20 +285,28 @@ def tip_create(request, slug, step_id):
     guide = get_object_or_404(Guide, slug=slug)
     step = get_object_or_404(Step, id=step_id, version=guide.current_version)
     if request.content_type and request.content_type.startswith('multipart/form-data'):
-        body = (request.POST.get('body') or '').strip()[:300]
+        post_data = request.POST.copy()
+        uploaded_files = request.FILES.getlist('photos')
+        if uploaded_files:
+            post_data['photo'] = uploaded_files[0]
+        form = StepTipForm(post_data, {'photo': uploaded_files[0]} if uploaded_files else None)
     else:
         data = _json_body(request)
         if data is None:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
-        body = (data.get('body') or '').strip()[:300]
-    if not body:
-        return JsonResponse({'error': 'Tip body is required'}, status=400)
-    tip = StepTip.objects.create(step=step, body=body, submitted_by=request.user)
+        form = StepTipForm({'body': data.get('body', '')})
+        uploaded_files = []
+    if not form.is_valid():
+        return JsonResponse({'errors': form.errors.get_json_data()}, status=400)
+    tip = form.save(commit=False)
+    tip.step = step
+    tip.submitted_by = request.user
+    tip.save()
     photos = []
-    for image in request.FILES.getlist('photos'):
+    for image in uploaded_files:
         photo = StepTipPhoto.objects.create(tip=tip, image=image, uploaded_by=request.user)
         photos.append({'url': photo.image.url})
-    return JsonResponse({'id': tip.id, 'body': tip.body, 'upvotes': 0, 'photos': photos})
+    return JsonResponse({'id': tip.id, 'body': tip.body, 'text': tip.body, 'image_url': photos[0]['url'] if photos else '', 'upvotes': 0, 'photos': photos})
 
 
 @require_POST

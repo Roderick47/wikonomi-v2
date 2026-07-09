@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Guide
+from .models import Guide, StepTip
 
 
 GUIDE_INPUT_CLASS = 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm'
@@ -57,3 +57,23 @@ class GuideForkForm(forms.ModelForm):
     class Meta:
         model = Guide
         fields = ['organization']
+
+
+class StepTipForm(forms.ModelForm):
+    photo = forms.ImageField(required=False)
+
+    class Meta:
+        model = StepTip
+        fields = ['body']
+
+    def clean_body(self):
+        body = (self.cleaned_data.get('body') or '').strip()
+        if not body:
+            raise forms.ValidationError('Tip text is required.')
+        return body
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get('photo')
+        if photo and photo.size > 5 * 1024 * 1024:
+            raise forms.ValidationError('Tip images must be 5MB or smaller.')
+        return photo

@@ -21,14 +21,62 @@
     </div>
     {% if guide.summary %}<p class="text-gray-700 mb-4">{{ guide.summary }}</p>{% endif %}
     {% if guide.forked_from %}<p class="text-xs text-gray-400 mb-4">Forked from <a href="{% url 'guides:detail' guide.forked_from.slug %}" class="text-brand-purple hover:underline">{{ guide.forked_from.title }}</a></p>{% endif %}
+
     <div class="flex items-center justify-between py-3 border-y border-gray-200 mb-6" data-rating-widget data-rating-target="guide" data-object-id="{{ guide.id }}">
         <div class="flex items-center gap-1.5"><span class="text-amber-400">★</span><span class="text-sm font-semibold text-gray-900" data-rating-score>{{ guide.average_rating|floatformat:1 }}</span><span class="text-xs text-gray-400" data-rating-count>({{ guide.ratings.count }} ratings)</span></div>
         <div class="flex items-center gap-0.5" role="group" aria-label="Rate this guide">{% for i in "12345" %}<button type="button" data-rating-value="{{ i }}" data-rating-target="guide" data-object-id="{{ guide.id }}" aria-pressed="{% if user_rating.score == i|add:0 %}true{% else %}false{% endif %}" class="p-0.5 text-gray-300 hover:text-amber-400 {% if user_rating.score >= i|add:0 %}text-amber-400{% endif %}">★</button>{% endfor %}</div>
     </div>
+
     <ol class="flex flex-col gap-4 mb-8" data-steps-list>
-        {% for step in steps %}<li class="flex gap-3" data-step-id="{{ step.id }}"><div class="w-6 h-6 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center text-xs font-semibold flex-shrink-0 mt-0.5">{{ forloop.counter }}</div><div class="flex-1">{% if step.title %}<h3 class="font-semibold text-gray-900 mb-1">{{ step.title }}</h3>{% endif %}<div class="prose prose-sm max-w-none text-gray-800 mb-2">{{ step.instruction|guide_markdown }}</div>{% if step.photos.all %}<div class="mb-2 grid grid-cols-2 sm:grid-cols-3 gap-2">{% for photo in step.photos.all %}<a href="{{ photo.image.url }}" target="_blank"><img src="{{ photo.image.url }}" alt="Step photo" class="h-28 w-full rounded-lg object-cover border"></a>{% endfor %}</div>{% endif %}{% for tip in step.tips.all %}<div class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 text-xs rounded px-2.5 py-1.5 mr-1.5 mb-1.5" data-tip-id="{{ tip.id }}"><span>💡</span><span>{{ tip.body }}</span>{% for photo in tip.photos.all %}<a href="{{ photo.image.url }}" target="_blank"><img src="{{ photo.image.url }}" alt="Tip photo" class="h-10 w-10 rounded object-cover border border-amber-200"></a>{% endfor %}<button type="button" data-tip-vote data-tip-id="{{ tip.id }}" class="flex items-center gap-0.5 text-amber-600 hover:text-amber-900 font-semibold">↑ <span data-tip-votes>{{ tip.upvotes }}</span></button></div>{% endfor %}{% if user.is_authenticated %}<div><button type="button" data-add-tip data-step-id="{{ step.id }}" class="text-xs text-gray-400 hover:text-brand-purple font-medium">+ add a tip</button><form data-add-tip-form data-step-id="{{ step.id }}" class="hidden mt-1.5 flex flex-wrap gap-1.5" enctype="multipart/form-data"><input type="text" maxlength="300" placeholder="e.g. bring a photocopy" class="flex-1 text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-purple"><label class="cursor-pointer text-xs bg-white border border-gray-300 text-gray-600 rounded px-2.5 py-1 font-semibold">Photos<input type="file" name="photos" accept="image/*" multiple class="hidden"></label><button type="submit" class="text-xs bg-brand-purple text-white rounded px-2.5 py-1 font-semibold">Add</button></form></div>{% endif %}</div></li>{% empty %}<li class="text-gray-500">No steps have been added yet.</li>{% endfor %}
+        {% for step in steps %}
+            <li class="flex gap-3" data-step-id="{{ step.id }}">
+                <div class="w-6 h-6 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center text-xs font-semibold flex-shrink-0 mt-0.5">{{ forloop.counter }}</div>
+                <div class="flex-1">
+                    {% if step.title %}<h3 class="font-semibold text-gray-900 mb-1">{{ step.title }}</h3>{% endif %}
+                    <div class="prose prose-sm max-w-none text-gray-800 mb-2">{{ step.instruction|guide_markdown }}</div>
+                    {% if step.photos.all %}<div class="mb-2 grid grid-cols-2 sm:grid-cols-3 gap-2">{% for photo in step.photos.all %}<a href="{{ photo.image.url }}" target="_blank"><img src="{{ photo.image.url }}" alt="Step photo" class="h-28 w-full rounded-lg object-cover border"></a>{% endfor %}</div>{% endif %}
+                    <div class="flex flex-wrap items-center gap-1.5" data-step-tips data-step-id="{{ step.id }}">
+                        {% for tip in step.tips.all %}<div class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 text-xs rounded px-2.5 py-1.5 mr-1.5 mb-1.5" data-tip-id="{{ tip.id }}"><span>💡</span><span>{{ tip.body }}</span>{% for photo in tip.photos.all %}<a href="{{ photo.image.url }}" target="_blank"><img src="{{ photo.image.url }}" alt="Tip photo" class="h-10 w-10 rounded object-cover border border-amber-200"></a>{% endfor %}<button type="button" data-tip-vote data-tip-id="{{ tip.id }}" class="flex items-center gap-0.5 text-amber-600 hover:text-amber-900 font-semibold">↑ <span data-tip-votes>{{ tip.upvotes }}</span></button></div>{% endfor %}
+                    </div>
+                    {% if user.is_authenticated %}<button type="button" data-add-tip data-step-id="{{ step.id }}" class="mt-1 text-xs text-gray-400 hover:text-brand-purple font-medium">+ add a tip</button>{% endif %}
+                </div>
+            </li>
+        {% empty %}
+            <li class="text-gray-500">No steps have been added yet.</li>
+        {% endfor %}
     </ol>
     {% if guide.forks.exists %}<div class="pt-4 border-t border-gray-200"><p class="text-sm text-gray-500 mb-2">Adapted by {{ guide.forks.count }} other organization{{ guide.forks.count|pluralize }}</p><div class="flex flex-wrap gap-2">{% for fork in guide.forks.all %}<a href="{% url 'guides:detail' fork.slug %}" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded px-2.5 py-1">{{ fork.organization.name|default:fork.title }}</a>{% endfor %}</div></div>{% endif %}
 </div>
+
+{% if user.is_authenticated %}
+<div id="tip-modal" class="tip-modal hidden" data-tip-modal aria-hidden="true">
+    <div class="tip-modal__overlay" data-tip-modal-close></div>
+    <form id="tip-modal-form" class="tip-modal__dialog" data-tip-modal-form enctype="multipart/form-data" role="dialog" aria-modal="true" aria-labelledby="tip-modal-title">
+        {% csrf_token %}
+        <input type="hidden" name="step_id" data-tip-step-id>
+        <header class="tip-modal__header">
+            <h2 id="tip-modal-title" class="text-lg font-bold text-gray-900">Add a tip</h2>
+            <button type="button" class="tip-modal__close" data-tip-modal-close aria-label="Close tip form">×</button>
+        </header>
+        <div class="tip-modal__body">
+            <textarea name="body" data-tip-body maxlength="300" rows="5" placeholder="Share a practical tip for this step..." class="tip-modal__textarea" required></textarea>
+            <label class="tip-modal__upload" data-tip-upload-zone>
+                <input type="file" name="photos" accept="image/*" data-tip-photo-input class="sr-only">
+                <span class="tip-modal__upload-icon">📷</span>
+                <span class="font-semibold text-gray-700">Add a photo</span>
+                <span class="text-xs text-gray-400">Optional image upload</span>
+            </label>
+            <div class="tip-modal__preview hidden" data-tip-preview-wrap><img src="" alt="Selected tip image preview" data-tip-preview></div>
+            <p class="hidden text-sm text-red-600" data-tip-error></p>
+        </div>
+        <footer class="tip-modal__footer"><button type="submit" class="tip-modal__submit" data-tip-submit>Post Tip</button></footer>
+    </form>
+</div>
+{% endif %}
 {% endblock %}
-{% block extra_head %}<script>window.WIKONOMI_GUIDE_SLUG = "{{ guide.slug }}";</script><script src="{% static 'js/guides.js' %}" defer></script>{% endblock %}
+
+{% block extra_head %}
+<style>
+.tip-modal.hidden{display:none}.tip-modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:1rem}.tip-modal__overlay{position:absolute;inset:0;background:rgba(17,24,39,.55);backdrop-filter:blur(2px)}.tip-modal__dialog{position:relative;width:min(100%,34rem);max-height:90vh;overflow:hidden;background:#fff;border:1px solid #e5e7eb;border-radius:1rem;box-shadow:0 24px 64px rgba(17,24,39,.25);display:flex;flex-direction:column}.tip-modal__header,.tip-modal__footer{display:flex;align-items:center;padding:1rem 1.25rem}.tip-modal__header{justify-content:space-between;border-bottom:1px solid #f3f4f6}.tip-modal__footer{justify-content:flex-end;border-top:1px solid #f3f4f6;background:#fafafa}.tip-modal__close{width:2rem;height:2rem;border-radius:9999px;background:#f3f4f6;color:#4b5563;font-size:1.5rem;line-height:1;display:flex;align-items:center;justify-content:center}.tip-modal__close:hover{background:#e5e7eb;color:#111827}.tip-modal__body{padding:1rem 1.25rem;overflow-y:auto}.tip-modal__textarea{width:100%;resize:none;border:0;outline:0;color:#111827;font-size:1rem;line-height:1.5}.tip-modal__textarea::placeholder{color:#9ca3af}.tip-modal__upload{margin-top:1rem;border:1px dashed #c7d2fe;border-radius:.875rem;background:#f8fafc;min-height:6rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.25rem;cursor:pointer;transition:border-color .15s,background .15s}.tip-modal__upload:hover{border-color:#7c3aed;background:#f5f3ff}.tip-modal__upload-icon{font-size:1.5rem}.tip-modal__preview{margin-top:1rem}.tip-modal__preview img{width:100%;max-height:16rem;object-fit:cover;border-radius:.875rem;border:1px solid #e5e7eb}.tip-modal__submit{background:#7c3aed;color:#fff;font-weight:700;border-radius:.5rem;padding:.55rem 1rem}.tip-modal__submit:hover{background:rgba(124,58,237,.9)}.tip-modal__submit:disabled{opacity:.6;cursor:not-allowed}
+</style>
+<script>window.WIKONOMI_GUIDE_SLUG = "{{ guide.slug }}";</script><script src="{% static 'js/guides.js' %}" defer></script>{% endblock %}
