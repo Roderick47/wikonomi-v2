@@ -31,7 +31,7 @@ class GuideForm(forms.ModelForm):
 
     class Meta:
         model = Guide
-        fields = ['title', 'organization_name', 'category_name', 'summary']
+        fields = ['title', 'photo', 'organization_name', 'category_name', 'summary']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': GUIDE_INPUT_CLASS,
@@ -42,7 +42,18 @@ class GuideForm(forms.ModelForm):
                 'class': GUIDE_TEXTAREA_CLASS,
                 'placeholder': 'Briefly explain what this guide helps people do.',
             }),
+            'photo': forms.FileInput(attrs={
+                'class': 'sr-only',
+                'accept': 'image/jpeg,image/png,image/webp',
+                'data-guide-photo-input': '',
+            }),
         }
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get('photo')
+        if photo and photo.size > 8 * 1024 * 1024:
+            raise forms.ValidationError('Guide photos must be 8 MB or smaller.')
+        return photo
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

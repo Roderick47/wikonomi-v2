@@ -2,7 +2,79 @@ document.addEventListener('DOMContentLoaded', function () {
     initGuideRating();
     initTips();
     initStepEditor();
+    initGuidePhotoPreview();
+    initGuideDraft();
 });
+
+function initGuidePhotoPreview() {
+    const input = document.querySelector('[data-guide-photo-input]');
+    const preview = document.querySelector('[data-guide-photo-preview]');
+    const empty = document.querySelector('[data-guide-photo-empty]');
+    const change = document.querySelector('[data-guide-photo-change]');
+    if (!input || !preview) return;
+    if (preview.getAttribute('src')) change?.classList.remove('hidden');
+    input.addEventListener('change', function () {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) { input.value = ''; return; }
+        preview.src = URL.createObjectURL(file);
+        preview.classList.remove('hidden');
+        empty?.classList.add('hidden');
+        change?.classList.remove('hidden');
+    });
+}
+
+function initGuideDraft() {
+    const form = document.getElementById('guide-editor-form');
+    const key = form?.dataset.guideDraftKey;
+    if (!form || !key) return;
+    const status = document.querySelector('[data-draft-status]');
+    let timer;
+    try {
+        const saved = JSON.parse(localStorage.getItem(key) || 'null');
+        if (saved) {
+            ['title', 'summary', 'organization_name', 'category_name', 'edit_summary'].forEach((name) => {
+                const field = form.elements[name];
+                if (field && saved[name] !== undefined) field.value = saved[name];
+            });
+            if (Array.isArray(saved.steps)) restoreDraftSteps(saved.steps);
+            if (status) status.textContent = 'Your saved draft has been restored.';
+        }
+    } catch (_) { /* Browsers may block local storage. The form still works normally. */ }
+
+    form.addEventListener('input', function () {
+        clearTimeout(timer);
+        if (status) status.textContent = 'Saving draft…';
+        timer = setTimeout(() => {
+            const draft = {};
+            ['title', 'summary', 'organization_name', 'category_name', 'edit_summary'].forEach((name) => {
+                const field = form.elements[name];
+                if (field) draft[name] = field.value;
+            });
+            draft.steps = Array.from(form.querySelectorAll('[data-step-row]')).map((row) => ({
+                title: row.querySelector('[data-step-title]')?.value || '',
+                instruction: row.querySelector('[data-step-instruction]')?.value || '',
+            }));
+            try { localStorage.setItem(key, JSON.stringify(draft)); if (status) status.textContent = 'Draft saved on this device.'; } catch (_) {}
+        }, 500);
+    });
+    form.addEventListener('submit', () => { try { localStorage.removeItem(key); } catch (_) {} });
+}
+
+function restoreDraftSteps(steps) {
+    const editor = document.querySelector('[data-steps-editor]');
+    const template = document.getElementById('step-row-template');
+    if (!editor || !template || !steps.length) return;
+    editor.innerHTML = '';
+    steps.forEach((step) => {
+        const fragment = template.content.cloneNode(true);
+        const row = fragment.querySelector('[data-step-row]');
+        row.querySelector('[data-step-title]').value = step.title || '';
+        row.querySelector('[data-step-instruction]').value = step.instruction || '';
+        editor.appendChild(fragment);
+    });
+    renumberSteps(editor);
+}
 
 function initGuideRating() {
     const widget = document.querySelector('[data-rating-widget][data-rating-target="guide"]');

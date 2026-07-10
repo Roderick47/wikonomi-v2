@@ -20,6 +20,7 @@
         </div>
     </div>
     {% if guide.summary %}<p class="text-gray-700 mb-4">{{ guide.summary }}</p>{% endif %}
+    {% if guide.photo %}<img src="{{ guide.photo.url }}" alt="{{ guide.title }}" class="mb-6 aspect-[16/8] w-full rounded-2xl border border-slate-200 object-cover">{% endif %}
     {% if guide.forked_from %}<p class="text-xs text-gray-400 mb-4">Forked from <a href="{% url 'guides:detail' guide.forked_from.slug %}" class="text-brand-purple hover:underline">{{ guide.forked_from.title }}</a></p>{% endif %}
 
     <div class="flex items-center justify-between py-3 border-y border-gray-200 mb-6" data-rating-widget data-rating-target="guide" data-object-id="{{ guide.id }}">

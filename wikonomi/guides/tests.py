@@ -106,6 +106,34 @@ class GuideBackendTests(TestCase):
         self.assertEqual(guide.organization.name, 'ICA PNG')
         self.assertEqual(guide.category.name, 'Government services')
 
+    def test_create_saves_main_photo(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('guides:create'), {
+            'title': 'Guide with a cover',
+            'summary': 'A searchable guide summary',
+            'steps_json': '[]',
+            'photo': tiny_png('cover.png'),
+        })
+        guide = Guide.objects.get(title='Guide with a cover')
+        self.assertRedirects(response, reverse('guides:detail', args=[guide.slug]))
+        self.assertTrue(guide.photo.name.startswith('guide_photos/'))
+
+    def test_home_lists_new_guides_and_searches_them(self):
+        response = self.client.get(reverse('home'))
+        self.assertContains(response, self.guide.title)
+
+        response = self.client.get(reverse('home'), {'q': 'business account'})
+        self.assertContains(response, self.guide.title)
+
+        response = self.client.get(reverse('home'), {'q': 'unrelated phrase'})
+        self.assertNotContains(response, self.guide.title)
+
+    def test_guide_list_searches_summary(self):
+        self.guide.summary = 'Renew an official document'
+        self.guide.save(update_fields=['summary'])
+        response = self.client.get(reverse('guides:list'), {'q': 'official document'})
+        self.assertContains(response, self.guide.title)
+
     def test_tip_can_include_photos(self):
         self.client.force_login(self.user)
         response = self.client.post(

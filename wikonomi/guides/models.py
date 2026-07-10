@@ -6,6 +6,14 @@ from django_resized import ResizedImageField
 class Guide(models.Model):
     title = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
+    photo = ResizedImageField(
+        upload_to='guide_photos/',
+        size=[1600, 1000],
+        quality=82,
+        force_format='JPEG',
+        null=True,
+        blank=True,
+    )
     organization = models.ForeignKey(
         'core.Business',
         null=True,

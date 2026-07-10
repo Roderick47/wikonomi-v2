@@ -2,7 +2,7 @@ import json
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.text import slugify
@@ -117,25 +117,34 @@ def _steps_for_version(version):
 
 def guide_list(request):
     guides = _guide_queryset()
+    query = request.GET.get('q', '').strip()
     organization_id = request.GET.get('organization')
     category_id = request.GET.get('category')
     if organization_id:
         guides = guides.filter(organization_id=organization_id)
     if category_id:
         guides = guides.filter(category_id=category_id)
+    if query:
+        guides = guides.filter(
+            Q(title__icontains=query)
+            | Q(summary__icontains=query)
+            | Q(organization__name__icontains=query)
+            | Q(category__name__icontains=query)
+        ).distinct()
     return render(request, 'guides/guide_list.html', {
         'guides': guides,
         'organizations': Business.objects.order_by('name'),
         'categories': BusinessCategory.objects.order_by('order', 'name'),
         'selected_organization': organization_id or '',
         'selected_category': category_id or '',
+        'search_query': query,
     })
 
 
 @login_required
 def guide_create(request):
     if request.method == 'POST':
-        form = GuideForm(request.POST)
+        form = GuideForm(request.POST, request.FILES)
         if form.is_valid():
             guide = form.save(commit=False)
             guide.organization = _business_from_name(form.cleaned_data.get('organization_name'), request.user)
@@ -177,7 +186,7 @@ def guide_edit(request, slug):
         post_data.setdefault('summary', guide.summary)
         post_data.setdefault('organization_name', guide.organization.name if guide.organization else '')
         post_data.setdefault('category_name', guide.category.name if guide.category else '')
-    form = GuideForm(post_data, instance=guide)
+    form = GuideForm(post_data, request.FILES or None, instance=guide)
     if request.method == 'POST':
         if not form.is_valid():
             return render(request, 'guides/edit.html', _guide_form_context(form, guide=guide, steps=_steps_for_version(guide.current_version)))
@@ -187,7 +196,7 @@ def guide_edit(request, slug):
             guide = form.save(commit=False)
             guide.organization = _business_from_name(form.cleaned_data.get('organization_name'), request.user)
             guide.category = _category_from_name(form.cleaned_data.get('category_name'))
-            guide.save(update_fields=['title', 'organization', 'category', 'summary'])
+            guide.save(update_fields=['title', 'photo', 'organization', 'category', 'summary'])
             version = GuideVersion.objects.create(
                 guide=guide,
                 edited_by=request.user,
@@ -230,6 +239,7 @@ def guide_fork(request, slug):
                 guide = Guide.objects.create(
                     title=source.title,
                     slug=_unique_slug(source.title),
+                    photo=source.photo,
                     organization=form.cleaned_data['organization'],
                     category=source.category,
                     summary=source.summary,

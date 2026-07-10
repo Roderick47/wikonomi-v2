@@ -1,0 +1,50 @@
+{% if form.non_field_errors %}<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{{ form.non_field_errors }}</div>{% endif %}
+
+<section class="guide-form-card">
+    <span class="guide-form-number">1</span>
+    <div class="min-w-0 flex-1">
+        <label for="{{ form.title.id_for_label }}" class="guide-form-label">What is this guide about? <span aria-hidden="true">*</span></label>
+        <p class="guide-form-help">Use a clear title that begins with an action, such as “How to apply for a PNG passport”.</p>
+        <div class="mt-4">{{ form.title }}</div>{{ form.title.errors }}
+    </div>
+</section>
+
+<section class="guide-form-card">
+    <span class="guide-form-number">2</span>
+    <div class="min-w-0 flex-1">
+        <label for="{{ form.photo.id_for_label }}" class="guide-form-label">Add a main guide photo</label>
+        <p class="guide-form-help">This cover appears on the homepage, in search, and on the guides page. Landscape photos work best.</p>
+        <label for="{{ form.photo.id_for_label }}" class="guide-photo-picker">
+            {{ form.photo }}
+            <img src="{% if guide.photo %}{{ guide.photo.url }}{% endif %}" alt="Guide photo preview" class="{% if not guide.photo %}hidden {% endif %}h-full w-full object-cover" data-guide-photo-preview>
+            <span class="{% if guide.photo %}hidden {% endif %}flex flex-col items-center gap-2 text-center" data-guide-photo-empty>
+                <span class="flex h-11 w-11 items-center justify-center rounded-full bg-brand-purple/10 text-xl">📷</span>
+                <span class="font-semibold text-brand-purple">Choose a photo</span>
+                <span class="text-xs text-slate-500">JPG, PNG or WebP · up to 8 MB</span>
+            </span>
+            <span class="absolute bottom-3 right-3 hidden rounded-lg bg-white/95 px-3 py-1.5 text-xs font-bold text-brand-purple shadow" data-guide-photo-change>Change photo</span>
+        </label>
+        {{ form.photo.errors }}
+    </div>
+</section>
+
+<section class="guide-form-card">
+    <span class="guide-form-number">3</span>
+    <div class="min-w-0 flex-1">
+        <label for="{{ form.summary.id_for_label }}" class="guide-form-label">Give people a quick overview</label>
+        <p class="guide-form-help">Explain what they will achieve and anything important they should know first.</p>
+        <div class="mt-4">{{ form.summary }}</div>{{ form.summary.errors }}
+    </div>
+</section>
+
+<section class="guide-form-card">
+    <span class="guide-form-number">4</span>
+    <div class="min-w-0 flex-1">
+        <h2 class="guide-form-label">Who is this guide connected to?</h2>
+        <p class="guide-form-help">Both fields are optional and help people discover the guide.</p>
+        <div class="mt-5 grid gap-5 sm:grid-cols-2">
+            <div><label for="organization_search" class="text-sm font-semibold text-slate-700">Business or organization</label><div class="mt-2">{{ form.organization_name }}</div><datalist id="organization_list">{% for business in businesses %}<option value="{{ business.name }}"></option>{% endfor %}</datalist>{{ form.organization_name.errors }}</div>
+            <div><label for="category_search" class="text-sm font-semibold text-slate-700">Category</label><div class="mt-2">{{ form.category_name }}</div><datalist id="category_list">{% for category in categories %}<option value="{{ category.name }}"></option>{% endfor %}</datalist>{{ form.category_name.errors }}</div>
+        </div>
+    </div>
+</section>

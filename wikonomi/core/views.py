@@ -478,6 +478,8 @@ def _get_business_queryset(request):
     )
 
 def home(request):
+    from guides.models import Guide
+
     query = request.GET.get('q', '').strip()
     sort = request.GET.get('sort', 'recent')
     user_lat = request.GET.get('lat')
@@ -495,6 +497,16 @@ def home(request):
     businesses = []
     if query:
         businesses = _get_business_queryset(request)[:10]  # Limit to 10 businesses
+
+    guides = Guide.objects.select_related('organization', 'category').order_by('-created_at')
+    if query:
+        guides = guides.filter(
+            Q(title__icontains=query)
+            | Q(summary__icontains=query)
+            | Q(organization__name__icontains=query)
+            | Q(category__name__icontains=query)
+        ).distinct()
+    guides = guides[:6]
     
     # Get cheapest recent fuel prices
     fuel_keywords = ['petrol', 'diesel', 'zoom']
@@ -519,6 +531,7 @@ def home(request):
         'current_sort': sort,
         'search_query': query,
         'fuel_summary': fuel_summary,
+        'guides': guides,
     })
 
 def about_view(request):
