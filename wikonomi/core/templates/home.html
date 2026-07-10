@@ -229,7 +229,7 @@
 
                 </svg>
 
-                <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search for products, brands, or supermarkets…"
+                <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search prices, businesses, or guides…"
 
                     class="block w-full rounded-xl border border-slate-200 bg-white py-4 pl-12 pr-28 text-base sm:text-lg shadow-sm focus:ring-2 focus:ring-brand-purple/30 focus:border-brand-blue">
 
@@ -437,6 +437,16 @@
 
 
 
+            {% if guides %}
+            <section class="mb-10">
+                <div class="mb-4 flex items-center justify-between">
+                    <div><h2 class="text-xl font-bold text-slate-900">{% if request.GET.q %}Guides{% else %}New guides{% endif %}</h2><p class="mt-1 text-sm text-slate-500">Practical, community-written instructions</p></div>
+                    <a href="{% url 'guides:list' %}{% if request.GET.q %}?q={{ request.GET.q|urlencode }}{% endif %}" class="text-sm font-bold text-brand-purple hover:underline">View all →</a>
+                </div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">{% for guide in guides %}{% include "guides/_guide_card.html" with guide=guide %}{% endfor %}</div>
+            </section>
+            {% endif %}
+
             <header class="mb-8 pt-2">
 
                 <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">
@@ -542,7 +552,7 @@
 
                     {% if request.GET.q %}
 
-                        <h3 class="text-lg font-bold text-gray-900">No results for &ldquo;{{ request.GET.q }}&rdquo;</h3>
+                        {% if not guides and not businesses %}<h3 class="text-lg font-bold text-gray-900">No results for &ldquo;{{ request.GET.q }}&rdquo;</h3>{% else %}<h3 class="text-lg font-bold text-gray-900">No matching price reports</h3>{% endif %}
                         <p class="mt-2">Try another search, or add what you were looking for.</p>
                         <div class="mt-4 flex flex-wrap justify-center gap-2">
                             <a href="{% url 'add_price' %}?product_name={{ request.GET.q|urlencode }}" class="inline-flex rounded-full bg-brand-purple px-4 py-2 text-sm font-semibold text-white hover:bg-brand-purple/90">Add product price</a>
