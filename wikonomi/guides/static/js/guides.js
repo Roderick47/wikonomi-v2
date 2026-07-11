@@ -295,17 +295,18 @@ function initGuideActions() {
     if (!root) return;
     const toggle = root.querySelector('[data-guide-action-toggle]');
     const menu = root.querySelector('[data-guide-action-menu]');
-    const closeMenu = () => { menu.classList.add('hidden'); toggle.setAttribute('aria-expanded', 'false'); toggle.textContent = '+'; };
-    toggle.addEventListener('click', (event) => { event.stopPropagation(); const opening = menu.classList.contains('hidden'); menu.classList.toggle('hidden', !opening); toggle.setAttribute('aria-expanded', String(opening)); toggle.textContent = opening ? '×' : '+'; });
+    const ratingTray = root.querySelector('[data-guide-rating-tray]');
+    const closeMenu = () => { menu.classList.remove('is-open'); ratingTray?.classList.remove('is-open'); toggle.setAttribute('aria-expanded', 'false'); toggle.textContent = '＋'; };
+    toggle.addEventListener('click', (event) => { event.stopPropagation(); const opening = !menu.classList.contains('is-open'); menu.classList.toggle('is-open', opening); if (!opening) ratingTray?.classList.remove('is-open'); toggle.setAttribute('aria-expanded', String(opening)); toggle.textContent = opening ? '×' : '＋'; });
     document.addEventListener('click', (event) => { if (!root.contains(event.target)) closeMenu(); });
     document.addEventListener('click', (event) => {
         const rating = event.target.closest('[data-open-rating]');
         const fork = event.target.closest('[data-open-fork]');
         const share = event.target.closest('[data-share-guide]');
-        if (rating) openGuidePopover(document.querySelector('[data-rating-popover]'));
+        if (rating) ratingTray?.classList.toggle('is-open');
         if (fork) openGuidePopover(document.querySelector('[data-fork-popover]'));
         if (share) sharePriceReport(event, {title: share.dataset.title, text: 'Check out this Wikonomi guide.', url: window.location.href});
-        if (rating || fork || share) closeMenu();
+        if (fork || share) closeMenu();
         if (event.target.closest('[data-close-popover]')) closeGuidePopovers();
     });
     const forkForm = document.querySelector('[data-fork-form]');
@@ -326,7 +327,7 @@ function initGuideActions() {
 }
 
 function openGuidePopover(popover) { if (!popover) return; closeGuidePopovers(); popover.classList.remove('hidden'); popover.setAttribute('aria-hidden', 'false'); document.body.classList.add('overflow-hidden'); }
-function closeGuidePopovers() { document.querySelectorAll('[data-rating-popover], [data-fork-popover]').forEach((el) => { el.classList.add('hidden'); el.setAttribute('aria-hidden', 'true'); }); document.body.classList.remove('overflow-hidden'); }
+function closeGuidePopovers() { document.querySelectorAll('[data-fork-popover]').forEach((el) => { el.classList.add('hidden'); el.setAttribute('aria-hidden', 'true'); }); document.body.classList.remove('overflow-hidden'); }
 
 function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
