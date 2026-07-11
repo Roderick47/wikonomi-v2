@@ -57,11 +57,49 @@
         height: 420px;
         z-index: 10;
     }
-    .wk-price-hero-sticky { transition: border-radius 180ms ease, box-shadow 180ms ease, margin-bottom 180ms ease; }
-    .wk-price-hero-sticky .wk-price-hero-condensed { display: none; opacity: 0; transform: translateY(-0.25rem); transition: opacity 180ms ease, transform 180ms ease; }
-    .wk-price-hero-sticky.is-stuck .wk-price-hero-expanded { display: none; }
+    .wk-price-hero-sticky {
+        overflow: hidden;
+        transition: height 280ms cubic-bezier(0.4, 0, 0.2, 1), border-radius 220ms ease, box-shadow 220ms ease, margin-bottom 220ms ease;
+    }
+    .wk-price-hero-sticky .wk-price-hero-condensed {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-0.5rem);
+        visibility: hidden;
+        transition: opacity 180ms ease, transform 220ms ease, visibility 0s linear 220ms;
+    }
+    .wk-price-hero-sticky .wk-price-hero-expanded {
+        opacity: 1;
+        transform: translateY(0);
+        transition: opacity 180ms ease, transform 220ms ease, visibility 0s linear;
+    }
+    .wk-price-hero-sticky.is-stuck .wk-price-hero-expanded {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(0.5rem);
+        visibility: hidden;
+        transition-delay: 0s, 0s, 220ms;
+    }
     .wk-price-hero-sticky.is-stuck { margin-bottom: 1rem; border-radius: 0.75rem; box-shadow: 0 10px 30px rgb(15 23 42 / 0.10); }
-    .wk-price-hero-sticky.is-stuck .wk-price-hero-condensed { display: flex; opacity: 1; transform: translateY(0); }
+    .wk-price-hero-sticky.is-stuck .wk-price-hero-condensed {
+        position: relative;
+        inset: auto;
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+        visibility: visible;
+        transition-delay: 70ms, 70ms, 0s;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .wk-price-hero-sticky,
+        .wk-price-hero-sticky .wk-price-hero-condensed,
+        .wk-price-hero-sticky .wk-price-hero-expanded { transition-duration: 0.01ms; }
+    }
 </style>
 
 
@@ -543,7 +581,31 @@
             const observeSticky = () => {
                 if (stickyObserver) stickyObserver.disconnect();
                 stickyObserver = new IntersectionObserver(entries => {
-                    stickyHero.classList.toggle('is-stuck', !entries[0].isIntersecting);
+                    const shouldStick = !entries[0].isIntersecting;
+                    if (stickyHero.classList.contains('is-stuck') === shouldStick) return;
+
+                    const startHeight = stickyHero.getBoundingClientRect().height;
+                    stickyHero.style.height = 'auto';
+                    stickyHero.classList.toggle('is-stuck', shouldStick);
+                    const endHeight = stickyHero.getBoundingClientRect().height;
+
+                    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                        stickyHero.style.height = '';
+                        return;
+                    }
+
+                    stickyHero.style.height = `${startHeight}px`;
+                    stickyHero.getBoundingClientRect();
+                    requestAnimationFrame(() => {
+                        stickyHero.style.height = `${endHeight}px`;
+                    });
+
+                    const clearAnimatedHeight = event => {
+                        if (event.target !== stickyHero || event.propertyName !== 'height') return;
+                        stickyHero.style.height = '';
+                        stickyHero.removeEventListener('transitionend', clearAnimatedHeight);
+                    };
+                    stickyHero.addEventListener('transitionend', clearAnimatedHeight);
                 }, { rootMargin: `-${getNavbarHeightPx()}px 0px 0px 0px` });
                 stickyObserver.observe(stickySentinel);
             };
