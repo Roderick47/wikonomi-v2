@@ -104,6 +104,7 @@ class StepTip(models.Model):
     body = models.CharField(max_length=300)
     submitted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     upvotes = models.PositiveIntegerField(default=0)
+    downvotes = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -111,6 +112,24 @@ class StepTip(models.Model):
 
     def __str__(self):
         return self.body
+
+    @property
+    def score(self):
+        return self.upvotes - self.downvotes
+
+
+class StepTipVote(models.Model):
+    tip = models.ForeignKey(StepTip, on_delete=models.CASCADE, related_name='votes')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='guide_tip_votes')
+    value = models.SmallIntegerField(choices=[(1, 'Upvote'), (-1, 'Downvote')])
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['tip', 'user'], name='unique_tip_vote_per_user')]
+
+    def __str__(self):
+        return f'{self.user} voted {self.value} on tip {self.tip_id}'
 
 
 class GuideRating(models.Model):

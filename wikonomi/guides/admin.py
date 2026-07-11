@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Guide, GuideRating, GuideVersion, Step, StepTip
+from .models import Guide, GuideRating, GuideVersion, Step, StepTip, StepTipVote
 
 
 class StepInline(admin.TabularInline):
@@ -26,8 +26,11 @@ class GuideAdmin(admin.ModelAdmin):
 
 @admin.register(StepTip)
 class StepTipAdmin(admin.ModelAdmin):
-    list_display = ('body', 'step', 'submitted_by', 'upvotes', 'created_at')
+    list_display = ('body', 'step', 'submitted_by', 'upvotes', 'downvotes', 'created_at')
     search_fields = ('body',)
+
+
+admin.site.register(StepTipVote)
 
 
 @admin.register(GuideRating)

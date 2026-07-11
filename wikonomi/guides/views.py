@@ -6,12 +6,12 @@ from django.db.models import F, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.text import slugify
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from categories.models import BusinessCategory
 from core.models import Business
 from .forms import GuideForkForm, GuideForm, StepTipForm
-from .models import Guide, GuideRating, GuideVersion, Step, StepPhoto, StepTip, StepTipPhoto
+from .models import Guide, GuideRating, GuideVersion, Step, StepPhoto, StepTip, StepTipPhoto, StepTipVote
 
 
 
@@ -115,6 +115,27 @@ def _steps_for_version(version):
     return version.steps.prefetch_related('photos', 'tips__photos').order_by('position')
 
 
+def _ranked_tips(step):
+    return StepTip.objects.filter(step=step).select_related('submitted_by').prefetch_related('photos').order_by(
+        (F('upvotes') - F('downvotes')).desc(), '-created_at'
+    )
+
+
+def _tip_payload(tip, user=None):
+    user_vote = 0
+    if user and user.is_authenticated:
+        user_vote = StepTipVote.objects.filter(tip=tip, user=user).values_list('value', flat=True).first() or 0
+    return {
+        'id': tip.id,
+        'body': tip.body,
+        'username': tip.submitted_by.username if tip.submitted_by else 'Deleted user',
+        'score': tip.score,
+        'user_vote': user_vote,
+        'can_edit': bool(user and user.is_authenticated and tip.submitted_by_id == user.id),
+        'photos': [{'url': photo.image.url} for photo in tip.photos.all()],
+    }
+
+
 def guide_list(request):
     guides = _guide_queryset()
     query = request.GET.get('q', '').strip()
@@ -164,7 +185,15 @@ def guide_create(request):
 
 def guide_detail(request, slug):
     guide = get_object_or_404(_guide_queryset(), slug=slug)
-    steps = _steps_for_version(guide.current_version)
+    steps = list(_steps_for_version(guide.current_version))
+    for step in steps:
+        ranked = list(_ranked_tips(step)[:5])
+        step.top_tips = ranked
+        step.tip_count = StepTip.objects.filter(step=step).count()
+        for tip in ranked:
+            tip.viewer_vote = 0
+            if request.user.is_authenticated:
+                tip.viewer_vote = StepTipVote.objects.filter(tip=tip, user=request.user).values_list('value', flat=True).first() or 0
     user_rating = None
     if request.user.is_authenticated:
         user_rating = GuideRating.objects.filter(guide=guide, user=request.user).first()
@@ -173,6 +202,7 @@ def guide_detail(request, slug):
         'steps': steps,
         'user_rating': user_rating,
         'can_edit': request.user.is_authenticated,
+        'businesses': Business.objects.order_by('name'),
     })
 
 
@@ -236,11 +266,12 @@ def guide_fork(request, slug):
         form = GuideForkForm(request.POST)
         if form.is_valid():
             with transaction.atomic():
+                organization = _business_from_name(form.cleaned_data['organization_name'], request.user)
                 guide = Guide.objects.create(
                     title=source.title,
                     slug=_unique_slug(source.title),
                     photo=source.photo,
-                    organization=form.cleaned_data['organization'],
+                    organization=organization,
                     category=source.category,
                     summary=source.summary,
                     forked_from=source,
@@ -253,10 +284,14 @@ def guide_fork(request, slug):
                         StepPhoto.objects.create(step=new_step, image=photo.image, caption=photo.caption, uploaded_by=request.user)
                 guide.current_version = version
                 guide.save(update_fields=['current_version'])
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'ok': True, 'url': guide.get_absolute_url() if hasattr(guide, 'get_absolute_url') else f'/guides/{guide.slug}/'})
             return redirect('guides:detail', slug=guide.slug)
     else:
-        form = GuideForkForm(initial={'organization': source.organization_id})
-    return render(request, 'guides/fork_select_org.html', {'form': form, 'guide': source})
+        form = GuideForkForm(initial={'organization_name': source.organization.name if source.organization else ''})
+    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'errors': form.errors.get_json_data()}, status=400)
+    return render(request, 'guides/fork_select_org.html', {'form': form, 'guide': source, 'businesses': Business.objects.order_by('name')})
 
 
 @require_POST
@@ -316,7 +351,41 @@ def tip_create(request, slug, step_id):
     for image in uploaded_files:
         photo = StepTipPhoto.objects.create(tip=tip, image=image, uploaded_by=request.user)
         photos.append({'url': photo.image.url})
-    return JsonResponse({'id': tip.id, 'body': tip.body, 'text': tip.body, 'image_url': photos[0]['url'] if photos else '', 'upvotes': 0, 'photos': photos})
+    payload = _tip_payload(tip, request.user)
+    payload['image_url'] = photos[0]['url'] if photos else ''
+    return JsonResponse(payload)
+
+
+@require_GET
+def tip_list(request, slug, step_id):
+    guide = get_object_or_404(Guide, slug=slug)
+    step = get_object_or_404(Step, id=step_id, version=guide.current_version)
+    try:
+        offset = max(0, int(request.GET.get('offset', 5)))
+    except (TypeError, ValueError):
+        offset = 5
+    tips = list(_ranked_tips(step)[offset:offset + 50])
+    total = StepTip.objects.filter(step=step).count()
+    return JsonResponse({'tips': [_tip_payload(tip, request.user) for tip in tips], 'total': total})
+
+
+@require_POST
+def tip_edit(request, slug, tip_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    guide = get_object_or_404(Guide, slug=slug)
+    tip = get_object_or_404(StepTip, id=tip_id, step__version__guide=guide)
+    if tip.submitted_by_id != request.user.id:
+        return JsonResponse({'error': 'You can only edit your own tips'}, status=403)
+    data = _json_body(request)
+    if data is None:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    form = StepTipForm({'body': data.get('body', '')})
+    if not form.is_valid():
+        return JsonResponse({'errors': form.errors.get_json_data()}, status=400)
+    tip.body = form.cleaned_data['body']
+    tip.save(update_fields=['body'])
+    return JsonResponse(_tip_payload(tip, request.user))
 
 
 @require_POST
@@ -325,6 +394,40 @@ def tip_vote(request, slug, tip_id):
         return JsonResponse({'error': 'Authentication required'}, status=401)
     guide = get_object_or_404(Guide, slug=slug)
     tip = get_object_or_404(StepTip, id=tip_id, step__version__guide=guide)
-    StepTip.objects.filter(id=tip.id).update(upvotes=F('upvotes') + 1)
-    tip.refresh_from_db(fields=['upvotes'])
-    return JsonResponse({'upvotes': tip.upvotes})
+    data = _json_body(request)
+    try:
+        value = int((data or {}).get('value'))
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'Vote must be 1 or -1'}, status=400)
+    if value not in (-1, 1):
+        return JsonResponse({'error': 'Vote must be 1 or -1'}, status=400)
+
+    with transaction.atomic():
+        tip = StepTip.objects.select_for_update().get(pk=tip.pk)
+        existing = StepTipVote.objects.filter(tip=tip, user=request.user).first()
+        if existing and existing.value == value:
+            if value == 1:
+                tip.upvotes = max(0, tip.upvotes - 1)
+            else:
+                tip.downvotes = max(0, tip.downvotes - 1)
+            existing.delete()
+            active_vote = 0
+        elif existing:
+            if existing.value == 1:
+                tip.upvotes = max(0, tip.upvotes - 1)
+                tip.downvotes += 1
+            else:
+                tip.downvotes = max(0, tip.downvotes - 1)
+                tip.upvotes += 1
+            existing.value = value
+            existing.save(update_fields=['value', 'updated_at'])
+            active_vote = value
+        else:
+            StepTipVote.objects.create(tip=tip, user=request.user, value=value)
+            if value == 1:
+                tip.upvotes += 1
+            else:
+                tip.downvotes += 1
+            active_vote = value
+        tip.save(update_fields=['upvotes', 'downvotes'])
+    return JsonResponse({'score': tip.score, 'user_vote': active_vote})
