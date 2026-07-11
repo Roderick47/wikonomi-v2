@@ -14,5 +14,7 @@ urlpatterns = [
     path('<slug:slug>/history/', views.guide_history, name='history'),
     path('<slug:slug>/history/<int:version_id>/', views.guide_version_detail, name='version_detail'),
     path('<slug:slug>/steps/<int:step_id>/tips/', views.tip_create, name='tip_create'),
+    path('<slug:slug>/steps/<int:step_id>/tips/list/', views.tip_list, name='tip_list'),
+    path('<slug:slug>/steps/tips/<int:tip_id>/edit/', views.tip_edit, name='tip_edit'),
     path('<slug:slug>/steps/tips/<int:tip_id>/vote/', views.tip_vote, name='tip_vote'),
 ]

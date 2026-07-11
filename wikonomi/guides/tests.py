@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from core.models import Business
-from .models import Guide, GuideRating, GuideVersion, Step, StepPhoto, StepTip, StepTipPhoto
+from .models import Guide, GuideRating, GuideVersion, Step, StepPhoto, StepTip, StepTipPhoto, StepTipVote
 from .templatetags.guide_markup import guide_markdown
 
 
@@ -77,7 +77,7 @@ class GuideBackendTests(TestCase):
         StepTip.objects.create(step=self.step, body='Local tip', submitted_by=self.user)
         new_business = Business.objects.create(name='BSP Waigani', slug='bsp-waigani')
         self.client.force_login(self.user)
-        response = self.client.post(reverse('guides:fork', args=[self.guide.slug]), {'organization': new_business.id})
+        response = self.client.post(reverse('guides:fork', args=[self.guide.slug]), {'organization_name': new_business.name})
         fork = Guide.objects.get(forked_from=self.guide)
         self.assertRedirects(response, reverse('guides:detail', args=[fork.slug]))
         self.assertEqual(fork.organization, new_business)
@@ -85,6 +85,57 @@ class GuideBackendTests(TestCase):
         self.assertEqual(fork.current_version.steps.first().title, self.step.title)
         self.assertEqual(fork.current_version.steps.first().instruction, self.step.instruction)
         self.assertEqual(StepTip.objects.filter(step__version=fork.current_version).count(), 0)
+
+    def test_fork_creates_new_business_from_typed_name(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('guides:fork', args=[self.guide.slug]),
+            {'organization_name': 'New Government Office'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(response.status_code, 200)
+        fork = Guide.objects.get(forked_from=self.guide)
+        self.assertEqual(fork.organization.name, 'New Government Office')
+        self.assertTrue(response.json()['url'].endswith(f'/{fork.slug}/'))
+
+    def test_tip_votes_toggle_and_switch_direction(self):
+        tip = StepTip.objects.create(step=self.step, body='Bring copies', submitted_by=self.user)
+        voter = get_user_model().objects.create_user(username='voter', password='pass')
+        self.client.force_login(voter)
+        url = reverse('guides:tip_vote', args=[self.guide.slug, tip.id])
+
+        response = self.client.post(url, json.dumps({'value': 1}), content_type='application/json')
+        self.assertEqual(response.json(), {'score': 1, 'user_vote': 1})
+        response = self.client.post(url, json.dumps({'value': -1}), content_type='application/json')
+        self.assertEqual(response.json(), {'score': -1, 'user_vote': -1})
+        response = self.client.post(url, json.dumps({'value': -1}), content_type='application/json')
+        self.assertEqual(response.json(), {'score': 0, 'user_vote': 0})
+        self.assertFalse(StepTipVote.objects.filter(tip=tip, user=voter).exists())
+
+    def test_only_tip_author_can_edit_tip(self):
+        tip = StepTip.objects.create(step=self.step, body='Old advice', submitted_by=self.user)
+        self.client.force_login(self.user)
+        url = reverse('guides:tip_edit', args=[self.guide.slug, tip.id])
+        response = self.client.post(url, json.dumps({'body': 'Updated advice'}), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        tip.refresh_from_db()
+        self.assertEqual(tip.body, 'Updated advice')
+
+        other = get_user_model().objects.create_user(username='other', password='pass')
+        self.client.force_login(other)
+        response = self.client.post(url, json.dumps({'body': 'Hijacked'}), content_type='application/json')
+        self.assertEqual(response.status_code, 403)
+
+    def test_detail_shows_five_tips_and_loads_rest_ranked(self):
+        for number in range(7):
+            StepTip.objects.create(step=self.step, body=f'Tip {number}', submitted_by=self.user, upvotes=number)
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+        self.assertContains(response, 'data-tip-id=', count=5)
+        self.assertContains(response, 'Show 2 more tips')
+
+        response = self.client.get(reverse('guides:tip_list', args=[self.guide.slug, self.step.id]), {'offset': 5})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([tip['body'] for tip in response.json()['tips']], ['Tip 1', 'Tip 0'])
 
     def test_create_accepts_inline_steps_with_titles(self):
         self.client.force_login(self.user)

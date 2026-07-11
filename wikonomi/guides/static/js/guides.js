@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initStepEditor();
     initGuidePhotoPreview();
     initGuideDraft();
+    initGuideActions();
 });
 
 function initGuidePhotoPreview() {
@@ -77,7 +78,7 @@ function restoreDraftSteps(steps) {
 }
 
 function initGuideRating() {
-    const widget = document.querySelector('[data-rating-widget][data-rating-target="guide"]');
+    const widget = document.querySelector('[data-rating-widget][data-rating-target="guide"] [data-rating-value]')?.closest('[data-rating-widget]');
     if (!widget) return;
     widget.addEventListener('click', async function (event) {
         const button = event.target.closest('[data-rating-value]');
@@ -95,14 +96,14 @@ function initGuideRating() {
             }
             if (!response.ok) throw new Error('Rating request failed');
             const data = await response.json();
-            widget.querySelectorAll('[data-rating-value]').forEach((star) => {
+            document.querySelectorAll('[data-rating-widget][data-rating-target="guide"] [data-rating-value]').forEach((star) => {
                 const filled = Number(star.dataset.ratingValue) <= Number(data.score);
                 star.classList.toggle('text-amber-400', filled);
                 star.classList.toggle('text-gray-300', !filled);
                 star.setAttribute('aria-pressed', filled ? 'true' : 'false');
             });
-            widget.querySelector('[data-rating-score]').textContent = Number(data.average_score || 0).toFixed(1);
-            widget.querySelector('[data-rating-count]').textContent = `(${data.rating_count} ratings)`;
+            document.querySelectorAll('[data-rating-score]').forEach((el) => { el.textContent = Number(data.average_score || 0).toFixed(1); });
+            document.querySelectorAll('[data-rating-count]').forEach((el) => { el.textContent = `(${data.rating_count} ratings)`; });
             showToast('Rating saved', 'success');
         } catch (err) { console.error(err); showToast('Could not save your rating', 'error'); }
     });
@@ -154,12 +155,16 @@ function initTips() {
         error.classList.remove('hidden');
     }
 
-    document.addEventListener('click', function (event) {
+    document.addEventListener('click', async function (event) {
         const toggle = event.target.closest('[data-add-tip]');
         if (toggle) openModal(toggle.dataset.stepId);
         if (event.target.closest('[data-tip-modal-close]')) closeModal();
         const voteBtn = event.target.closest('[data-tip-vote]');
         if (voteBtn) voteTip(slug, voteBtn);
+        const editBtn = event.target.closest('[data-edit-tip]');
+        if (editBtn) editTip(slug, editBtn.closest('[data-tip-id]'));
+        const expandBtn = event.target.closest('[data-expand-tips]');
+        if (expandBtn) expandTips(slug, expandBtn);
     });
 
     document.addEventListener('keydown', function (event) {
@@ -225,23 +230,103 @@ function firstFormError(errors) {
 
 
 function buildTipElement(tip) {
-    const div = document.createElement('div');
-    div.className = 'inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 text-xs rounded px-2.5 py-1.5 mr-1.5 mb-1.5';
+    const div = document.createElement('article');
+    div.className = 'tip-card';
     div.dataset.tipId = tip.id;
     const photos = (tip.photos || []).map((photo) => `<a href="${escapeHtml(photo.url)}" target="_blank"><img src="${escapeHtml(photo.url)}" alt="Tip photo" class="h-10 w-10 rounded object-cover border border-amber-200"></a>`).join('');
-    div.innerHTML = `<span>💡</span><span>${escapeHtml(tip.body)}</span>${photos}<button type="button" data-tip-vote data-tip-id="${tip.id}" class="flex items-center gap-0.5 text-amber-600 hover:text-amber-900 font-semibold">↑ <span data-tip-votes>0</span></button>`;
+    const edit = tip.can_edit ? '<button type="button" data-edit-tip class="font-bold text-brand-purple hover:underline">Edit</button>' : '';
+    div.innerHTML = `<div class="tip-votes"><button type="button" data-tip-vote data-vote-value="1" aria-label="Upvote tip" class="tip-vote-button ${tip.user_vote === 1 ? 'is-active-up' : ''}">▲</button><span data-tip-score>${Number(tip.score || 0)}</span><button type="button" data-tip-vote data-vote-value="-1" aria-label="Downvote tip" class="tip-vote-button ${tip.user_vote === -1 ? 'is-active-down' : ''}">▼</button></div><div class="min-w-0 flex-1"><p class="text-sm leading-5 text-slate-700" data-tip-body-text>${escapeHtml(tip.body)}</p>${photos ? `<div class="mt-2 flex gap-2">${photos}</div>` : ''}<div class="mt-2 flex items-center gap-3 text-xs text-slate-400"><span>Tip by <strong class="text-slate-600">@${escapeHtml(tip.username || 'deleted-user')}</strong></span>${edit}</div></div>`;
     return div;
 }
 
 async function voteTip(slug, button) {
     try {
-        const response = await fetch(`/guides/${slug}/steps/tips/${button.dataset.tipId}/vote/`, {method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'}});
-        if (response.status === 401 || response.status === 403) { showToast('Please log in to vote on tips', 'info'); return; }
+        const card = button.closest('[data-tip-id]');
+        const response = await fetch(`/guides/${slug}/steps/tips/${card.dataset.tipId}/vote/`, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'}, body: JSON.stringify({value: Number(button.dataset.voteValue)})});
+        if (response.status === 401 || response.status === 403) { window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`; return; }
         if (!response.ok) throw new Error('Vote failed');
         const data = await response.json();
-        button.querySelector('[data-tip-votes]').textContent = data.upvotes;
+        card.querySelector('[data-tip-score]').textContent = data.score;
+        card.querySelectorAll('[data-tip-vote]').forEach((btn) => {
+            const value = Number(btn.dataset.voteValue);
+            btn.classList.toggle('is-active-up', data.user_vote === 1 && value === 1);
+            btn.classList.toggle('is-active-down', data.user_vote === -1 && value === -1);
+        });
+        sortTipCards(card.parentElement);
     } catch (err) { console.error(err); showToast('Could not register your vote', 'error'); }
 }
+
+async function editTip(slug, card) {
+    const bodyElement = card.querySelector('[data-tip-body-text]');
+    const nextBody = window.prompt('Edit your tip', bodyElement.textContent.trim());
+    if (nextBody === null || !nextBody.trim()) return;
+    try {
+        const response = await fetch(`/guides/${slug}/steps/tips/${card.dataset.tipId}/edit/`, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'}, body: JSON.stringify({body: nextBody.trim()})});
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || firstFormError(data.errors) || 'Could not edit tip');
+        bodyElement.textContent = data.body;
+        showToast('Tip updated', 'success');
+    } catch (err) { showToast(err.message, 'error'); }
+}
+
+async function expandTips(slug, button) {
+    button.disabled = true;
+    const label = button.querySelector('span');
+    if (label) label.textContent = 'Loading tips…';
+    try {
+        const response = await fetch(`/guides/${slug}/steps/${button.dataset.stepId}/tips/list/?offset=5`, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+        if (!response.ok) throw new Error('Could not load tips');
+        const data = await response.json();
+        const list = document.querySelector(`[data-step-tips][data-step-id="${button.dataset.stepId}"]`);
+        data.tips.forEach((tip) => list.appendChild(buildTipElement(tip)));
+        button.remove();
+    } catch (err) { button.disabled = false; if (label) label.textContent = 'Try loading tips again'; showToast(err.message, 'error'); }
+}
+
+function sortTipCards(list) {
+    if (!list) return;
+    [...list.querySelectorAll(':scope > [data-tip-id]')]
+        .sort((a, b) => Number(b.querySelector('[data-tip-score]').textContent) - Number(a.querySelector('[data-tip-score]').textContent))
+        .forEach((card) => list.appendChild(card));
+}
+
+function initGuideActions() {
+    const root = document.querySelector('[data-guide-actions]');
+    if (!root) return;
+    const toggle = root.querySelector('[data-guide-action-toggle]');
+    const menu = root.querySelector('[data-guide-action-menu]');
+    const closeMenu = () => { menu.classList.add('hidden'); toggle.setAttribute('aria-expanded', 'false'); toggle.textContent = '+'; };
+    toggle.addEventListener('click', (event) => { event.stopPropagation(); const opening = menu.classList.contains('hidden'); menu.classList.toggle('hidden', !opening); toggle.setAttribute('aria-expanded', String(opening)); toggle.textContent = opening ? '×' : '+'; });
+    document.addEventListener('click', (event) => { if (!root.contains(event.target)) closeMenu(); });
+    document.addEventListener('click', (event) => {
+        const rating = event.target.closest('[data-open-rating]');
+        const fork = event.target.closest('[data-open-fork]');
+        const share = event.target.closest('[data-share-guide]');
+        if (rating) openGuidePopover(document.querySelector('[data-rating-popover]'));
+        if (fork) openGuidePopover(document.querySelector('[data-fork-popover]'));
+        if (share) sharePriceReport(event, {title: share.dataset.title, text: 'Check out this Wikonomi guide.', url: window.location.href});
+        if (rating || fork || share) closeMenu();
+        if (event.target.closest('[data-close-popover]')) closeGuidePopovers();
+    });
+    const forkForm = document.querySelector('[data-fork-form]');
+    forkForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const submit = forkForm.querySelector('[data-fork-submit]');
+        const error = forkForm.querySelector('[data-fork-error]');
+        submit.disabled = true; submit.textContent = 'Copying…'; error.classList.add('hidden');
+        try {
+            const response = await fetch(forkForm.action, {method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'}, body: new FormData(forkForm)});
+            if (response.redirected && response.url.includes('/login/')) { window.location.href = response.url; return; }
+            const data = await response.json().catch(() => ({}));
+            if (response.status === 401 || response.status === 403) { window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`; return; }
+            if (!response.ok) throw new Error(firstFormError(data.errors) || data.error || 'Could not copy guide');
+            window.location.href = data.url;
+        } catch (err) { error.textContent = err.message; error.classList.remove('hidden'); submit.disabled = false; submit.textContent = 'Copy Guide'; }
+    });
+}
+
+function openGuidePopover(popover) { if (!popover) return; closeGuidePopovers(); popover.classList.remove('hidden'); popover.setAttribute('aria-hidden', 'false'); document.body.classList.add('overflow-hidden'); }
+function closeGuidePopovers() { document.querySelectorAll('[data-rating-popover], [data-fork-popover]').forEach((el) => { el.classList.add('hidden'); el.setAttribute('aria-hidden', 'true'); }); document.body.classList.remove('overflow-hidden'); }
 
 function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
@@ -252,6 +337,15 @@ function initStepEditor() {
     const deletedIds = [];
     ensureTrailingInsert(editor, template);
     renumberSteps(editor);
+    editor.querySelectorAll('[data-step-row]').forEach((row) => { row.draggable = false; });
+    editor.addEventListener('pointerdown', function (event) {
+        const handle = event.target.closest('[data-drag-handle]');
+        if (handle) handle.closest('[data-step-row]').draggable = true;
+    });
+    editor.addEventListener('pointerup', function (event) {
+        const row = event.target.closest('[data-step-row]');
+        if (row && !row.classList.contains('opacity-60')) row.draggable = false;
+    });
     editor.addEventListener('click', function (event) {
         const insertBtn = event.target.closest('[data-insert-after]');
         if (insertBtn) { insertStepAfter(editor, template, insertBtn); return; }
@@ -268,8 +362,7 @@ function initStepEditor() {
     });
     editor.addEventListener('dragstart', function (event) {
         const row = event.target.closest('[data-step-row]');
-        if (!row || !event.target.closest('[data-drag-handle]')) return;
-        row.draggable = true;
+        if (!row || !row.draggable) return;
         row.classList.add('opacity-60');
         event.dataTransfer.effectAllowed = 'move';
         event.dataTransfer.setData('text/plain', row.dataset.stepId || 'new-step');

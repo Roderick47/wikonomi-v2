@@ -64,10 +64,17 @@ class GuideForm(forms.ModelForm):
                 self.fields['category_name'].initial = self.instance.category.name
 
 
-class GuideForkForm(forms.ModelForm):
-    class Meta:
-        model = Guide
-        fields = ['organization']
+class GuideForkForm(forms.Form):
+    organization_name = forms.CharField(
+        label='Business or organization',
+        widget=forms.TextInput(attrs={
+            'id': 'fork_organization_search',
+            'list': 'fork_organization_list',
+            'class': GUIDE_INPUT_CLASS,
+            'placeholder': 'Start typing a business or organization...',
+            'autocomplete': 'off',
+        }),
+    )
 
 
 class StepTipForm(forms.ModelForm):
