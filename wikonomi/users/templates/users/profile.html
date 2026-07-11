@@ -1,87 +1,107 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block page_title %}Your profile — Wikonomi{% endblock %}
+
 {% block content %}
 {% static 'img/default-profile.svg' as default_profile_picture_url %}
-<div class="max-w-4xl mx-auto">
-    <div class="bg-white shadow rounded-lg">
-        <div class="px-4 py-5 sm:p-6">
-            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6">
-                <div class="flex items-center space-x-4 mb-4 sm:mb-0">
-                    <img src="{{ profile.profile_picture_url|default:default_profile_picture_url }}" alt="{{ user.username }}'s profile picture" class="h-20 w-20 rounded-full object-cover border-4 border-gray-200">
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900">Welcome, {{ user.first_name }}!</h1>
-                        <p class="text-sm text-gray-500">@{{ user.username }}</p>
+<div class="mx-auto max-w-6xl pb-12">
+    <div class="mb-7">
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-brand-purple">Your account</p>
+        <h1 class="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">Profile</h1>
+        <p class="mt-2 text-sm text-slate-500">Manage your Wikonomi account and quickly return to your activity.</p>
+    </div>
+
+    <section class="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div class="absolute inset-x-0 top-0 h-28 bg-gradient-to-r from-brand-purple via-brand-blue to-brand-green opacity-95"></div>
+        <div class="relative px-5 pb-6 pt-16 sm:px-8 sm:pb-8">
+            <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+                <div class="flex min-w-0 items-end gap-4">
+                    <div class="relative shrink-0">
+                        <img src="{{ profile.profile_picture_url|default:default_profile_picture_url }}" alt="{{ user.username }}'s profile picture" class="h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-md sm:h-28 sm:w-28">
+                        <a href="{% url 'edit_profile' %}" aria-label="Change profile picture" title="Change profile picture" class="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-brand-purple text-white shadow hover:bg-brand-purple/90">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h2l2-2h6l2 2h2a2 2 0 012 2v11a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        </a>
+                    </div>
+                    <div class="min-w-0 pb-1">
+                        <h2 class="truncate text-2xl font-extrabold text-slate-900 sm:text-3xl">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</h2>
+                        <p class="mt-1 truncate text-sm font-medium text-slate-500">@{{ user.username }}</p>
+                        <div class="mt-2 flex flex-wrap items-center gap-2">
+                            {% if profile.email_verified %}
+                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700"><svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Email verified</span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Email not verified</span>
+                            {% endif %}
+                            <span class="text-xs text-slate-400">Member since {{ user.date_joined|date:"M Y" }}</span>
+                        </div>
                     </div>
                 </div>
-                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                    {% if analytics_dashboard_url %}
-                    <a href="{% url analytics_dashboard_url %}" class="bg-brand-green hover:bg-brand-green/90 text-slate-900 font-semibold py-2 px-4 rounded text-center sm:text-left">
-                        Analytics Dashboard
-                    </a>
-                    {% endif %}
-                    <a href="{% url 'edit_profile' %}" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-medium py-2 px-4 rounded text-center sm:text-left">
-                        Edit Profile
-                    </a>
-                    <a href="{% url 'change_password' %}" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-center sm:text-left">
-                        Change Password
-                    </a>
-                </div>
-            </div>
-            
-            <div class="bg-gray-50 rounded-lg p-6">
-                <h2 class="text-lg font-medium text-gray-900 mb-4">Profile Information</h2>
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Username</p>
-                        <p class="text-sm text-gray-900">{{ user.username }}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Email</p>
-                        <p class="text-sm text-gray-900">{{ user.email }}</p>
-                        {% if profile.email_verified %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brand-green/20 text-brand-green/80">
-                                ✓ Verified
-                            </span>
-                        {% else %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                                ⚠ Not Verified
-                            </span>
-                            <br>
-                            <a href="{% url 'resend_verification' %}" class="text-brand-purple hover:text-brand-purple/80 text-xs">
-                                Resend verification email
-                            </a>
-                        {% endif %}
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Full Name</p>
-                        <p class="text-sm text-gray-900">{{ user.get_full_name }}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Date Joined</p>
-                        <p class="text-sm text-gray-900">{{ user.date_joined|date:"F d, Y" }}</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="mt-6 border-t pt-6">
-                <h3 class="text-lg font-medium text-red-600 mb-3">Danger Zone</h3>
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <p class="text-sm text-red-800 mb-3">
-                        <strong>Warning:</strong> Deleting your account is permanent and cannot be undone.
-                    </p>
-                    <a href="{% url 'delete_account' %}" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded text-sm">
-                        🗑️ Delete Account
-                    </a>
-                </div>
-            </div>
-            
-            <div class="mt-6 flex justify-between">
-                <a href="{% url 'logout' %}" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
-                    Log Out
+                <a href="{% url 'edit_profile' %}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-purple px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-brand-purple/90">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 13H9v-2.828l6.586-6.586z"/></svg>
+                    Edit profile
                 </a>
             </div>
         </div>
+    </section>
+
+    <div class="mt-6 grid gap-6 lg:grid-cols-3">
+        <div class="space-y-6 lg:col-span-2">
+            <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <div class="mb-5 flex items-center justify-between">
+                    <div><h2 class="text-lg font-bold text-slate-900">Your Wikonomi</h2><p class="mt-1 text-sm text-slate-500">Jump back into the things that matter to you.</p></div>
+                </div>
+                <div class="grid gap-3 sm:grid-cols-3">
+                    <a href="{% url 'my_prices' %}" class="profile-action-card group">
+                        <span class="profile-action-icon bg-brand-purple/10 text-brand-purple"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 10v2m8-6a8 8 0 11-16 0 8 8 0 0116 0z"/></svg></span>
+                        <span class="mt-3 font-bold text-slate-900 group-hover:text-brand-purple">My prices</span><span class="mt-1 text-xs leading-5 text-slate-500">View and manage prices you shared.</span><span class="mt-3 text-sm font-bold text-brand-purple">Open →</span>
+                    </a>
+                    <a href="{% url 'shopping_list' %}" class="profile-action-card group">
+                        <span class="profile-action-icon bg-brand-blue/10 text-brand-blue"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 14l2 2 4-4"/></svg></span>
+                        <span class="mt-3 font-bold text-slate-900 group-hover:text-brand-blue">Shopping lists</span><span class="mt-1 text-xs leading-5 text-slate-500">Keep track of products you need.</span><span class="mt-3 text-sm font-bold text-brand-blue">Open →</span>
+                    </a>
+                    <a href="{% url 'notifications' %}" class="profile-action-card group">
+                        <span class="profile-action-icon bg-brand-green/15 text-emerald-700"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg></span>
+                        <span class="mt-3 font-bold text-slate-900 group-hover:text-emerald-700">Notifications</span><span class="mt-1 text-xs leading-5 text-slate-500">See updates from the community.</span><span class="mt-3 text-sm font-bold text-emerald-700">Open →</span>
+                    </a>
+                </div>
+            </section>
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <div class="mb-5"><h2 class="text-lg font-bold text-slate-900">Account information</h2><p class="mt-1 text-sm text-slate-500">The details associated with your account.</p></div>
+                <dl class="divide-y divide-slate-100">
+                    <div class="profile-info-row"><dt>Full name</dt><dd>{% if user.get_full_name %}{{ user.get_full_name }}{% else %}<span class="text-slate-400">Not added</span>{% endif %}</dd></div>
+                    <div class="profile-info-row"><dt>Username</dt><dd>@{{ user.username }}</dd></div>
+                    <div class="profile-info-row"><dt>Email address</dt><dd class="break-all">{% if user.email %}{{ user.email }}{% else %}<span class="text-slate-400">Not added</span>{% endif %}</dd></div>
+                    <div class="profile-info-row"><dt>Date joined</dt><dd>{{ user.date_joined|date:"F j, Y" }}</dd></div>
+                </dl>
+            </section>
+        </div>
+
+        <aside class="space-y-6">
+            <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h2 class="text-base font-bold text-slate-900">Account settings</h2>
+                <nav class="mt-4 space-y-1" aria-label="Account settings">
+                    <a href="{% url 'edit_profile' %}" class="profile-setting-link"><span>Edit profile</span><span aria-hidden="true">→</span></a>
+                    <a href="{% url 'change_password' %}" class="profile-setting-link"><span>Change password</span><span aria-hidden="true">→</span></a>
+                    {% if analytics_dashboard_url %}<a href="{% url analytics_dashboard_url %}" class="profile-setting-link text-brand-purple"><span>Analytics Dashboard</span><span aria-hidden="true">→</span></a>{% endif %}
+                    {% if not profile.email_verified %}<a href="{% url 'resend_verification' %}" class="profile-setting-link text-amber-700"><span>Verify email address</span><span aria-hidden="true">→</span></a>{% endif %}
+                </nav>
+                <div class="mt-4 border-t border-slate-100 pt-4"><a href="{% url 'logout' %}" class="inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-slate-900"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>Log out</a></div>
+            </section>
+
+            <section class="rounded-2xl border border-red-200 bg-red-50/70 p-5">
+                <div class="flex h-9 w-9 items-center justify-center rounded-full bg-red-100 text-red-600"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.74-2.99L13.74 4a2 2 0 00-3.48 0L3.33 16.01A2 2 0 005.07 19z"/></svg></div>
+                <h2 class="mt-3 font-bold text-red-900">Delete account</h2>
+                <p class="mt-1 text-xs leading-5 text-red-700">Permanently remove your account and its associated information. This cannot be undone.</p>
+                <a href="{% url 'delete_account' %}" class="mt-4 inline-flex rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-100">Delete my account</a>
+            </section>
+        </aside>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.profile-action-card{display:flex;min-height:12rem;flex-direction:column;border:1px solid #e2e8f0;border-radius:1rem;background:#fff;padding:1rem;transition:transform .15s,box-shadow .15s,border-color .15s}.profile-action-card:hover{transform:translateY(-2px);border-color:#cbd5e1;box-shadow:0 10px 24px rgba(15,23,42,.08)}.profile-action-icon{display:flex;height:2.5rem;width:2.5rem;align-items:center;justify-content:center;border-radius:.75rem}.profile-info-row{display:grid;gap:.25rem;padding:.9rem 0;font-size:.875rem}.profile-info-row dt{color:#64748b;font-weight:600}.profile-info-row dd{color:#0f172a;font-weight:600}.profile-setting-link{display:flex;align-items:center;justify-content:space-between;border-radius:.65rem;padding:.7rem .75rem;font-size:.875rem;font-weight:700;color:#334155;transition:background .15s,color .15s}.profile-setting-link:hover{background:#f8fafc;color:#4B2798}@media(min-width:640px){.profile-info-row{grid-template-columns:10rem minmax(0,1fr);gap:1rem}.profile-info-row dd{text-align:right}}
+</style>
 {% endblock %}
