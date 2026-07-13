@@ -2,16 +2,20 @@ import json
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import F, Prefetch, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.text import slugify
 from django.views.decorators.http import require_GET, require_POST
 
 from categories.models import BusinessCategory
-from core.models import Business
-from .forms import GuideForkForm, GuideForm, StepTipForm
-from .models import Guide, GuideRating, GuideVersion, Step, StepPhoto, StepTip, StepTipPhoto, StepTipVote
+from core.models import Business, Notification
+from .forms import GuideAnswerForm, GuideForkForm, GuideForm, GuideQuestionForm, StepTipForm
+from .models import (
+    Guide, GuideAnswer, GuideQuestion, GuideRating, GuideVersion, Step,
+    StepPhoto, StepTip, StepTipPhoto, StepTipVote,
+)
 
 
 
@@ -132,8 +136,25 @@ def _tip_payload(tip, user=None):
         'score': tip.score,
         'user_vote': user_vote,
         'can_edit': bool(user and user.is_authenticated and tip.submitted_by_id == user.id),
+        'can_delete': bool(user and user.is_authenticated and (
+            tip.submitted_by_id == user.id or user.is_staff or user.is_superuser
+        )),
         'photos': [{'url': photo.image.url} for photo in tip.photos.all()],
     }
+
+
+def _notify_guide_users(users, *, notification_type, message, target_url, exclude_user=None):
+    seen = set()
+    for user in users:
+        if not user or user.pk in seen or (exclude_user and user.pk == exclude_user.pk):
+            continue
+        seen.add(user.pk)
+        Notification.objects.create(
+            user=user,
+            notification_type=notification_type,
+            message=message[:255],
+            target_url=target_url,
+        )
 
 
 def guide_list(request):
@@ -197,18 +218,33 @@ def guide_detail(request, slug):
     user_rating = None
     if request.user.is_authenticated:
         user_rating = GuideRating.objects.filter(guide=guide, user=request.user).first()
+    questions = list(
+        guide.questions.select_related('author', 'step').prefetch_related(
+            Prefetch('answers', queryset=GuideAnswer.objects.select_related('author'))
+        )
+    )
+    for question in questions:
+        question.accepted = any(answer.is_accepted for answer in question.answers.all())
     return render(request, 'guides/detail.html', {
         'guide': guide,
         'steps': steps,
         'user_rating': user_rating,
         'can_edit': request.user.is_authenticated,
         'businesses': Business.objects.order_by('name'),
+        'questions': questions,
+        'answered_question_count': sum(1 for question in questions if question.accepted),
+        'unanswered_question_count': sum(1 for question in questions if not question.accepted),
+        'can_delete_guide': guide.can_delete(request.user),
     })
 
 
 @login_required
 def guide_edit(request, slug):
     guide = get_object_or_404(_guide_queryset(), slug=slug)
+    source_question = None
+    source_question_id = request.GET.get('from_question')
+    if source_question_id:
+        source_question = GuideQuestion.objects.filter(pk=source_question_id, guide=guide).first()
     post_data = None
     if request.method == 'POST':
         post_data = request.POST.copy()
@@ -219,7 +255,12 @@ def guide_edit(request, slug):
     form = GuideForm(post_data, request.FILES or None, instance=guide)
     if request.method == 'POST':
         if not form.is_valid():
-            return render(request, 'guides/edit.html', _guide_form_context(form, guide=guide, steps=_steps_for_version(guide.current_version)))
+            return render(request, 'guides/edit.html', _guide_form_context(
+                form,
+                guide=guide,
+                steps=_steps_for_version(guide.current_version),
+                source_question=source_question,
+            ))
         steps_payload = _steps_payload_from_post(request)
         deleted_ids = set(str(step_id) for step_id in json.loads(request.POST.get('deleted_step_ids', '[]')))
         with transaction.atomic():
@@ -253,10 +294,17 @@ def guide_edit(request, slug):
                     StepPhoto.objects.create(step=step, image=image, uploaded_by=request.user)
             for old_id, new_id in tip_moves:
                 StepTip.objects.filter(step_id=old_id).update(step_id=new_id)
+                GuideQuestion.objects.filter(step_id=old_id).update(step_id=new_id)
+            GuideQuestion.objects.filter(step_id__in=deleted_ids).update(step=None)
             guide.current_version = version
             guide.save(update_fields=['current_version'])
         return redirect('guides:detail', slug=guide.slug)
-    return render(request, 'guides/edit.html', _guide_form_context(form, guide=guide, steps=_steps_for_version(guide.current_version)))
+    return render(request, 'guides/edit.html', _guide_form_context(
+        form,
+        guide=guide,
+        steps=_steps_for_version(guide.current_version),
+        source_question=source_question,
+    ))
 
 
 @login_required
@@ -431,3 +479,156 @@ def tip_vote(request, slug, tip_id):
             active_vote = value
         tip.save(update_fields=['upvotes', 'downvotes'])
     return JsonResponse({'score': tip.score, 'user_vote': active_vote})
+
+
+@require_POST
+def tip_delete(request, slug, tip_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    guide = get_object_or_404(Guide, slug=slug)
+    tip = get_object_or_404(StepTip, id=tip_id, step__version__guide=guide)
+    if tip.submitted_by_id != request.user.id and not request.user.is_staff and not request.user.is_superuser:
+        return JsonResponse({'error': 'Only the tip author can delete this tip'}, status=403)
+    tip.delete()
+    return JsonResponse({'ok': True})
+
+
+@require_POST
+def question_create(request, slug):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    guide = get_object_or_404(_guide_queryset(), slug=slug)
+    data = _json_body(request)
+    if data is None:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    form = GuideQuestionForm({'body': data.get('body', '')})
+    if not form.is_valid():
+        return JsonResponse({'errors': form.errors.get_json_data()}, status=400)
+    step = None
+    step_id = data.get('step_id')
+    if step_id not in (None, '', 'general'):
+        step = get_object_or_404(Step, pk=step_id, version=guide.current_version)
+    question = form.save(commit=False)
+    question.guide = guide
+    question.step = step
+    question.author = request.user
+    question.save()
+    target_url = f"{reverse('guides:detail', args=[guide.slug])}#question-{question.id}"
+    last_editor = guide.current_version.edited_by if guide.current_version else None
+    _notify_guide_users(
+        [guide.created_by, last_editor],
+        notification_type=Notification.TYPE_GUIDE_QUESTION,
+        message=f'{request.user.username} asked a question about {guide.title}.',
+        target_url=target_url,
+        exclude_user=request.user,
+    )
+    return JsonResponse({'ok': True, 'question_id': question.id, 'target_url': target_url})
+
+
+@login_required
+@require_POST
+def answer_create(request, slug, question_id):
+    guide = get_object_or_404(Guide, slug=slug)
+    question = get_object_or_404(GuideQuestion, pk=question_id, guide=guide)
+    form = GuideAnswerForm(request.POST)
+    if not form.is_valid():
+        return redirect(f"{reverse('guides:detail', args=[slug])}#question-{question.id}")
+    answer = form.save(commit=False)
+    answer.question = question
+    answer.author = request.user
+    answer.save()
+    _notify_guide_users(
+        [question.author],
+        notification_type=Notification.TYPE_GUIDE_ANSWER,
+        message=f'{request.user.username} answered your question on {guide.title}.',
+        target_url=f"{reverse('guides:detail', args=[guide.slug])}#question-{question.id}",
+        exclude_user=request.user,
+    )
+    return redirect(f"{reverse('guides:detail', args=[slug])}#question-{question.id}")
+
+
+@login_required
+@require_POST
+def answer_accept(request, slug, question_id, answer_id):
+    guide = get_object_or_404(Guide, slug=slug)
+    question = get_object_or_404(GuideQuestion, pk=question_id, guide=guide)
+    if question.author_id != request.user.id:
+        return JsonResponse({'error': 'Only the person who asked can accept an answer'}, status=403)
+    with transaction.atomic():
+        answer = get_object_or_404(GuideAnswer.objects.select_for_update(), pk=answer_id, question=question)
+        GuideAnswer.objects.filter(question=question, is_accepted=True).exclude(pk=answer.pk).update(is_accepted=False)
+        answer.is_accepted = True
+        answer.save(update_fields=['is_accepted'])
+    _notify_guide_users(
+        [answer.author],
+        notification_type=Notification.TYPE_GUIDE_ANSWER,
+        message=f'Your answer on {guide.title} was accepted.',
+        target_url=f"{reverse('guides:detail', args=[guide.slug])}#question-{question.id}",
+        exclude_user=request.user,
+    )
+    return redirect(f"{reverse('guides:detail', args=[slug])}#question-{question.id}")
+
+
+@login_required
+@require_POST
+def guide_mark_delete(request, slug):
+    guide = get_object_or_404(Guide, slug=slug)
+    if guide.can_delete(request.user):
+        return JsonResponse({'error': 'As the original author, you can delete this guide directly.'}, status=400)
+    if guide.marked_for_deletion:
+        return JsonResponse({'error': 'This guide is already marked for deletion.'}, status=400)
+    reason = request.POST.get('reason', '').strip()[:1000]
+    guide.mark_for_deletion(request.user, reason)
+    _notify_guide_users(
+        [guide.created_by],
+        notification_type=Notification.TYPE_GUIDE_DELETION,
+        message=f'{request.user.username} marked your guide {guide.title} for deletion.',
+        target_url=reverse('guides:detail', args=[guide.slug]),
+        exclude_user=request.user,
+    )
+    return JsonResponse({'ok': True, 'message': 'Guide marked for deletion. Another user can confirm it.'})
+
+
+@login_required
+@require_POST
+def guide_veto_delete(request, slug):
+    guide = get_object_or_404(Guide, slug=slug)
+    if not guide.can_delete(request.user):
+        return JsonResponse({'error': 'Only the original author can veto this request.'}, status=403)
+    guide.marked_for_deletion = False
+    guide.marked_for_deletion_by = None
+    guide.marked_for_deletion_at = None
+    guide.deletion_reason = ''
+    guide.deletion_votes.clear()
+    guide.save(update_fields=[
+        'marked_for_deletion', 'marked_for_deletion_by',
+        'marked_for_deletion_at', 'deletion_reason',
+    ])
+    return redirect('guides:detail', slug=slug)
+
+
+@login_required
+@require_POST
+def guide_confirm_delete(request, slug):
+    with transaction.atomic():
+        guide = get_object_or_404(Guide.objects.select_for_update(), slug=slug)
+        if not guide.marked_for_deletion:
+            return JsonResponse({'error': 'This guide is not marked for deletion.'}, status=400)
+        if guide.marked_for_deletion_by_id == request.user.id:
+            return JsonResponse({'error': 'Another user must confirm your request.'}, status=403)
+        if guide.created_by_id == request.user.id:
+            return JsonResponse({'error': 'Use the author delete action instead.'}, status=400)
+        guide.deletion_votes.add(request.user)
+        title = guide.title
+        guide.delete()
+    return JsonResponse({'ok': True, 'message': f'{title} was deleted.', 'redirect_url': reverse('guides:list')})
+
+
+@login_required
+@require_POST
+def guide_delete(request, slug):
+    guide = get_object_or_404(Guide, slug=slug)
+    if not guide.can_delete(request.user):
+        return JsonResponse({'error': 'Only the original author can delete this guide directly.'}, status=403)
+    guide.delete()
+    return JsonResponse({'ok': True, 'redirect_url': reverse('guides:list')})
