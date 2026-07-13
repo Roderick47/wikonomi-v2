@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', function () {
     initGuidePhotoPreview();
     initGuideDraft();
     initGuideActions();
+    initGuideQuestions();
+    initGuideDeletion();
 });
 
 function initGuidePhotoPreview() {
@@ -163,6 +165,8 @@ function initTips() {
         if (voteBtn) voteTip(slug, voteBtn);
         const editBtn = event.target.closest('[data-edit-tip]');
         if (editBtn) editTip(slug, editBtn.closest('[data-tip-id]'));
+        const deleteBtn = event.target.closest('[data-delete-tip]');
+        if (deleteBtn) deleteTip(slug, deleteBtn.closest('[data-tip-id]'));
         const expandBtn = event.target.closest('[data-expand-tips]');
         if (expandBtn) expandTips(slug, expandBtn);
     });
@@ -235,7 +239,8 @@ function buildTipElement(tip) {
     div.dataset.tipId = tip.id;
     const photos = (tip.photos || []).map((photo) => `<a href="${escapeHtml(photo.url)}" target="_blank"><img src="${escapeHtml(photo.url)}" alt="Tip photo" class="h-10 w-10 rounded object-cover border border-amber-200"></a>`).join('');
     const edit = tip.can_edit ? '<button type="button" data-edit-tip class="font-bold text-brand-purple hover:underline">Edit</button>' : '';
-    div.innerHTML = `<div class="tip-votes"><button type="button" data-tip-vote data-vote-value="1" aria-label="Upvote tip" class="tip-vote-button ${tip.user_vote === 1 ? 'is-active-up' : ''}">▲</button><span data-tip-score>${Number(tip.score || 0)}</span><button type="button" data-tip-vote data-vote-value="-1" aria-label="Downvote tip" class="tip-vote-button ${tip.user_vote === -1 ? 'is-active-down' : ''}">▼</button></div><div class="min-w-0 flex-1"><p class="text-sm leading-5 text-slate-700" data-tip-body-text>${escapeHtml(tip.body)}</p>${photos ? `<div class="mt-2 flex gap-2">${photos}</div>` : ''}<div class="mt-2 flex items-center gap-3 text-xs text-slate-400"><span>Tip by <strong class="text-slate-600">@${escapeHtml(tip.username || 'deleted-user')}</strong></span>${edit}</div></div>`;
+    const remove = tip.can_delete ? '<button type="button" data-delete-tip class="font-bold text-red-500 hover:underline">Delete</button>' : '';
+    div.innerHTML = `<div class="tip-votes"><button type="button" data-tip-vote data-vote-value="1" aria-label="Upvote tip" class="tip-vote-button ${tip.user_vote === 1 ? 'is-active-up' : ''}">▲</button><span data-tip-score>${Number(tip.score || 0)}</span><button type="button" data-tip-vote data-vote-value="-1" aria-label="Downvote tip" class="tip-vote-button ${tip.user_vote === -1 ? 'is-active-down' : ''}">▼</button></div><div class="min-w-0 flex-1"><p class="text-sm leading-5 text-slate-700" data-tip-body-text>${escapeHtml(tip.body)}</p>${photos ? `<div class="mt-2 flex gap-2">${photos}</div>` : ''}<div class="mt-2 flex items-center gap-3 text-xs text-slate-400"><span>Tip by <strong class="text-slate-600">@${escapeHtml(tip.username || 'deleted-user')}</strong></span>${edit}${remove}</div></div>`;
     return div;
 }
 
@@ -266,6 +271,20 @@ async function editTip(slug, card) {
         if (!response.ok) throw new Error(data.error || firstFormError(data.errors) || 'Could not edit tip');
         bodyElement.textContent = data.body;
         showToast('Tip updated', 'success');
+    } catch (err) { showToast(err.message, 'error'); }
+}
+
+async function deleteTip(slug, card) {
+    if (!card || !window.confirm('Delete this tip permanently?')) return;
+    try {
+        const response = await fetch(`/guides/${slug}/steps/tips/${card.dataset.tipId}/delete/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'},
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Could not delete tip');
+        card.remove();
+        showToast('Tip deleted', 'success');
     } catch (err) { showToast(err.message, 'error'); }
 }
 
@@ -322,6 +341,154 @@ function initGuideActions() {
             if (!response.ok) throw new Error(firstFormError(data.errors) || data.error || 'Could not copy guide');
             window.location.href = data.url;
         } catch (err) { error.textContent = err.message; error.classList.remove('hidden'); submit.disabled = false; submit.textContent = 'Copy Guide'; }
+    });
+}
+
+function initGuideQuestions() {
+    const slug = window.WIKONOMI_GUIDE_SLUG;
+    const popover = document.querySelector('[data-question-popover]');
+    const form = document.querySelector('[data-question-form]');
+    const stepSelect = document.querySelector('[data-question-step-select]');
+    const body = form?.querySelector('[name="body"]');
+    const error = document.querySelector('[data-question-error]');
+    const submit = document.querySelector('[data-question-submit]');
+
+    function openQuestion(stepId = 'general') {
+        if (!popover || !form) {
+            window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`;
+            return;
+        }
+        form.reset();
+        stepSelect.value = stepId || 'general';
+        error?.classList.add('hidden');
+        popover.classList.remove('hidden');
+        popover.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('overflow-hidden');
+        setTimeout(() => body?.focus(), 0);
+    }
+    function closeQuestion() {
+        popover?.classList.add('hidden');
+        popover?.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('overflow-hidden');
+        form?.reset();
+    }
+
+    document.addEventListener('click', (event) => {
+        const ask = event.target.closest('[data-ask-question]');
+        if (ask) { event.preventDefault(); openQuestion(ask.dataset.stepId); }
+        if (event.target.closest('[data-close-question]')) closeQuestion();
+        const filter = event.target.closest('[data-question-filter]');
+        if (filter) filterQuestions(filter.dataset.questionFilter, filter);
+    });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeQuestion(); });
+
+    form?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const question = body.value.trim();
+        if (!question) return;
+        submit.disabled = true;
+        submit.textContent = 'Posting…';
+        error.classList.add('hidden');
+        try {
+            const response = await fetch(`/guides/${slug}/questions/`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'},
+                body: JSON.stringify({body: question, step_id: stepSelect.value}),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (response.status === 401 || response.status === 403) { window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`; return; }
+            if (!response.ok) throw new Error(data.error || firstFormError(data.errors) || 'Could not post question');
+            window.location.assign(data.target_url);
+        } catch (err) {
+            error.textContent = err.message;
+            error.classList.remove('hidden');
+            submit.disabled = false;
+            submit.textContent = 'Post Question';
+        }
+    });
+}
+
+function filterQuestions(filter, activeButton) {
+    let visible = 0;
+    document.querySelectorAll('[data-question-filter]').forEach((button) => button.classList.toggle('is-active', button === activeButton));
+    document.querySelectorAll('[data-question-card]').forEach((card) => {
+        const show = filter === 'all' || card.dataset.status === filter || card.dataset.questionStep === filter;
+        card.classList.toggle('hidden', !show);
+        if (show) visible += 1;
+    });
+    document.querySelector('[data-no-filtered-questions]')?.classList.toggle('hidden', visible !== 0);
+}
+
+function initGuideDeletion() {
+    const slug = window.WIKONOMI_GUIDE_SLUG;
+    const popover = document.querySelector('[data-delete-popover]');
+    const form = document.querySelector('[data-delete-guide-form]');
+    const title = document.querySelector('[data-delete-guide-title]');
+    const copy = document.querySelector('[data-delete-guide-copy]');
+    const reasonWrap = document.querySelector('[data-delete-reason-wrap]');
+    const error = document.querySelector('[data-delete-guide-error]');
+    const submit = document.querySelector('[data-delete-guide-submit]');
+    let mode = 'mark';
+
+    function openDelete(nextMode) {
+        if (!popover || !form) return;
+        mode = nextMode;
+        form.reset();
+        error.classList.add('hidden');
+        const direct = mode === 'direct';
+        title.textContent = direct ? 'Delete this guide permanently?' : 'Mark guide for deletion?';
+        copy.textContent = direct ? 'This cannot be undone. The guide, its questions, answers and tips will be removed.' : 'Another user must independently confirm before the guide is removed.';
+        reasonWrap.classList.toggle('hidden', direct);
+        submit.textContent = direct ? 'Delete guide permanently' : 'Mark for deletion';
+        popover.classList.remove('hidden');
+        popover.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('overflow-hidden');
+    }
+    function closeDelete() {
+        popover?.classList.add('hidden');
+        popover?.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('overflow-hidden');
+    }
+    async function postDeleteAction(url, bodyData) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'},
+            body: bodyData,
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Could not complete deletion action');
+        return data;
+    }
+
+    document.addEventListener('click', async (event) => {
+        if (event.target.closest('[data-mark-guide-delete]')) openDelete('mark');
+        if (event.target.closest('[data-delete-guide-direct]')) openDelete('direct');
+        if (event.target.closest('[data-close-delete-guide]')) closeDelete();
+        if (event.target.closest('[data-confirm-guide-delete]')) {
+            if (!window.confirm('Confirm this deletion? The guide will be removed permanently.')) return;
+            try {
+                const data = await postDeleteAction(`/guides/${slug}/confirm-delete/`);
+                window.location.href = data.redirect_url;
+            } catch (err) { showToast(err.message, 'error'); }
+        }
+    });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeDelete(); });
+    form?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        submit.disabled = true;
+        const originalText = submit.textContent;
+        submit.textContent = mode === 'direct' ? 'Deleting…' : 'Marking…';
+        try {
+            const url = mode === 'direct' ? `/guides/${slug}/delete/` : `/guides/${slug}/mark-delete/`;
+            const data = await postDeleteAction(url, new FormData(form));
+            if (data.redirect_url) window.location.href = data.redirect_url;
+            else window.location.reload();
+        } catch (err) {
+            error.textContent = err.message;
+            error.classList.remove('hidden');
+            submit.disabled = false;
+            submit.textContent = originalText;
+        }
     });
 }
 
