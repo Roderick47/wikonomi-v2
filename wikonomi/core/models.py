@@ -953,12 +953,18 @@ class Notification(models.Model):
     TYPE_REPLY = 'reply'
     TYPE_COMMENT_LIKE = 'comment_like'
     TYPE_DELETION_MARK = 'deletion_mark'
+    TYPE_GUIDE_QUESTION = 'guide_question'
+    TYPE_GUIDE_ANSWER = 'guide_answer'
+    TYPE_GUIDE_DELETION = 'guide_deletion'
     TYPE_CHOICES = [
         (TYPE_GENERAL, 'General'),
         (TYPE_COMMENT, 'Comment'),
         (TYPE_REPLY, 'Reply'),
         (TYPE_COMMENT_LIKE, 'Comment Like'),
         (TYPE_DELETION_MARK, 'Deletion Mark'),
+        (TYPE_GUIDE_QUESTION, 'Guide Question'),
+        (TYPE_GUIDE_ANSWER, 'Guide Answer'),
+        (TYPE_GUIDE_DELETION, 'Guide Deletion'),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
@@ -967,6 +973,7 @@ class Notification(models.Model):
     business = models.ForeignKey(Business, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
     notification_type = models.CharField(max_length=32, choices=TYPE_CHOICES, default=TYPE_GENERAL)
     message = models.CharField(max_length=255)
+    target_url = models.CharField(max_length=500, blank=True)
     is_read = models.BooleanField(default=False)
     muted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

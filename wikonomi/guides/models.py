@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from django_resized import ResizedImageField
 
 
@@ -45,6 +46,21 @@ class Guide(models.Model):
         related_name='+',
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    marked_for_deletion = models.BooleanField(default=False)
+    marked_for_deletion_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='marked_guides_for_deletion',
+    )
+    marked_for_deletion_at = models.DateTimeField(null=True, blank=True)
+    deletion_reason = models.TextField(blank=True)
+    deletion_votes = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name='confirmed_guide_deletions',
+    )
 
     class Meta:
         ordering = ['title']
@@ -55,6 +71,22 @@ class Guide(models.Model):
     @property
     def average_rating(self):
         return self.ratings.aggregate(avg=models.Avg('score'))['avg'] or 0
+
+    def can_delete(self, user):
+        return bool(
+            user.is_authenticated
+            and (user.is_staff or user.is_superuser or self.created_by_id == user.id)
+        )
+
+    def mark_for_deletion(self, user, reason=''):
+        self.marked_for_deletion = True
+        self.marked_for_deletion_by = user
+        self.marked_for_deletion_at = timezone.now()
+        self.deletion_reason = reason
+        self.save(update_fields=[
+            'marked_for_deletion', 'marked_for_deletion_by',
+            'marked_for_deletion_at', 'deletion_reason',
+        ])
 
 
 class GuideVersion(models.Model):
@@ -154,3 +186,37 @@ class StepTipPhoto(models.Model):
 
     def __str__(self):
         return self.caption or f'Photo for tip {self.tip_id}'
+
+
+class GuideQuestion(models.Model):
+    guide = models.ForeignKey(Guide, on_delete=models.CASCADE, related_name='questions')
+    step = models.ForeignKey(Step, on_delete=models.SET_NULL, related_name='questions', null=True, blank=True)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='guide_questions')
+    body = models.TextField(max_length=1200)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.body[:80]
+
+    @property
+    def is_answered(self):
+        return self.answers.filter(is_accepted=True).exists()
+
+
+class GuideAnswer(models.Model):
+    question = models.ForeignKey(GuideQuestion, on_delete=models.CASCADE, related_name='answers')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='guide_answers')
+    body = models.TextField(max_length=2000)
+    is_accepted = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-is_accepted', 'created_at']
+
+    def __str__(self):
+        return f'Answer to question {self.question_id}'

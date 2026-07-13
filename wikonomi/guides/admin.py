@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Guide, GuideRating, GuideVersion, Step, StepTip, StepTipVote
+from .models import Guide, GuideAnswer, GuideQuestion, GuideRating, GuideVersion, Step, StepTip, StepTipVote
 
 
 class StepInline(admin.TabularInline):
@@ -36,3 +36,16 @@ admin.site.register(StepTipVote)
 @admin.register(GuideRating)
 class GuideRatingAdmin(admin.ModelAdmin):
     list_display = ('guide', 'user', 'score', 'created_at')
+
+
+@admin.register(GuideQuestion)
+class GuideQuestionAdmin(admin.ModelAdmin):
+    list_display = ('guide', 'author', 'step', 'created_at')
+    search_fields = ('body', 'guide__title')
+
+
+@admin.register(GuideAnswer)
+class GuideAnswerAdmin(admin.ModelAdmin):
+    list_display = ('question', 'author', 'is_accepted', 'created_at')
+    list_filter = ('is_accepted',)
+    search_fields = ('body', 'question__body')

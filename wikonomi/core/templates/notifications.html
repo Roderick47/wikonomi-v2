@@ -13,7 +13,7 @@
                 {% for n in notifications %}
                 <li id="notification-{{ n.id }}">
                     <div class="block p-4 sm:p-6 hover:bg-gray-50 transition-colors {% if not n.is_read %}bg-brand-purple/5 border-l-4 border-brand-purple{% endif %}">
-                        <a href="{% if n.price_report %}{% url 'price_detail' n.price_report.id %}{% elif n.business %}{% url 'business_detail' n.business.id %}{% else %}#{% endif %}" class="block">
+                        <a href="{% if n.target_url %}{{ n.target_url }}{% elif n.price_report %}{% url 'price_detail' n.price_report.id %}{% elif n.business %}{% url 'business_detail' n.business.id %}{% else %}#{% endif %}" class="block">
                         <div class="flex flex-col gap-1.5 mb-2">
                             <div class="text-sm sm:text-base font-semibold text-gray-900 leading-tight">
                                 {{ n.message }}
