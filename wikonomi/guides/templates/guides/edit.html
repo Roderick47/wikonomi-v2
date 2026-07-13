@@ -19,8 +19,8 @@
         {% csrf_token %}
         {% include "guides/_guide_fields.html" %}
         {% include "guides/_steps_editor.html" %}
-        <section class="guide-form-card">
-            <div class="min-w-0 flex-1"><label for="edit_summary" class="guide-form-label">What did you change?</label><p class="guide-form-help">A short note helps the community understand this update.</p><input id="edit_summary" type="text" name="edit_summary" required placeholder="e.g. Updated passport fees and office location" class="mt-4 block w-full rounded-lg border border-slate-300 px-3 py-3 text-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-purple/20"></div>
+        <section class="guide-form-card" id="edit-summary">
+            <div class="min-w-0 flex-1"><label for="edit_summary" class="guide-form-label">What did you change?</label><p class="guide-form-help">A short note helps the community understand this update.</p><input id="edit_summary" type="text" name="edit_summary" required {% if source_question %}value="Clarified guide after question: {{ source_question.body|truncatechars:90 }}"{% endif %} placeholder="e.g. Updated passport fees and office location" class="mt-4 block w-full rounded-lg border border-slate-300 px-3 py-3 text-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-purple/20"></div>
         </section>
         <div class="guide-submit-bar">
             <a href="{% url 'guides:detail' guide.slug %}" class="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100">Cancel</a>
