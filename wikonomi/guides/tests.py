@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from core.models import Business
-from .models import Guide, GuideRating, GuideVersion, Step, StepPhoto, StepTip, StepTipPhoto, StepTipVote
+from .models import Guide, GuideAnswer, GuideQuestion, GuideRating, GuideVersion, Step, StepPhoto, StepTip, StepTipPhoto, StepTipVote
 from .templatetags.guide_markup import guide_markdown
 
 
@@ -195,6 +195,76 @@ class GuideBackendTests(TestCase):
         tip = StepTip.objects.get(body='This queue is usually closed')
         self.assertEqual(StepTipPhoto.objects.filter(tip=tip).count(), 1)
         self.assertEqual(len(response.json()['photos']), 1)
+
+    def test_question_can_be_general_or_linked_to_current_step(self):
+        self.client.force_login(self.user)
+        general = self.client.post(
+            reverse('guides:question_create', args=[self.guide.slug]),
+            json.dumps({'body': 'Does this apply everywhere?', 'step_id': 'general'}),
+            content_type='application/json',
+        )
+        linked = self.client.post(
+            reverse('guides:question_create', args=[self.guide.slug]),
+            json.dumps({'body': 'Which ID is accepted?', 'step_id': self.step.id}),
+            content_type='application/json',
+        )
+        self.assertEqual(general.status_code, 200)
+        self.assertEqual(linked.status_code, 200)
+        self.assertIsNone(GuideQuestion.objects.get(body='Does this apply everywhere?').step)
+        self.assertEqual(GuideQuestion.objects.get(body='Which ID is accepted?').step, self.step)
+
+    def test_question_author_can_accept_answer(self):
+        question = GuideQuestion.objects.create(guide=self.guide, step=self.step, author=self.user, body='What do I bring?')
+        answerer = get_user_model().objects.create_user(username='answerer', password='pass')
+        answer = GuideAnswer.objects.create(question=question, author=answerer, body='Bring photo ID.')
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('guides:answer_accept', args=[self.guide.slug, question.id, answer.id]))
+        self.assertRedirects(response, f"{reverse('guides:detail', args=[self.guide.slug])}#question-{question.id}")
+        answer.refresh_from_db()
+        self.assertTrue(answer.is_accepted)
+
+    def test_guide_deletion_requires_independent_confirmation(self):
+        marker = get_user_model().objects.create_user(username='marker', password='pass')
+        confirmer = get_user_model().objects.create_user(username='confirmer', password='pass')
+        self.client.force_login(marker)
+        response = self.client.post(reverse('guides:mark_delete', args=[self.guide.slug]), {'reason': 'Duplicate'})
+        self.assertEqual(response.status_code, 200)
+        self.guide.refresh_from_db()
+        self.assertTrue(self.guide.marked_for_deletion)
+
+        response = self.client.post(reverse('guides:confirm_delete', args=[self.guide.slug]))
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Guide.objects.filter(pk=self.guide.pk).exists())
+
+        self.client.force_login(confirmer)
+        response = self.client.post(reverse('guides:confirm_delete', args=[self.guide.slug]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Guide.objects.filter(pk=self.guide.pk).exists())
+
+    def test_original_author_can_veto_or_delete_guide(self):
+        marker = get_user_model().objects.create_user(username='marker2', password='pass')
+        self.client.force_login(marker)
+        self.client.post(reverse('guides:mark_delete', args=[self.guide.slug]), {'reason': 'Outdated'})
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('guides:veto_delete', args=[self.guide.slug]))
+        self.assertRedirects(response, reverse('guides:detail', args=[self.guide.slug]))
+        self.guide.refresh_from_db()
+        self.assertFalse(self.guide.marked_for_deletion)
+
+        response = self.client.post(reverse('guides:delete', args=[self.guide.slug]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Guide.objects.filter(pk=self.guide.pk).exists())
+
+    def test_only_tip_author_can_delete_tip(self):
+        tip = StepTip.objects.create(step=self.step, body='Author-owned tip', submitted_by=self.user)
+        other = get_user_model().objects.create_user(username='other-delete', password='pass')
+        self.client.force_login(other)
+        response = self.client.post(reverse('guides:tip_delete', args=[self.guide.slug, tip.id]))
+        self.assertEqual(response.status_code, 403)
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('guides:tip_delete', args=[self.guide.slug, tip.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(StepTip.objects.filter(pk=tip.pk).exists())
 
     def test_create_accepts_step_photos_and_markdown(self):
         self.client.force_login(self.user)
