@@ -245,12 +245,28 @@ else:
     MEDIA_ROOT = '/var/data/media'
 
 # CACHE CONFIGURATION
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
+# Future apps (including transport_index) should use Django's cache API:
+#     from django.core.cache import cache
+#
+# Set DJANGO_CACHE_BACKEND=db in production to use Django's database cache.
+# Before enabling it, deployment must run:
+#     python manage.py createcachetable wikonomi_cache
+DJANGO_CACHE_BACKEND = os.environ.get('DJANGO_CACHE_BACKEND', 'locmem').lower()
+
+if DJANGO_CACHE_BACKEND == 'db':
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'wikonomi_cache',
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
+    }
 
 
 # Default primary key field type
