@@ -35,11 +35,7 @@ urlpatterns = [
     path('api/comments/', include('comments.urls')),
 ]
 
-# Serve media files during development
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-# Serve media files in production (for Render)
-if not settings.DEBUG:
-    from django.conf.urls.static import static
+# Serve local media files during development only.
+# R2-backed media is served by the configured remote media URL/domain instead.
+if settings.DEBUG and not getattr(settings, 'USE_R2_STORAGE', False):
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

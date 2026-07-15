@@ -201,6 +201,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+MEDIA_ROOT = os.environ.get('MEDIA_ROOT', '/var/data/media')
+
 
 # Add this for Render deployment
 CSRF_TRUSTED_ORIGINS = ['https://www.wikonomi.com']
@@ -210,7 +212,11 @@ STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 # === CLOUD FLARE R2 STORAGE (NEW DJANGO 5.2 WAY) ===
 # Only configure R2 if environment variables are set
-if os.environ.get('AWS_ACCESS_KEY_ID') and os.environ.get('AWS_SECRET_ACCESS_KEY'):
+USE_R2_STORAGE = bool(
+    os.environ.get('AWS_ACCESS_KEY_ID') and os.environ.get('AWS_SECRET_ACCESS_KEY')
+)
+
+if USE_R2_STORAGE:
     STORAGES = {
         "default": {  # this is for your images/media files
             "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
@@ -242,7 +248,6 @@ else:
         },
     }
     MEDIA_URL = '/media/'
-    MEDIA_ROOT = '/var/data/media'
 
 # CACHE CONFIGURATION
 # Future apps (including transport_index) should use Django's cache API:
