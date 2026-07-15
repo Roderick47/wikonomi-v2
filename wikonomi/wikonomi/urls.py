@@ -33,6 +33,7 @@ urlpatterns = [
     path('analytics/', include('analytics.urls')),
     path('guides/', include('guides.urls')),
     path('api/comments/', include('comments.urls')),
+    path('transport-index/', include('transport_index.urls')),
 ]
 
 # Serve local media files during development only.
