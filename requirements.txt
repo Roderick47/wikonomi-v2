@@ -2,6 +2,7 @@ Django>=5.0,<6.0
 djangorestframework
 bleach>=6.0,<7.0
 psycopg2-binary
+django-ratelimit
 django-taggit
 h3
 django-allauth[socialaccount]
@@ -13,3 +14,4 @@ boto3
 django-resized
 whitenoise
 python-dotenv
+rapidfuzz
