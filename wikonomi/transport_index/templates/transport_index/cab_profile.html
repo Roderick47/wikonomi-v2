@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block page_title %}{{ driver.display_name }} — Wikonomi Cabs{% endblock %}
+
+{% block content %}
+<article class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+  <div class="p-6 md:p-8 grid gap-6 md:grid-cols-[220px_1fr]">
+    <div class="space-y-4">
+      {% if driver.profile_photo %}
+        <img class="w-full rounded-xl object-cover" src="{{ driver.profile_photo.url }}" alt="{{ driver.display_name }} profile photo">
+      {% else %}
+        <div class="w-full aspect-square rounded-xl bg-brand-purple/10 flex items-center justify-center text-brand-purple font-bold text-4xl">{{ driver.display_name|first }}</div>
+      {% endif %}
+      {% if driver.vehicle_photo %}<img class="w-full rounded-xl object-cover" src="{{ driver.vehicle_photo.url }}" alt="{{ driver.display_name }} vehicle photo">{% endif %}
+    </div>
+    <div class="space-y-4">
+      <div>
+        <p class="text-sm font-semibold text-brand-purple uppercase tracking-wide">Wikonomi Cab Profile</p>
+        <h1 class="text-3xl font-bold text-gray-900">{{ driver.display_name }} {% if driver.is_verified %}<span class="text-green-700 text-lg">✓ Verified</span>{% endif %}</h1>
+        {% if not driver.is_verified %}<p class="mt-2 rounded-lg bg-yellow-50 p-3 text-sm text-yellow-800">This driver has a direct profile link but is not yet shown in public search results.</p>{% endif %}
+      </div>
+      <dl class="grid gap-3 sm:grid-cols-2">
+        <div class="rounded-lg bg-gray-50 p-3"><dt class="text-xs uppercase text-gray-500">Vehicle</dt><dd class="font-semibold">{{ driver.get_vehicle_type_display }}{% if driver.vehicle_make_model %} • {{ driver.vehicle_make_model }}{% endif %}</dd></div>
+        <div class="rounded-lg bg-gray-50 p-3"><dt class="text-xs uppercase text-gray-500">Plate</dt><dd class="font-semibold">{{ driver.vehicle_plate }}</dd></div>
+        <div class="rounded-lg bg-gray-50 p-3"><dt class="text-xs uppercase text-gray-500">Home area</dt><dd class="font-semibold">{{ driver.home_area|default:'Not listed' }}</dd></div>
+        {% if driver.status %}<div class="rounded-lg bg-gray-50 p-3"><dt class="text-xs uppercase text-gray-500">Live status</dt><dd class="font-semibold">{{ driver.status.get_availability_display }} • last seen {{ driver.status.last_seen_minutes }} min ago</dd></div>{% endif %}
+      </dl>
+      {% if driver.bio %}<p class="text-gray-700 leading-relaxed">{{ driver.bio }}</p>{% endif %}
+      <a class="inline-flex rounded-lg bg-brand-green px-4 py-3 font-bold text-gray-900 hover:bg-brand-green/90" href="{% url 'transport_index:cab_contact' driver.slug %}" rel="nofollow">Chat on WhatsApp</a>
+    </div>
+  </div>
+</article>
+{% endblock %}

@@ -47,18 +47,46 @@ def _messages_url():
     return f'{GRAPH_API_BASE_URL}/{_get_api_version()}/{_get_phone_number_id()}/messages'
 
 
-def _post_message(payload):
-    response = requests.post(
-        _messages_url(),
-        headers={
-            'Authorization': f'Bearer {_get_token()}',
-            'Content-Type': 'application/json',
-        },
-        json=payload,
-        timeout=10,
+def _log_message(payload, status, response=None, error=''):
+    from .models import WhatsAppMessageLog
+
+    WhatsAppMessageLog.objects.create(
+        recipient=payload.get('to', ''),
+        message_type=payload.get('type', ''),
+        status=status,
+        payload=payload,
+        response=response or {},
+        error=error,
     )
-    response.raise_for_status()
-    return response.json()
+
+
+def _post_message(payload):
+    from .models import WhatsAppMessageLog
+
+    try:
+        response = requests.post(
+            _messages_url(),
+            headers={
+                'Authorization': f'Bearer {_get_token()}',
+                'Content-Type': 'application/json',
+            },
+            json=payload,
+            timeout=10,
+        )
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        response_body = {}
+        if getattr(exc, 'response', None) is not None:
+            try:
+                response_body = exc.response.json()
+            except ValueError:
+                response_body = {'body': exc.response.text}
+        _log_message(payload, WhatsAppMessageLog.Status.FAILED, response=response_body, error=str(exc))
+        raise
+
+    response_json = response.json()
+    _log_message(payload, WhatsAppMessageLog.Status.SENT, response=response_json)
+    return response_json
 
 
 def send_text(to, body):

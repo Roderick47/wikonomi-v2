@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block page_title %}Wikonomi Cabs — Live Transport Index{% endblock %}
+
+{% block extra_head %}
+<style>
+  .cab-card[data-distance-km] { order: var(--distance-order, 999999); }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="space-y-6">
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+    <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <div>
+        <p class="text-sm font-semibold text-brand-purple uppercase tracking-wide">Transport Index</p>
+        <h1 class="text-3xl font-bold text-gray-900">Find verified cabs nearby</h1>
+        <p class="text-gray-600 mt-2">Browse verified drivers, check live status, then contact them through the protected WhatsApp proxy.</p>
+      </div>
+      <button id="sort-near-me" type="button" class="rounded-lg bg-brand-purple px-4 py-2 text-white font-semibold hover:bg-brand-purple/90">Sort by my location</button>
+    </div>
+  </div>
+
+  <form method="get" class="bg-white rounded-xl border border-gray-200 p-4 grid gap-3 md:grid-cols-4 md:items-end">
+    <label class="block">
+      <span class="text-sm font-semibold text-gray-700">Vehicle type</span>
+      <select name="vehicle_type" class="mt-1 w-full rounded-lg border-gray-300">
+        <option value="">Any vehicle</option>
+        {% for value,label in vehicle_types %}<option value="{{ value }}"{% if request.GET.vehicle_type == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="block">
+      <span class="text-sm font-semibold text-gray-700">Home area</span>
+      <input name="area" value="{{ request.GET.area }}" placeholder="Waigani" class="mt-1 w-full rounded-lg border-gray-300">
+    </label>
+    <label class="flex items-center gap-2 rounded-lg border border-gray-200 p-3">
+      <input type="checkbox" name="available" value="1"{% if request.GET.available == '1' %} checked{% endif %}>
+      <span class="text-sm font-semibold text-gray-700">Available now</span>
+    </label>
+    <button class="rounded-lg bg-brand-blue px-4 py-2 text-white font-semibold hover:bg-brand-blue/90">Search</button>
+  </form>
+
+  <div id="cab-results" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    {% for driver in drivers %}
+      <article class="cab-card bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex flex-col gap-3"{% if driver.status and driver.status.latitude and driver.status.longitude %} data-lat="{{ driver.status.latitude }}" data-lng="{{ driver.status.longitude }}"{% endif %}>
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h2 class="text-xl font-bold text-gray-900"><a class="hover:text-brand-purple" href="{% url 'transport_index:cab_profile' driver.slug %}">{{ driver.display_name }}</a></h2>
+            <p class="text-sm text-green-700 font-semibold">✓ Verified</p>
+          </div>
+          <span class="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-700">{{ driver.get_vehicle_type_display }}</span>
+        </div>
+        <p class="text-gray-600">{% if driver.vehicle_make_model %}{{ driver.vehicle_make_model }} • {% endif %}Home area: {{ driver.home_area|default:'Not listed' }}</p>
+        {% if driver.status %}<p class="text-sm text-gray-500">Status: {{ driver.status.get_availability_display }} • last seen {{ driver.status.last_seen_minutes }} min ago <span class="distance-label"></span></p>{% endif %}
+        <div class="mt-auto flex gap-2">
+          <a class="rounded-lg border border-brand-purple px-3 py-2 font-semibold text-brand-purple hover:bg-brand-purple/10" href="{% url 'transport_index:cab_profile' driver.slug %}">Profile</a>
+          <a class="rounded-lg bg-brand-green px-3 py-2 font-semibold text-gray-900 hover:bg-brand-green/90" href="{% url 'transport_index:cab_contact' driver.slug %}" rel="nofollow">Chat on WhatsApp</a>
+        </div>
+      </article>
+    {% empty %}
+      <p class="bg-white rounded-xl border border-gray-200 p-6 text-gray-600 md:col-span-2 lg:col-span-3">No verified cabs match your search yet.</p>
+    {% endfor %}
+  </div>
+
+  {% if page_obj.has_other_pages %}
+    <nav class="flex justify-center gap-2" aria-label="Cab listing pages">
+      {% if page_obj.has_previous %}<a class="rounded-lg border px-3 py-2" href="?{{ querystring_without_page }}page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+      <span class="rounded-lg bg-white border px-3 py-2">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}<a class="rounded-lg border px-3 py-2" href="?{{ querystring_without_page }}page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+    </nav>
+  {% endif %}
+</section>
+
+<script>
+(function () {
+  const button = document.getElementById('sort-near-me');
+  const results = document.getElementById('cab-results');
+  if (!button || !results || !navigator.geolocation) return;
+
+  function haversineKm(lat1, lon1, lat2, lon2) {
+    const radius = 6371;
+    const toRad = value => value * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return radius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  button.addEventListener('click', function () {
+    button.disabled = true;
+    button.textContent = 'Getting location…';
+    navigator.geolocation.getCurrentPosition(function (position) {
+      const userLat = position.coords.latitude;
+      const userLng = position.coords.longitude;
+      Array.from(results.querySelectorAll('.cab-card')).forEach(function (card) {
+        const lat = parseFloat(card.dataset.lat);
+        const lng = parseFloat(card.dataset.lng);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          const distance = haversineKm(userLat, userLng, lat, lng);
+          card.style.setProperty('--distance-order', Math.round(distance * 1000));
+          const label = card.querySelector('.distance-label');
+          if (label) label.textContent = '• ' + distance.toFixed(1) + ' km from you';
+        }
+      });
+      button.textContent = 'Sorted by my location';
+    }, function () {
+      button.disabled = false;
+      button.textContent = 'Sort by my location';
+      alert('Location permission was not granted.');
+    });
+  });
+})();
+</script>
+{% endblock %}
