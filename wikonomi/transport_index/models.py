@@ -120,3 +120,27 @@ class LLMFallbackLog(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+
+class WhatsAppMessageLog(models.Model):
+    class Direction(models.TextChoices):
+        OUTBOUND = 'outbound', 'Outbound'
+
+    class Status(models.TextChoices):
+        SENT = 'sent', 'Sent'
+        FAILED = 'failed', 'Failed'
+
+    direction = models.CharField(max_length=16, choices=Direction.choices, default=Direction.OUTBOUND)
+    recipient = models.CharField(max_length=32, db_index=True)
+    message_type = models.CharField(max_length=32)
+    status = models.CharField(max_length=16, choices=Status.choices, db_index=True)
+    payload = models.JSONField(default=dict, blank=True)
+    response = models.JSONField(default=dict, blank=True)
+    error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.get_status_display()} {self.message_type} to {self.recipient}'

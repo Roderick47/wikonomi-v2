@@ -7,7 +7,6 @@ from django.core.cache import cache
 from django.urls import reverse
 
 from .gazetteer import match_place
-from .llm_fallback import extract_intent
 from .models import CabDriver, CabStatus, RouterEvent
 from .services import nearest_available_drivers
 from .whatsapp_client import send_interactive_list, send_text
@@ -51,6 +50,11 @@ def _setup_url(driver):
     return f"{base_url}{reverse('transport_index:setup_profile', args=[token])}"
 
 
+def _contact_url(driver):
+    base_url = getattr(settings, 'WIKONOMI_BASE_URL', 'https://wikonomi.com')
+    return f"{base_url}{reverse('transport_index:cab_contact', args=[driver.slug])}"
+
+
 def _send_results(phone, latitude, longitude):
     results = nearest_available_drivers(latitude, longitude)
     if not results:
@@ -58,23 +62,27 @@ def _send_results(phone, latitude, longitude):
         return
 
     rows = []
-    for item in results:
+    contact_lines = ['Contact nearby Wikonomi cabs:']
+    for index, item in enumerate(results, start=1):
         driver = item['driver']
         status = item['status']
+        summary = (
+            f"{driver.get_vehicle_type_display()} • "
+            f"{item['distance_km']:.1f} km • seen {status.last_seen_minutes()} min ago"
+        )
         rows.append({
             'id': f'cab-{driver.id}',
             'title': driver.display_name[:24],
-            'description': (
-                f"{driver.get_vehicle_type_display()} • "
-                f"{item['distance_km']:.1f} km • seen {status.last_seen_minutes()} min ago"
-            ),
+            'description': summary,
         })
+        contact_lines.append(f"{index}. {driver.display_name} — {_contact_url(driver)}")
 
     try:
         send_interactive_list(phone, 'Nearby Wikonomi cabs', rows)
     except Exception:
         logger.exception('WhatsApp list send failed')
         _reply(phone, '\n'.join([f"{row['title']} — {row['description']}" for row in rows]))
+    _reply(phone, '\n'.join(contact_lines))
 
 
 def _handle_wizard(phone, text, state):
@@ -194,7 +202,12 @@ def dispatch_inbound_message(message, metadata=None):
         _send_results(phone, place['latitude'], place['longitude'])
         return 'gazetteer_hit'
 
-    extracted = extract_intent(text) if text else {'intent': 'unknown'}
+    if text:
+        from .llm_fallback import extract_intent
+
+        extracted = extract_intent(text)
+    else:
+        extracted = {'intent': 'unknown'}
     _event(phone, RouterEvent.Stage.LLM_FALLBACK, message_type, extracted)
     if extracted.get('intent') in {'find_cab', 'ride'}:
         _reply(phone, 'Please share your WhatsApp location so we can find nearby cabs.')

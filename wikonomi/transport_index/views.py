@@ -1,11 +1,17 @@
 """Webhook and public views for the transport index app."""
 
+import hashlib
+import hmac
 import importlib
 import importlib.util
 import json
 import logging
+import sys
 
+from django.conf import settings
 from django.core import signing
+from django.core.exceptions import ImproperlyConfigured
+from django.core.paginator import Paginator
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -20,8 +26,10 @@ from .whatsapp_client import get_webhook_verify_token
 
 logger = logging.getLogger(__name__)
 
-if importlib.util.find_spec('ratelimit'):
-    ratelimit = importlib.import_module('ratelimit.decorators').ratelimit
+if importlib.util.find_spec('django_ratelimit'):
+    ratelimit = importlib.import_module('django_ratelimit.decorators').ratelimit
+elif not settings.DEBUG and 'test' not in sys.argv:
+    raise ImproperlyConfigured('django-ratelimit must be installed for production contact protection.')
 else:
     def ratelimit(*args, **kwargs):
         def decorator(func):
@@ -50,6 +58,22 @@ def _parse_inbound_messages(payload):
                 }
 
 
+def _valid_meta_signature(request):
+    app_secret = getattr(settings, 'WHATSAPP_APP_SECRET', '')
+    if not app_secret:
+        return True
+    signature = request.META.get('HTTP_X_HUB_SIGNATURE_256', '')
+    if not signature.startswith('sha256='):
+        return False
+    expected = hmac.new(
+        app_secret.encode('utf-8'),
+        request.body,
+        hashlib.sha256,
+    ).hexdigest()
+    supplied = signature.split('=', 1)[1]
+    return hmac.compare_digest(expected, supplied)
+
+
 @csrf_exempt
 @require_http_methods(['GET', 'POST'])
 def whatsapp_webhook(request):
@@ -61,6 +85,9 @@ def whatsapp_webhook(request):
         if verify_token and mode == 'subscribe' and token == verify_token and challenge is not None:
             return HttpResponse(challenge, content_type='text/plain')
         return HttpResponseForbidden('Webhook verification failed')
+
+    if not _valid_meta_signature(request):
+        return HttpResponseForbidden('Invalid webhook signature')
 
     try:
         payload = json.loads(request.body.decode('utf-8') or '{}')
@@ -95,11 +122,25 @@ def cab_list(request):
             status__last_updated__gte=cutoff,
         )
 
+    paginator = Paginator(drivers.order_by('home_area', 'display_name'), 12)
+    page_obj = paginator.get_page(request.GET.get('page'))
     return render(
         request,
         'transport_index/cab_list.html',
-        {'drivers': drivers.order_by('home_area', 'display_name'), 'vehicle_types': CabDriver.VehicleType.choices},
+        {
+            'drivers': page_obj.object_list,
+            'page_obj': page_obj,
+            'vehicle_types': CabDriver.VehicleType.choices,
+            'querystring_without_page': _querystring_without_page(request),
+        },
     )
+
+
+def _querystring_without_page(request):
+    query = request.GET.copy()
+    query.pop('page', None)
+    encoded = query.urlencode()
+    return f'{encoded}&' if encoded else ''
 
 
 def cab_profile(request, slug):
