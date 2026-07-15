@@ -1,0 +1,1 @@
+{% extends "admin/base_site.html" %}{% block content %}<h1>Transport router dashboard</h1><table><tr><th>Stage</th><th>Count</th><th>Percent</th></tr>{% for row in rows %}<tr><td>{{ row.stage }}</td><td>{{ row.count }}</td><td>{% widthratio row.count total 100 %}%</td></tr>{% endfor %}</table>{% endblock %}

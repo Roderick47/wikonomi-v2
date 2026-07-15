@@ -1,0 +1,8 @@
+<!doctype html><html><head><title>{{ driver.display_name }} | Wikonomi Cabs</title></head><body>
+<h1>{{ driver.display_name }} {% if driver.is_verified %}✓ Verified{% endif %}</h1>
+{% if driver.profile_photo %}<img src="{{ driver.profile_photo.url }}" alt="{{ driver.display_name }} profile photo">{% endif %}
+{% if driver.vehicle_photo %}<img src="{{ driver.vehicle_photo.url }}" alt="{{ driver.display_name }} vehicle photo">{% endif %}
+<p>{{ driver.get_vehicle_type_display }}{% if driver.vehicle_make_model %} • {{ driver.vehicle_make_model }}{% endif %}</p><p>Plate: {{ driver.vehicle_plate }}</p><p>Home area: {{ driver.home_area|default:'Not listed' }}</p><p>{{ driver.bio }}</p>
+{% if driver.status %}<p>Status: {{ driver.status.get_availability_display }} • last seen {{ driver.status.last_seen_minutes }} min ago</p>{% endif %}
+<a href="{% url 'transport_index:cab_contact' driver.slug %}" rel="nofollow">Chat on WhatsApp</a>
+</body></html>
