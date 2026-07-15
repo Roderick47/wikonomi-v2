@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     'users',
     'analytics',
     'guides',
+    'transport_index',
     'taggit',
 ]
 
