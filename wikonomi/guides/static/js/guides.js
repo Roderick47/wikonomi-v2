@@ -323,7 +323,7 @@ function initGuideActions() {
         const share = event.target.closest('[data-share-guide]');
         if (rating) openGuidePopover(document.querySelector('[data-rating-popover]'));
         if (fork) openGuidePopover(document.querySelector('[data-fork-popover]'));
-        if (share) sharePriceReport(event, {title: share.dataset.title, text: 'Check out this Wikonomi guide.', url: window.location.href});
+        if (share) sharePriceReport(event, {title: share.dataset.title, text: buildGuideShareText(share.dataset.title), url: window.location.href});
         if (rating || fork || share) closeMenu();
         if (event.target.closest('[data-close-popover]')) closeGuidePopovers();
     });
@@ -342,6 +342,27 @@ function initGuideActions() {
             window.location.href = data.url;
         } catch (err) { error.textContent = err.message; error.classList.remove('hidden'); submit.disabled = false; submit.textContent = 'Copy Guide'; }
     });
+}
+
+function buildGuideShareText(title) {
+    const maxTitleLength = 120;
+    const maxStepLength = 220;
+    const cleanText = (value) => (value || '').replace(/\\s+/g, ' ').trim();
+    const truncate = (value, maxLength) => {
+        const text = cleanText(value);
+        return text.length > maxLength ? text.slice(0, maxLength - 1).trimEnd() + '…' : text;
+    };
+    const steps = [...document.querySelectorAll('[data-steps-list] > [data-step-id]')].map((step, index) => {
+        const stepTitle = cleanText(step.querySelector('[data-step-title]')?.textContent);
+        const instruction = cleanText(step.querySelector('[data-step-instruction]')?.textContent);
+        const summary = [stepTitle, instruction].filter(Boolean).join(': ');
+        return summary ? `${index + 1}. ${truncate(summary, maxStepLength)}` : '';
+    }).filter(Boolean);
+    return [
+        `How to: ${truncate(title, maxTitleLength)}`,
+        steps.length ? `\\nSteps:\\n${steps.join('\\n')}` : '',
+        `\\n\\nRead the full guide on Wikonomi:\\n${window.location.href}`,
+    ].join('');
 }
 
 function initGuideQuestions() {
