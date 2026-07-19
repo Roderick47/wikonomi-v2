@@ -200,12 +200,13 @@
                 event.stopPropagation();
             }
 
-            const { title, text, url } = data;
+            const { title, text, url, urlInText } = data;
+            const shareUrl = url || window.location.href;
             const shareData = {
                 title: title || 'Check out this price on Wikonomi',
-                text: text || `Check out the price for ${title} on Wikonomi!`,
-                url: url || window.location.href
+                text: text || `Check out the price for ${title} on Wikonomi!`
             };
+            if (!urlInText) shareData.url = shareUrl;
 
             if (navigator.share) {
                 try {
@@ -214,11 +215,11 @@
                 } catch (err) {
                     if (err.name !== 'AbortError') {
                         console.error('Error sharing:', err);
-                        copyToClipboard(shareData.url);
+                        copyToClipboard(shareUrl);
                     }
                 }
             } else {
-                copyToClipboard(shareData.url);
+                copyToClipboard(shareUrl);
             }
         }
 
