@@ -360,7 +360,7 @@ function buildGuideShareText(title) {
     }).filter(Boolean);
     return [
         `How to: ${truncate(title, maxTitleLength)}`,
-        steps.length ? `\\nSteps:\\n${steps.join('\\n')}` : '',
+        steps.length ? `\nSteps:\n${steps.join('\n')}` : '',
         `\\n\\nRead the full guide on Wikonomi:\\n${window.location.href}`,
     ].join('');
 }
