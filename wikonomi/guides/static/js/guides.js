@@ -323,7 +323,7 @@ function initGuideActions() {
         const share = event.target.closest('[data-share-guide]');
         if (rating) openGuidePopover(document.querySelector('[data-rating-popover]'));
         if (fork) openGuidePopover(document.querySelector('[data-fork-popover]'));
-        if (share) sharePriceReport(event, {title: share.dataset.title, text: buildGuideShareText(share.dataset.title), url: window.location.href});
+        if (share) sharePriceReport(event, {title: share.dataset.title, text: buildGuideShareText(share.dataset.title), url: window.location.href, urlInText: true});
         if (rating || fork || share) closeMenu();
         if (event.target.closest('[data-close-popover]')) closeGuidePopovers();
     });
@@ -361,6 +361,7 @@ function buildGuideShareText(title) {
     return [
         `How to: ${truncate(title, maxTitleLength)}`,
         steps.length ? `\nSteps:\n${steps.join('\n')}` : '',
+        `\n\nRead the full guide on Wikonomi:\n${window.location.href}`,
     ].join('');
 }
 
