@@ -5,6 +5,7 @@ from django.db import transaction
 from django.db.models import F, Prefetch, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.text import slugify
 from django.views.decorators.http import require_GET, require_POST
@@ -110,7 +111,10 @@ def _json_body(request):
 
 
 def _guide_queryset():
-    return Guide.objects.select_related('organization', 'category', 'forked_from', 'current_version')
+    return Guide.objects.select_related(
+        'organization', 'category', 'forked_from', 'created_by',
+        'current_version', 'current_version__edited_by',
+    )
 
 
 def _steps_for_version(version):
@@ -225,6 +229,12 @@ def guide_detail(request, slug):
     )
     for question in questions:
         question.accepted = any(answer.is_accepted for answer in question.answers.all())
+
+    has_edits = guide.versions.exclude(pk=guide.current_version_id).exists()
+    share_image_url = request.build_absolute_uri(
+        guide.photo.url if guide.photo else static('img/wikonomi-guide-og-default.jpg')
+    )
+    canonical_url = request.build_absolute_uri(request.path)
     return render(request, 'guides/detail.html', {
         'guide': guide,
         'steps': steps,
@@ -235,6 +245,10 @@ def guide_detail(request, slug):
         'answered_question_count': sum(1 for question in questions if question.accepted),
         'unanswered_question_count': sum(1 for question in questions if not question.accepted),
         'can_delete_guide': guide.can_delete(request.user),
+        'has_edits': has_edits,
+        'latest_editor': guide.current_version.edited_by if has_edits and guide.current_version else None,
+        'share_image_url': share_image_url,
+        'canonical_url': canonical_url,
     })
 
 
