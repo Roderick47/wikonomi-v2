@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initGuideActions();
     initGuideQuestions();
     initGuideDeletion();
+    initGuideSignIn();
 });
 
 function initGuidePhotoPreview() {
@@ -93,7 +94,7 @@ function initGuideRating() {
             });
             if (response.status === 401 || response.status === 403) {
                 showToast('Please log in to rate this guide', 'info');
-                window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`;
+                showGuideSignIn();
                 return;
             }
             if (!response.ok) throw new Error('Rating request failed');
@@ -204,7 +205,8 @@ function initTips() {
                     body: formData,
                 });
                 const data = await response.json().catch(() => ({}));
-                if (response.status === 401 || response.status === 403) { window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`; return; }
+                if (response.status === 401 || response.status === 403) { showGuideSignIn();
+                return; }
                 if (!response.ok) throw new Error(data.error || firstFormError(data.errors) || 'Failed to add tip');
                 const tipList = document.querySelector(`[data-step-tips][data-step-id="${stepId}"]`);
                 if (tipList) tipList.appendChild(buildTipElement(data));
@@ -248,7 +250,8 @@ async function voteTip(slug, button) {
     try {
         const card = button.closest('[data-tip-id]');
         const response = await fetch(`/guides/${slug}/steps/tips/${card.dataset.tipId}/vote/`, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'}, body: JSON.stringify({value: Number(button.dataset.voteValue)})});
-        if (response.status === 401 || response.status === 403) { window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`; return; }
+        if (response.status === 401 || response.status === 403) { showGuideSignIn();
+                return; }
         if (!response.ok) throw new Error('Vote failed');
         const data = await response.json();
         card.querySelector('[data-tip-score]').textContent = data.score;
@@ -335,9 +338,10 @@ function initGuideActions() {
         submit.disabled = true; submit.textContent = 'Copying…'; error.classList.add('hidden');
         try {
             const response = await fetch(forkForm.action, {method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'}, body: new FormData(forkForm)});
-            if (response.redirected && response.url.includes('/login/')) { window.location.href = response.url; return; }
+            if (response.redirected && response.url.includes('/login/')) { showGuideSignIn(); return; }
             const data = await response.json().catch(() => ({}));
-            if (response.status === 401 || response.status === 403) { window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`; return; }
+            if (response.status === 401 || response.status === 403) { showGuideSignIn();
+                return; }
             if (!response.ok) throw new Error(firstFormError(data.errors) || data.error || 'Could not copy guide');
             window.location.href = data.url;
         } catch (err) { error.textContent = err.message; error.classList.remove('hidden'); submit.disabled = false; submit.textContent = 'Copy Guide'; }
@@ -376,8 +380,8 @@ function initGuideQuestions() {
 
     function openQuestion(stepId = 'general') {
         if (!popover || !form) {
-            window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`;
-            return;
+            showGuideSignIn();
+                return;
         }
         form.reset();
         stepSelect.value = stepId || 'general';
@@ -417,7 +421,8 @@ function initGuideQuestions() {
                 body: JSON.stringify({body: question, step_id: stepSelect.value}),
             });
             const data = await response.json().catch(() => ({}));
-            if (response.status === 401 || response.status === 403) { window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`; return; }
+            if (response.status === 401 || response.status === 403) { showGuideSignIn();
+                return; }
             if (!response.ok) throw new Error(data.error || firstFormError(data.errors) || 'Could not post question');
             window.location.assign(data.target_url);
         } catch (err) {
@@ -645,4 +650,35 @@ function renumberSteps(editor) {
         row.dataset.position = index + 1;
         if (badge && !badge.querySelector('svg')) badge.textContent = index + 1;
     });
+}
+
+
+function initGuideSignIn() {
+    const modal = document.querySelector('[data-guide-signin-modal]');
+    if (!modal) return;
+
+    const closeModal = () => {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('overflow-hidden');
+    };
+
+    modal.querySelectorAll('[data-guide-signin-close]').forEach((element) => {
+        element.addEventListener('click', closeModal);
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+    });
+}
+
+function showGuideSignIn() {
+    const modal = document.querySelector('[data-guide-signin-modal]');
+    if (!modal) {
+        showToast('Please sign in with Google to continue', 'info');
+        return;
+    }
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('overflow-hidden');
+    setTimeout(() => modal.querySelector('[data-guide-google-signin]')?.focus(), 0);
 }
