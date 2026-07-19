@@ -347,7 +347,7 @@ function initGuideActions() {
 function buildGuideShareText(title) {
     const maxTitleLength = 120;
     const maxStepLength = 220;
-    const cleanText = (value) => (value || '').replace(/\\s+/g, ' ').trim();
+    const cleanText = (value) => (value || '').replace(/\s+/g, ' ').trim();
     const truncate = (value, maxLength) => {
         const text = cleanText(value);
         return text.length > maxLength ? text.slice(0, maxLength - 1).trimEnd() + '…' : text;
@@ -361,7 +361,7 @@ function buildGuideShareText(title) {
     return [
         `How to: ${truncate(title, maxTitleLength)}`,
         steps.length ? `\nSteps:\n${steps.join('\n')}` : '',
-        `\\n\\nRead the full guide on Wikonomi:\\n${window.location.href}`,
+        `\n\nRead the full guide on Wikonomi:\n${window.location.href}`,
     ].join('');
 }
 
