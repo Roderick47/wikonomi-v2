@@ -232,7 +232,7 @@ def guide_detail(request, slug):
 
     has_edits = guide.versions.exclude(pk=guide.current_version_id).exists()
     share_image_url = request.build_absolute_uri(
-        guide.photo.url if guide.photo else static('img/wikonomi-guide-og-default.jpg')
+        guide.photo.url if guide.photo else static('img/wikonomi-og-default.jpg')
     )
     canonical_url = request.build_absolute_uri(request.path)
     return render(request, 'guides/detail.html', {
