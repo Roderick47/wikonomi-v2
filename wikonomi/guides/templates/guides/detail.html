@@ -3,14 +3,38 @@
 
 {% block page_title %}{{ guide.title }} — Wikonomi Guides{% endblock %}
 
+{% block og_tags %}
+<link rel="canonical" href="{{ canonical_url }}">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Wikonomi">
+<meta property="og:url" content="{{ canonical_url }}">
+<meta property="og:title" content="{{ guide.title }} — Wikonomi Guides">
+<meta property="og:description" content="{{ guide.summary|default:'A practical local guide shared by the Wikonomi community.'|striptags|truncatechars:200 }}">
+<meta property="og:image" content="{{ share_image_url }}">
+<meta property="og:image:secure_url" content="{{ share_image_url }}">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:alt" content="{% if guide.photo %}Cover image for {{ guide.title }}{% else %}Wikonomi — Your local guide to PNG{% endif %}">
+<meta property="og:locale" content="en_PG">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ guide.title }} — Wikonomi Guides">
+<meta name="twitter:description" content="{{ guide.summary|default:'A practical local guide shared by the Wikonomi community.'|striptags|truncatechars:200 }}">
+<meta name="twitter:image" content="{{ share_image_url }}">
+{% endblock %}
+
 {% block content %}
 <div class="max-w-3xl mx-auto">
     <div class="mb-2">
         <div>
             <h1 class="text-2xl font-bold text-gray-900 mb-1">{{ guide.title }}</h1>
-            <p class="text-sm text-gray-500">
-                {% if guide.organization %}{{ guide.organization.name }}<span class="mx-1.5">&middot;</span>{% endif %}
-                {% if guide.category %}{{ guide.category.name }}{% endif %}
+            <p class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-gray-500">
+                {% if guide.organization %}<a href="{% url 'business_detail' guide.organization.pk %}" class="font-semibold text-brand-purple hover:underline">{{ guide.organization.name }}</a><span aria-hidden="true">&middot;</span>{% endif %}
+                {% if guide.category %}<span>{{ guide.category.name }}</span><span aria-hidden="true">&middot;</span>{% endif %}
+                {% if has_edits %}
+                    <a href="{% url 'guides:history' guide.slug %}" class="hover:text-brand-purple hover:underline">Created by @{{ guide.created_by.username|default:'deleted-user' }}</a>
+                    {% if latest_editor %}<span aria-hidden="true">&middot;</span><a href="{% url 'guides:history' guide.slug %}" class="hover:text-brand-purple hover:underline">Edited by @{{ latest_editor.username }}</a>{% endif %}
+                {% else %}
+                    <span>Created by @{{ guide.created_by.username|default:'deleted-user' }}</span>
+                {% endif %}
             </p>
         </div>
     </div>

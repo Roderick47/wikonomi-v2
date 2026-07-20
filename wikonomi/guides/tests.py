@@ -33,6 +33,59 @@ class GuideBackendTests(TestCase):
         self.guide.current_version = self.version
         self.guide.save(update_fields=['current_version'])
 
+    def test_detail_links_business_and_shows_unlinked_creator_before_edits(self):
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+
+        self.assertContains(response, f'href="{reverse("business_detail", args=[self.business.pk])}"')
+        self.assertContains(response, 'Created by @guideuser')
+        self.assertFalse(response.context['has_edits'])
+        self.assertNotContains(response, reverse('guides:history', args=[self.guide.slug]))
+
+    def test_detail_links_creator_and_latest_editor_to_history_after_edit(self):
+        editor = get_user_model().objects.create_user(username='helpful-editor', password='pass')
+        edited_version = GuideVersion.objects.create(
+            guide=self.guide,
+            edited_by=editor,
+            edit_summary='Clarified required documents',
+        )
+        self.guide.current_version = edited_version
+        self.guide.save(update_fields=['current_version'])
+
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+        history_url = reverse('guides:history', args=[self.guide.slug])
+
+        self.assertTrue(response.context['has_edits'])
+        self.assertEqual(response.context['latest_editor'], editor)
+        self.assertContains(response, 'Created by @guideuser')
+        self.assertContains(response, 'Edited by @helpful-editor')
+        self.assertContains(response, f'href="{history_url}"', count=2)
+
+    def test_detail_social_image_uses_guide_photo_or_branded_fallback(self):
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+        self.assertEqual(
+            response.context['share_image_url'],
+            'http://testserver/static/img/wikonomi-og-default.jpg',
+        )
+        self.assertContains(
+            response,
+            '<meta property="og:image" content="http://testserver/static/img/wikonomi-og-default.jpg">',
+            html=True,
+        )
+
+        self.guide.photo = tiny_png('guide-share.png')
+        self.guide.save(update_fields=['photo'])
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+
+        self.assertEqual(
+            response.context['share_image_url'],
+            f'http://testserver{self.guide.photo.url}',
+        )
+        self.assertContains(
+            response,
+            f'<meta property="og:image" content="http://testserver{self.guide.photo.url}">',
+            html=True,
+        )
+
     def test_guide_rate_requires_auth_json_status(self):
         response = self.client.post(
             reverse('guides:rate', args=[self.guide.slug]),
