@@ -64,11 +64,11 @@ class GuideBackendTests(TestCase):
         response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
         self.assertEqual(
             response.context['share_image_url'],
-            'http://testserver/static/img/wikonomi-guide-og-default.jpg',
+            'http://testserver/static/img/wikonomi-og-default.jpg',
         )
         self.assertContains(
             response,
-            '<meta property="og:image" content="http://testserver/static/img/wikonomi-guide-og-default.jpg">',
+            '<meta property="og:image" content="http://testserver/static/img/wikonomi-og-default.jpg">',
             html=True,
         )
 
