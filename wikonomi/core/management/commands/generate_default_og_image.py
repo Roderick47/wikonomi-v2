@@ -20,6 +20,13 @@ class Command(BaseCommand):
         output_path = Path(options["output"] or settings.BASE_DIR / "core" / "static" / "img" / "wikonomi-og-default.jpg")
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
+        # Production ships the branded social card as a checked-in asset. Keep
+        # this command for fresh development checkouts, but never overwrite the
+        # official artwork during Render startup or collectstatic builds.
+        if output_path.exists():
+            self.stdout.write(self.style.SUCCESS(f"Using existing default OG image at {output_path}"))
+            return
+
         self.generate_image(output_path)
         self.stdout.write(self.style.SUCCESS(f"Generated default OG image at {output_path}"))
 
