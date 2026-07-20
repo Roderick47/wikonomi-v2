@@ -189,6 +189,10 @@ def guide_list(request):
 
 @login_required
 def guide_create(request):
+    source_business = None
+    business_id = request.GET.get('business')
+    if business_id and business_id.isdigit():
+        source_business = Business.objects.filter(pk=business_id).first()
     if request.method == 'POST':
         form = GuideForm(request.POST, request.FILES)
         if form.is_valid():
@@ -204,8 +208,15 @@ def guide_create(request):
             guide.save(update_fields=['current_version'])
             return redirect('guides:detail', slug=guide.slug)
     else:
-        form = GuideForm()
-    return render(request, 'guides/guide_create.html', _guide_form_context(form))
+        initial = {'organization_name': source_business.name} if source_business else None
+        form = GuideForm(initial=initial)
+    context = _guide_form_context(form)
+    context['source_business'] = source_business
+    context['guide_draft_key'] = (
+        f'wikonomi-guide-new-business-{source_business.pk}'
+        if source_business else 'wikonomi-guide-new'
+    )
+    return render(request, 'guides/guide_create.html', context)
 
 
 def guide_detail(request, slug):
