@@ -94,6 +94,36 @@ class GuideBackendTests(TestCase):
         self.assertContains(response, 'data-copy-guide-share')
         self.assertContains(response, 'Copy share text')
 
+    def test_create_prefills_business_from_business_detail_link(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse('guides:create'),
+            {'business': self.business.pk},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['source_business'], self.business)
+        self.assertEqual(
+            response.context['form'].initial['organization_name'],
+            self.business.name,
+        )
+        self.assertEqual(
+            response.context['guide_draft_key'],
+            f'wikonomi-guide-new-business-{self.business.pk}',
+        )
+        self.assertContains(response, f'Creating for {self.business.name}')
+        self.assertContains(response, f'value="{self.business.name}"')
+
+    def test_create_ignores_unknown_business_prefill(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('guides:create'), {'business': 'not-an-id'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.context['source_business'])
+        self.assertEqual(response.context['guide_draft_key'], 'wikonomi-guide-new')
+
     def test_guide_rate_requires_auth_json_status(self):
         response = self.client.post(
             reverse('guides:rate', args=[self.guide.slug]),
