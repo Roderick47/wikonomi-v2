@@ -2,6 +2,7 @@ import json
 import csv
 import io
 import re
+from urllib.parse import urlencode
 from decimal import Decimal, InvalidOperation
 from django.db import transaction
 from django.utils.text import slugify
@@ -821,6 +822,7 @@ class BusinessDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         business = self.get_object()
+        from guides.models import Guide
         
         # Get all price reports for this business with location data
         price_reports = PriceReport.objects.filter(
@@ -855,6 +857,16 @@ class BusinessDetailView(DetailView):
         context['price_reports'] = price_reports
         context['reports_with_location'] = reports_with_location
         context['products_data'] = products_data
+        context['business_guides'] = Guide.objects.filter(
+            organization=business
+        ).select_related(
+            'category', 'organization', 'created_by', 'current_version'
+        ).order_by('-created_at')
+        context['guide_count'] = context['business_guides'].count()
+        context['add_guide_url'] = '{}?{}'.format(
+            reverse('guides:create'),
+            urlencode({'business': business.pk}),
+        )
         context['total_reports'] = price_reports.count()
         rating_summary = business.ratings.aggregate(
             average_rating=Avg('rating'),

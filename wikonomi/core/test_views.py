@@ -343,6 +343,48 @@ class PriceReportDetailCommentsAssetTest(TestCase):
         self.assertContains(response, 'js/comments.js')
 
 
+class BusinessDetailGuidesTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='guide-author', password='pass')
+        self.business = Business.objects.create(name='City Pharmacy', slug='city-pharmacy-guides')
+        self.other_business = Business.objects.create(name='Other Pharmacy', slug='other-pharmacy-guides')
+        self.url = reverse('business_detail', kwargs={'pk': self.business.pk})
+
+    def test_business_detail_guides_tab_only_lists_linked_guides(self):
+        from guides.models import Guide
+
+        linked_guide = Guide.objects.create(
+            title='Visit the nurse station',
+            slug='visit-the-nurse-station',
+            organization=self.business,
+            created_by=self.user,
+        )
+        Guide.objects.create(
+            title='Guide for another pharmacy',
+            slug='guide-for-another-pharmacy',
+            organization=self.other_business,
+            created_by=self.user,
+        )
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context['business_guides']), [linked_guide])
+        self.assertContains(response, 'data-business-tab="guides"')
+        self.assertContains(response, linked_guide.title)
+        self.assertNotContains(response, 'Guide for another pharmacy')
+
+    def test_business_without_guides_has_scoped_add_guide_actions(self):
+        add_guide_url = f'{reverse("guides:create")}?business={self.business.pk}'
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'No guides yet')
+        self.assertContains(response, add_guide_url, count=2)
+        self.assertContains(response, 'Add guide for this business')
+
+
 class SearchFunctionalityTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='testuser', password='testpass')

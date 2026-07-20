@@ -148,7 +148,7 @@
 {% static 'img/default-profile.svg' as default_profile_picture_url %}
 <div class="max-w-7xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
 {% url 'business_edit' business.pk as shortcut_edit_url %}
-{% include "includes/_detail_shortcuts.html" with shortcut_label='Business detail' shortcut_title=business.name shortcut_meta=average_rating|default:0|floatformat:1|add:'/5 rating' shortcut_rating_target='business' shortcut_object_id=business.id shortcut_comment_content_type_id=comment_content_type_id shortcut_edit_url=shortcut_edit_url shortcut_rate_label='Rate this business' shortcut_edit_label='Edit this business' shortcut_comment_label='Write Comment' %}
+{% include "includes/_detail_shortcuts.html" with shortcut_label='Business detail' shortcut_title=business.name shortcut_meta=average_rating|default:0|floatformat:1|add:'/5 rating' shortcut_rating_target='business' shortcut_object_id=business.id shortcut_comment_content_type_id=comment_content_type_id shortcut_edit_url=shortcut_edit_url shortcut_add_guide_url=add_guide_url shortcut_add_guide_label='Add guide for this business' shortcut_rate_label='Rate this business' shortcut_edit_label='Edit this business' shortcut_comment_label='Write Comment' %}
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <a href="{% url 'home' %}" class="inline-flex items-center text-brand-purple hover:text-brand-purple/80 font-medium">
             <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
@@ -198,6 +198,10 @@
                     <span class="stat-pill inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold ring-1 ring-white/25">
                         <svg class="h-5 w-5 text-amber-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                         {{ products_data|length }} products
+                    </span>
+                    <span class="stat-pill inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold ring-1 ring-white/25">
+                        <svg class="h-5 w-5 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5s3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253"></path></svg>
+                        {{ guide_count }} guide{{ guide_count|pluralize }}
                     </span>
                 </div>
 
@@ -277,9 +281,14 @@
     {% endif %}
 
     <div class="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)] lg:items-start">
-        <!-- Products Section -->
-        <section class="bg-white shadow rounded-xl border border-slate-100">
-            <div class="px-4 py-5 sm:p-6">
+        <section class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow" data-business-catalog>
+            <div class="border-b border-slate-200 px-4 sm:px-6">
+                <nav class="flex gap-6" role="tablist" aria-label="Business content">
+                    <button type="button" role="tab" aria-selected="true" aria-controls="business-products-panel" id="business-products-tab" class="border-b-2 border-brand-purple px-1 py-4 text-sm font-bold text-brand-purple" data-business-tab="products">Products <span class="ml-1 rounded-full bg-brand-purple/10 px-2 py-0.5 text-xs">{{ products_data|length }}</span></button>
+                    <button type="button" role="tab" aria-selected="false" aria-controls="business-guides-panel" id="business-guides-tab" class="border-b-2 border-transparent px-1 py-4 text-sm font-bold text-slate-500 hover:text-brand-purple" data-business-tab="guides">Guides <span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs">{{ guide_count }}</span></button>
+                </nav>
+            </div>
+            <div id="business-products-panel" role="tabpanel" aria-labelledby="business-products-tab" class="px-4 py-5 sm:p-6" data-business-panel="products">
                 <div class="mb-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                     <div>
                         <h2 class="text-lg font-semibold text-gray-900">Available Products</h2>
@@ -324,6 +333,24 @@
                         <h3 class="mt-2 text-sm font-medium text-gray-900">No products found</h3>
                         <p class="mt-1 text-sm text-gray-500">No price reports have been made for this business yet.</p>
                     </div>
+                {% endif %}
+            </div>
+            <div id="business-guides-panel" role="tabpanel" aria-labelledby="business-guides-tab" class="hidden px-4 py-5 sm:p-6" data-business-panel="guides">
+                <div class="mb-5">
+                    <h2 class="text-lg font-semibold text-gray-900">Guides for {{ business.name }}</h2>
+                    <p class="text-sm text-gray-500">Community instructions connected to this business or organization.</p>
+                </div>
+                {% if business_guides %}
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {% for guide in business_guides %}{% include "guides/_guide_card.html" with guide=guide %}{% endfor %}
+                </div>
+                {% else %}
+                <div class="rounded-2xl border border-dashed border-brand-purple/25 bg-brand-purple/5 px-6 py-12 text-center">
+                    <svg class="mx-auto h-12 w-12 text-brand-purple/50" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5s3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253"></path></svg>
+                    <h3 class="mt-3 text-base font-bold text-slate-900">No guides yet</h3>
+                    <p class="mx-auto mt-1 max-w-md text-sm text-slate-600">Be the first to share helpful steps for getting something done with {{ business.name }}.</p>
+                    <a href="{{ add_guide_url }}" class="mt-5 inline-flex items-center rounded-xl bg-brand-purple px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-purple/90">Add a guide for {{ business.name }}</a>
+                </div>
                 {% endif %}
             </div>
         </section>
@@ -495,6 +522,31 @@
         searchInput?.addEventListener('input', applyProductControls);
         sortSelect?.addEventListener('change', applyProductControls);
         applyProductControls();
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabs = Array.from(document.querySelectorAll('[data-business-tab]'));
+        const panels = Array.from(document.querySelectorAll('[data-business-panel]'));
+        if (!tabs.length) return;
+
+        function selectBusinessTab(name) {
+            tabs.forEach(function(tab) {
+                const active = tab.dataset.businessTab === name;
+                tab.setAttribute('aria-selected', active ? 'true' : 'false');
+                tab.classList.toggle('border-brand-purple', active);
+                tab.classList.toggle('text-brand-purple', active);
+                tab.classList.toggle('border-transparent', !active);
+                tab.classList.toggle('text-slate-500', !active);
+            });
+            panels.forEach(function(panel) {
+                panel.classList.toggle('hidden', panel.dataset.businessPanel !== name);
+            });
+        }
+
+        tabs.forEach(tab => tab.addEventListener('click', () => selectBusinessTab(tab.dataset.businessTab)));
+        if (new URLSearchParams(window.location.search).get('tab') === 'guides') selectBusinessTab('guides');
     });
 </script>
 
