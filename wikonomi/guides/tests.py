@@ -86,6 +86,14 @@ class GuideBackendTests(TestCase):
             html=True,
         )
 
+    def test_detail_includes_desktop_share_text_preview(self):
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+
+        self.assertContains(response, 'data-share-popover')
+        self.assertContains(response, 'data-guide-share-text')
+        self.assertContains(response, 'data-copy-guide-share')
+        self.assertContains(response, 'Copy share text')
+
     def test_guide_rate_requires_auth_json_status(self):
         response = self.client.post(
             reverse('guides:rate', args=[self.guide.slug]),
