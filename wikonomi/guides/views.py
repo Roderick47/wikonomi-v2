@@ -20,9 +20,9 @@ from .models import (
 
 
 
-def _unique_model_slug(model, name):
+def _unique_model_slug(model, name, fallback='item'):
     max_length = model._meta.get_field('slug').max_length
-    base = (slugify(name) or 'item')[:max_length].rstrip('-') or 'item'
+    base = (slugify(name) or fallback)[:max_length].rstrip('-') or fallback
     slug = base
     counter = 2
     while model.objects.filter(slug=slug).exists():
@@ -96,7 +96,7 @@ def _guide_form_context(form, **extra):
     return context
 
 def _unique_slug(title):
-    return _unique_model_slug(Guide, title)
+    return _unique_model_slug(Guide, title, fallback='guide')
 
 
 def _json_body(request):
