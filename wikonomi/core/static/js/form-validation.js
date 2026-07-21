@@ -57,7 +57,7 @@
         if (errorId) {
             document.getElementById(errorId)?.remove();
             const describedBy = (field.getAttribute('aria-describedby') || '')
-                .split(/\\s+/)
+                .split(/\s+/)
                 .filter(id => id && id !== errorId);
             if (describedBy.length) field.setAttribute('aria-describedby', describedBy.join(' '));
             else field.removeAttribute('aria-describedby');
@@ -139,6 +139,34 @@
         const message = field.type === 'file' ? fileMessage(field) : nativeMessage(field);
         if (message && options?.show !== false) showFieldError(field, message);
         return message;
+    }
+
+    function supportsCharacterCounter(field) {
+        if (!field || field.dataset.noCharacterCounter !== undefined || field.maxLength <= 0) return false;
+        const type = (field.type || '').toLowerCase();
+        return field.tagName === 'TEXTAREA' || ['text', 'search', 'email', 'tel', 'url'].includes(type);
+    }
+
+    function initCharacterCounter(field) {
+        if (!supportsCharacterCounter(field) || field.dataset.wkCharacterCounterInitialized !== undefined) return;
+
+        const counter = document.createElement('p');
+        const counterId = `wk-counter-${field.id || field.name || Math.random().toString(36).slice(2, 8)}`;
+        counter.id = counterId;
+        counter.setAttribute('data-wk-character-counter', '');
+        counter.className = 'mt-1 text-xs text-slate-500';
+
+        const update = () => {
+            const length = String(field.value || '').length;
+            counter.textContent = `${length} / ${field.maxLength} characters`;
+            counter.style.color = length >= field.maxLength ? '#b45309' : '';
+        };
+
+        errorAnchor(field).insertAdjacentElement('afterend', counter);
+        field.setAttribute('aria-describedby', [field.getAttribute('aria-describedby'), counterId].filter(Boolean).join(' '));
+        field.dataset.wkCharacterCounterInitialized = '';
+        field.addEventListener('input', update);
+        update();
     }
 
     function validateGuideSteps(form, errors) {
@@ -229,6 +257,7 @@
 
     function initForm(form) {
         form.noValidate = true;
+        Array.from(form.elements).forEach(initCharacterCounter);
 
         form.addEventListener('submit', event => {
             const result = validateForm(form);
@@ -238,6 +267,8 @@
                 focusFirstError(result.errors);
             }
         }, true);
+
+        form.addEventListener('focusin', event => initCharacterCounter(event.target));
 
         form.addEventListener('focusout', event => {
             if (event.target?.matches('input, select, textarea')) validateField(event.target, {show: true});
