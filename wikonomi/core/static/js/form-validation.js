@@ -53,7 +53,14 @@
         field.removeAttribute('aria-invalid');
         field.style.removeProperty('border-color');
         const errorId = field.dataset.clientErrorId;
-        if (errorId) document.getElementById(errorId)?.remove();
+        if (errorId) {
+            document.getElementById(errorId)?.remove();
+            const describedBy = (field.getAttribute('aria-describedby') || '')
+                .split(/\\s+/)
+                .filter(id => id && id !== errorId);
+            if (describedBy.length) field.setAttribute('aria-describedby', describedBy.join(' '));
+            else field.removeAttribute('aria-describedby');
+        }
         delete field.dataset.clientErrorId;
     }
 
@@ -125,7 +132,7 @@
     }
 
     function validateField(field, options) {
-        if (!field || field.disabled || !field.name || ['submit', 'button', 'reset'].includes(field.type)) return '';
+        if (!field || field.disabled || (!field.name && field.type !== 'file') || ['submit', 'button', 'reset'].includes(field.type)) return '';
         if (field.type === 'hidden' && !field.dataset.validateHidden) return '';
         clearFieldError(field);
         const message = field.type === 'file' ? fileMessage(field) : nativeMessage(field);
@@ -194,6 +201,7 @@
 
     function validateForm(form, options) {
         const errors = [];
+        form.querySelectorAll('[aria-invalid="true"]').forEach(clearFieldError);
         form.querySelectorAll(`[${ERROR_ATTRIBUTE}]`).forEach(node => node.remove());
         form.querySelector('[data-wk-validation-summary]')?.remove();
 
