@@ -15,14 +15,14 @@
         <div class="px-4 py-5 sm:p-6">
             <h1 class="text-2xl font-bold text-gray-900 mb-6">Edit Price Report</h1>
             
-            <form method="post" enctype="multipart/form-data">
+            <form method="post" enctype="multipart/form-data" data-wk-validate data-form-kind="price" data-require-location-for="business_name">
                 {% csrf_token %}
                 
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div class="sm:col-span-2">
                         <label for="product_search" class="block text-sm font-medium text-gray-700">Product</label>
                         <div class="mt-1 flex rounded-md shadow-sm">
-                            <input type="text" name="product_name" id="product_search" value="{{ report.product.name }}" list="product_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm border-gray-300" placeholder="Type a product name..." required>
+                            <input type="text" name="product_name" id="product_search" value="{{ report.product.name }}" list="product_list" maxlength="255" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm border-gray-300" placeholder="Type a product name..." required>
                             <datalist id="product_list">
                                 {% for product in products %}
                                     <option value="{{ product.name }}"></option>
@@ -35,7 +35,7 @@
                     <div class="sm:col-span-2">
                         <label for="business_search" class="block text-sm font-medium text-gray-700">Business</label>
                         <div class="mt-1 flex rounded-md shadow-sm">
-                            <input type="text" name="business_name" id="business_search" value="{% if report.business %}{{ report.business.name }}{% endif %}" list="business_list" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm border-gray-300" placeholder="Type a business name...">
+                            <input type="text" name="business_name" id="business_search" value="{% if report.business %}{{ report.business.name }}{% endif %}" list="business_list" maxlength="255" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm border-gray-300" placeholder="Type a business name...">
                             <datalist id="business_list">
                                 {% for business in businesses %}
                                     <option value="{{ business.name }}"></option>
@@ -67,7 +67,9 @@
                                    id="price" 
                                    name="price" 
                                    value="{{ report.price }}" 
-                                   step="0.01" 
+                                   step="0.01"
+                                   min="0.01"
+                                   max="9999999999.99"
                                    required
                                    class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm">
                         </div>
@@ -80,7 +82,11 @@
                                    id="currency" 
                                    name="currency" 
                                    value="{{ report.currency }}" 
+                                   minlength="3"
                                    maxlength="3"
+                                   pattern="[A-Za-z]{3}"
+                                   title="Use a three-letter currency code such as PGK."
+                                   required
                                    class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm">
                         </div>
                     </div>
@@ -110,7 +116,7 @@
                     
                     <div class="sm:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Photos (Optional, Max 5)</label>
-                        <input type="file" name="photos" id="photos-input" accept="image/*" multiple class="hidden">
+                        <input type="file" name="photos" id="photos-input" accept="image/jpeg,image/png,image/webp" multiple class="hidden" data-max-files="5" data-existing-files="{{ photos|length }}" data-max-file-size="10485760" data-allowed-types="image/jpeg,image/png,image/webp" data-validation-anchor="#photos-drop-zone" data-validation-label="Photos">
 
                         <!-- Existing photos -->
                         {% if photos %}
