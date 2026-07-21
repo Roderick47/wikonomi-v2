@@ -31,7 +31,7 @@
     </label>
     <label class="block">
       <span class="text-sm font-semibold text-gray-700">Home area</span>
-      <input name="area" value="{{ request.GET.area }}" placeholder="Waigani" class="mt-1 w-full rounded-lg border-gray-300">
+      <input name="area" value="{{ request.GET.area }}" maxlength="120" placeholder="Waigani" class="mt-1 w-full rounded-lg border-gray-300">
     </label>
     <label class="flex items-center gap-2 rounded-lg border border-gray-200 p-3">
       <input type="checkbox" name="available" value="1"{% if request.GET.available == '1' %} checked{% endif %}>
