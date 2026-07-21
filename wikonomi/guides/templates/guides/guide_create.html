@@ -18,7 +18,7 @@
             </div>
         </div>
     </header>
-    <form id="guide-editor-form" method="post" enctype="multipart/form-data" class="space-y-5" data-guide-draft-key="{{ guide_draft_key }}">
+    <form id="guide-editor-form" method="post" enctype="multipart/form-data" class="space-y-5" data-guide-draft-key="{{ guide_draft_key }}" data-wk-validate data-form-kind="guide" data-wk-guide-steps>
         {% csrf_token %}
         {% include "guides/_guide_fields.html" %}
         {% include "guides/_steps_editor.html" %}
