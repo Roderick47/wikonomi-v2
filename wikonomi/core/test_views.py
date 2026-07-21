@@ -32,6 +32,9 @@ class PriceReportCreateViewTest(TestCase):
         self.assertIn('businesses', response.context)
         self.assertEqual(list(response.context['products']), [self.product])
         self.assertEqual(list(response.context['businesses']), [self.business])
+        self.assertContains(response, 'data-wk-validate')
+        self.assertContains(response, 'data-form-kind="price"')
+        self.assertContains(response, 'js/form-validation.js')
 
     def test_form_valid_authenticated_user(self):
         """Test form validation with authenticated user"""
@@ -870,6 +873,14 @@ class PriceReportEditTest(TestCase):
         )
         self.client.login(username='testuser', password='testpass')
 
+    def test_edit_form_enables_reusable_frontend_validation(self):
+        url = reverse('edit_price_report', args=[self.price_report.id])
+        response = self.client.get(url)
+
+        self.assertContains(response, 'data-wk-validate')
+        self.assertContains(response, 'data-form-kind="price"')
+        self.assertContains(response, 'data-max-files="5"')
+
     def test_edit_price_report_creates_history(self):
         """Test that editing price report creates history record"""
         url = reverse('edit_price_report', args=[self.price_report.id])
@@ -975,6 +986,8 @@ class BusinessCreateViewTest(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'business_create.html')
+        self.assertContains(response, 'data-wk-validate')
+        self.assertContains(response, 'data-form-kind="business"')
 
     def test_get_context_data_includes_businesses(self):
         """Test that the view context includes all existing businesses"""

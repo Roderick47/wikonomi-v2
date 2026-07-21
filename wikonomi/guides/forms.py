@@ -11,6 +11,7 @@ class GuideForm(forms.ModelForm):
     organization_name = forms.CharField(
         label='Business or organization',
         required=False,
+        max_length=255,
         widget=forms.TextInput(attrs={
             'id': 'organization_search',
             'list': 'organization_list',
@@ -21,6 +22,7 @@ class GuideForm(forms.ModelForm):
     category_name = forms.CharField(
         label='Category',
         required=False,
+        max_length=100,
         widget=forms.TextInput(attrs={
             'id': 'category_search',
             'list': 'category_list',
@@ -46,6 +48,10 @@ class GuideForm(forms.ModelForm):
                 'class': 'sr-only',
                 'accept': 'image/jpeg,image/png,image/webp',
                 'data-guide-photo-input': '',
+                'data-max-file-size': str(8 * 1024 * 1024),
+                'data-allowed-types': 'image/jpeg,image/png,image/webp',
+                'data-validation-anchor': '.guide-photo-picker',
+                'data-validation-label': 'Main guide photo',
             }),
         }
 

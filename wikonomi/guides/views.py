@@ -20,12 +20,14 @@ from .models import (
 
 
 
-def _unique_model_slug(model, name):
-    base = slugify(name) or 'item'
+def _unique_model_slug(model, name, fallback='item'):
+    max_length = model._meta.get_field('slug').max_length
+    base = (slugify(name) or fallback)[:max_length].rstrip('-') or fallback
     slug = base
     counter = 2
     while model.objects.filter(slug=slug).exists():
-        slug = f'{base}-{counter}'
+        suffix = f'-{counter}'
+        slug = f"{base[:max_length - len(suffix)].rstrip('-')}{suffix}"
         counter += 1
     return slug
 
@@ -94,13 +96,7 @@ def _guide_form_context(form, **extra):
     return context
 
 def _unique_slug(title):
-    base = slugify(title) or 'guide'
-    slug = base
-    counter = 2
-    while Guide.objects.filter(slug=slug).exists():
-        slug = f'{base}-{counter}'
-        counter += 1
-    return slug
+    return _unique_model_slug(Guide, title, fallback='guide')
 
 
 def _json_body(request):

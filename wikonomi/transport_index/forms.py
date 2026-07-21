@@ -11,12 +11,27 @@ class ProfileCompletionForm(forms.ModelForm):
         model = CabDriver
         fields = ['profile_photo', 'vehicle_photo', 'bio', 'home_area']
         widgets = {
+            'profile_photo': forms.ClearableFileInput(attrs={
+                'accept': 'image/jpeg,image/png,image/webp',
+                'data-max-file-size': str(MAX_UPLOAD_SIZE_BYTES),
+                'data-allowed-types': 'image/jpeg,image/png,image/webp',
+                'data-validation-label': 'Profile photo',
+            }),
+            'vehicle_photo': forms.ClearableFileInput(attrs={
+                'accept': 'image/jpeg,image/png,image/webp',
+                'data-max-file-size': str(MAX_UPLOAD_SIZE_BYTES),
+                'data-allowed-types': 'image/jpeg,image/png,image/webp',
+                'data-validation-label': 'Vehicle photo',
+            }),
             'bio': forms.Textarea(attrs={
                 'rows': 4,
                 'maxlength': 300,
                 'placeholder': 'Tell riders how to recognise you and where you usually operate.',
             }),
-            'home_area': forms.TextInput(attrs={'placeholder': 'e.g. Waigani, Boroko, Gerehu'}),
+            'home_area': forms.TextInput(attrs={
+                'maxlength': 120,
+                'placeholder': 'e.g. Waigani, Boroko, Gerehu',
+            }),
         }
         help_texts = {
             'profile_photo': 'JPEG, PNG, or WebP. Max 5 MB.',

@@ -8,7 +8,7 @@
   <h1 class="text-3xl font-bold text-gray-900">Complete {{ driver.display_name }} profile</h1>
   <p class="mt-2 text-gray-600">Add clear photos and a short bio so riders can recognise you. Your listing still needs manual verification before appearing in public search.</p>
 
-  <form method="post" enctype="multipart/form-data" class="mt-6 space-y-5">
+  <form method="post" enctype="multipart/form-data" class="mt-6 space-y-5" data-wk-validate data-form-kind="transport-profile">
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="rounded-lg bg-red-50 p-3 text-red-700">{{ form.non_field_errors }}</div>{% endif %}
     {% for field in form %}
