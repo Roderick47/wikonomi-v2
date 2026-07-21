@@ -70,11 +70,15 @@ def _photo_files_for_step(request, index):
     return request.FILES.getlist(f'step_photos_{index}')
 
 
+def _normalise_instruction(value):
+    return str(value or '').replace('\r\n', '\n').replace('\r', '\n')
+
+
 def _create_steps_from_payload(version, steps_payload, request=None):
     for index, item in enumerate(steps_payload, start=1):
         title = (item.get('title') or '').strip()[:120]
-        instruction = (item.get('instruction') or '').strip()
-        if not title and not instruction:
+        instruction = _normalise_instruction(item.get('instruction'))
+        if not title and not instruction.strip():
             continue
         step = Step.objects.create(
             version=version,
@@ -299,8 +303,8 @@ def guide_edit(request, slug):
             for index, item in enumerate(steps_payload):
                 old_id = item.get('id')
                 title = (item.get('title') or '').strip()[:120]
-                instruction = (item.get('instruction') or '').strip()
-                if not title and not instruction:
+                instruction = _normalise_instruction(item.get('instruction'))
+                if not title and not instruction.strip():
                     continue
                 step = Step.objects.create(
                     version=version,
