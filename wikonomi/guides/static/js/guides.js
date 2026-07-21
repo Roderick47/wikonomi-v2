@@ -673,7 +673,7 @@ function initStepEditor() {
         const steps = Array.from(editor.querySelectorAll('[data-step-row]')).map((row, index) => ({
             id: row.dataset.stepId || null,
             title: (row.querySelector('[data-step-title]')?.value || '').trim(),
-            instruction: row.querySelector('[data-step-instruction]').value.trim(),
+            instruction: row.querySelector('[data-step-instruction]').value,
             position: index + 1,
         }));
         editor.querySelectorAll('[data-step-row]').forEach((row, index) => {

@@ -31,8 +31,11 @@
 <section class="guide-form-card">
     <span class="guide-form-number">3</span>
     <div class="min-w-0 flex-1">
-        <label for="{{ form.summary.id_for_label }}" class="guide-form-label">Give people a quick overview</label>
-        <p class="guide-form-help">Explain what they will achieve and anything important they should know first.</p>
+        <div class="flex items-center gap-2">
+            <label for="{{ form.summary.id_for_label }}" class="guide-form-label">Give people a quick overview</label>
+            {% include "guides/_formatting_help.html" with help_id="guide-summary-formatting-help" %}
+        </div>
+        <p class="guide-form-help">Explain what they will achieve and anything important they should know first. You can format this text.</p>
         <div class="mt-4">{{ form.summary }}</div>{{ form.summary.errors }}
     </div>
 </section>
