@@ -150,7 +150,8 @@
         });
 
         if (!populatedRows.length) {
-            const target = rows[0]?.querySelector('[data-step-instruction]');
+            const target = rows[0]?.querySelector('[data-step-instruction]')
+                || form.querySelector('[data-steps-editor]');
             if (target) {
                 const message = 'Add at least one step before publishing the guide.';
                 showFieldError(target, message);
