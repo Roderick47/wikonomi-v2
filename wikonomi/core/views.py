@@ -120,12 +120,12 @@ class PriceReportForm(forms.ModelForm):
         model = PriceReport
         fields = ['category', 'subcategory', 'price', 'currency', 'latitude', 'longitude', 'notes', 'image']
         widgets = {
-            'price': forms.NumberInput(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'step': '0.01'}),
-            'currency': forms.TextInput(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'}),
+            'price': forms.NumberInput(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'step': '0.01', 'min': '0.01', 'max': '9999999999.99'}),
+            'currency': forms.TextInput(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'minlength': '3', 'maxlength': '3', 'pattern': '[A-Za-z]{3}', 'title': 'Use a three-letter currency code such as PGK.', 'data-exact-length': '3'}),
             'latitude': forms.HiddenInput(),
             'longitude': forms.HiddenInput(),
             'notes': forms.Textarea(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'rows': 3}),
-            'image': forms.FileInput(attrs={'class': 'hidden', 'accept': 'image/*'}),
+            'image': forms.FileInput(attrs={'class': 'hidden', 'accept': 'image/jpeg,image/png,image/webp', 'data-max-file-size': str(10 * 1024 * 1024), 'data-allowed-types': 'image/jpeg,image/png,image/webp', 'data-validation-anchor': '#image-drop-zone', 'data-validation-label': 'Image'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -166,7 +166,7 @@ class BusinessForm(forms.ModelForm):
         widgets = {
             'name': forms.TextInput(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'}),
             'details': forms.Textarea(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'rows': 4, 'placeholder': 'Add any additional information about this business...'}),
-            'image': forms.FileInput(attrs={'class': 'hidden', 'accept': 'image/*'}),
+            'image': forms.FileInput(attrs={'class': 'hidden', 'accept': 'image/jpeg,image/png,image/webp', 'data-max-file-size': str(10 * 1024 * 1024), 'data-allowed-types': 'image/jpeg,image/png,image/webp', 'data-validation-anchor': '#image-drop-zone', 'data-validation-label': 'Image'}),
         }
 
     def __init__(self, *args, **kwargs):
