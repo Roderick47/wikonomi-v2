@@ -33,7 +33,7 @@
                     <span class="mt-1 text-xs font-medium text-brand-purple">For Businesses</span>
                 </div>
             </div>
-            <form method="POST" class="mt-5 space-y-6" enctype="multipart/form-data">
+            <form method="POST" class="mt-5 space-y-6" enctype="multipart/form-data" data-wk-validate data-form-kind="price" data-require-location-for="business_name">
                 {% csrf_token %}
                 {% if duplicate_source %}
                 <input type="hidden" name="duplicated_from" value="{{ duplicate_source.pk }}">
@@ -62,7 +62,7 @@
                 <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                     <div class="sm:col-span-6">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Upload Photos (Optional, Max 5)</label>
-                        <input type="file" name="photos" id="photos-input" accept="image/*" multiple class="hidden">
+                        <input type="file" name="photos" id="photos-input" accept="image/jpeg,image/png,image/webp" multiple class="hidden" data-max-files="5" data-max-file-size="10485760" data-allowed-types="image/jpeg,image/png,image/webp" data-validation-anchor="#photos-drop-zone" data-validation-label="Photos">
 
                         <div class="mt-1 border-2 border-gray-300 border-dashed rounded-md relative hover:bg-gray-50 transition-colors duration-200" id="photos-drop-zone">
                             <div class="px-6 pt-8 pb-8 text-center" id="photos-upload-content">
@@ -94,7 +94,7 @@
                     <div class="sm:col-span-6">
                         <label for="product_search" class="block text-sm font-medium text-gray-700">Product</label>
                         <div class="mt-1 flex rounded-md shadow-sm">
-                            <input type="text" name="product_name" id="product_search" list="product_list" value="{{ initial_product_name|default:'' }}" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="Type a product name...">
+                            <input type="text" name="product_name" id="product_search" list="product_list" value="{{ initial_product_name|default:'' }}" required maxlength="255" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="Type a product name...">
                             <datalist id="product_list">
                                 {% for product in products %}
                                     <option value="{{ product.name }}"></option>
@@ -107,7 +107,7 @@
                     <div class="sm:col-span-6">
                         <label for="business_search" class="block text-sm font-medium text-gray-700">Business (Optional)</label>
                         <div class="mt-1 flex rounded-md shadow-sm">
-                            <input type="text" name="business_name" id="business_search" list="business_list" value="{{ initial_business_name|default:'' }}" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="Type a business name...">
+                            <input type="text" name="business_name" id="business_search" list="business_list" value="{{ initial_business_name|default:'' }}" maxlength="255" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="Type a business name...">
                             <datalist id="business_list">
                                 {% for business in businesses %}
                                     <option value="{{ business.name }}"></option>
