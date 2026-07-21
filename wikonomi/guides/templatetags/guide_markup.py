@@ -10,8 +10,14 @@ ALLOWED_TAGS = ['p', 'br', 'strong', 'em', 'code', 'pre', 'ul', 'ol', 'li', 'blo
 ALLOWED_ATTRS = {'a': ['href', 'title', 'rel', 'target']}
 
 
+def _preserve_spaces(text):
+    text = text.replace('\t', '    ')
+    return re.sub(r' {2,}', lambda match: '&nbsp;' * len(match.group(0)), text)
+
+
 def _inline_markup(text):
     text = bleach.clean(text, tags=[], strip=True)
+    text = _preserve_spaces(text)
     text = re.sub(r'`([^`]+)`', r'<code>\1</code>', text)
     text = re.sub(r'\[([^\]]+)\]\((https?://[^\s)]+)\)', r'<a href="\2" target="_blank" rel="noopener noreferrer">\1</a>', text)
     text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', text)
@@ -21,11 +27,11 @@ def _inline_markup(text):
 
 @register.filter(name='guide_markdown')
 def guide_markdown(value):
-    """Render a small, safe Markdown subset for guide step bodies."""
+    """Render safe guide markup while retaining paragraphs, line breaks, and spacing."""
     if not value:
         return ''
 
-    lines = str(value).replace('\r\n', '\n').split('\n')
+    lines = str(value).replace('\r\n', '\n').replace('\r', '\n').split('\n')
     html = []
     list_type = None
     paragraph = []
@@ -34,7 +40,8 @@ def guide_markdown(value):
 
     def flush_paragraph():
         if paragraph:
-            html.append(f'<p>{_inline_markup(" ".join(paragraph))}</p>')
+            rendered_lines = '<br>'.join(_inline_markup(line) for line in paragraph)
+            html.append(f'<p>{rendered_lines}</p>')
             paragraph.clear()
 
     def close_list():
@@ -79,7 +86,7 @@ def guide_markdown(value):
             html.append(f'<li>{_inline_markup((bullet or ordered).group(1))}</li>')
             continue
         close_list()
-        paragraph.append(stripped)
+        paragraph.append(line.rstrip())
 
     if in_code:
         html.append('<pre><code>{}</code></pre>'.format(bleach.clean('\n'.join(code_lines), tags=[], strip=True)))
