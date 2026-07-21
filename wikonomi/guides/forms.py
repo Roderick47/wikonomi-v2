@@ -42,7 +42,7 @@ class GuideForm(forms.ModelForm):
             'summary': forms.Textarea(attrs={
                 'rows': 4,
                 'class': GUIDE_TEXTAREA_CLASS,
-                'placeholder': 'Briefly explain what this guide helps people do.',
+                'placeholder': 'Explain what this guide helps people do. Use **bold** or *italic* for emphasis.',
             }),
             'photo': forms.FileInput(attrs={
                 'class': 'sr-only',
