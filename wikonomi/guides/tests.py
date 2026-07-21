@@ -447,3 +447,21 @@ class GuideBackendTests(TestCase):
         guide = Guide.objects.get(title='Formatting preservation guide')
         self.assertRedirects(response, reverse('guides:detail', args=[guide.slug]))
         self.assertEqual(guide.current_version.steps.get().instruction, instruction)
+
+    def test_detail_shows_bottom_accuracy_edit_prompt_to_authenticated_users(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+
+        self.assertContains(response, 'data-guide-accuracy-prompt')
+        self.assertContains(response, 'Do you think this guide is accurate?')
+        self.assertContains(response, 'data-guide-bottom-edit')
+        self.assertContains(response, reverse('guides:edit', args=[self.guide.slug]))
+
+    def test_detail_prompts_anonymous_users_to_sign_in_before_editing(self):
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+
+        self.assertContains(response, 'data-guide-accuracy-prompt')
+        self.assertContains(response, 'data-guide-signin-trigger')
+        self.assertContains(response, 'Sign in to edit')
+        self.assertNotContains(response, 'data-guide-bottom-edit')
