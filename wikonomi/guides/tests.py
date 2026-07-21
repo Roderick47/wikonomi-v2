@@ -18,6 +18,21 @@ def tiny_png(name='tiny.png'):
     )
 
 
+class GuideMarkupTests(TestCase):
+    def test_preserves_line_breaks_paragraphs_and_multiple_spaces(self):
+        rendered = str(guide_markdown('First line\nSecond  line\n\nNew *paragraph*'))
+
+        self.assertIn('First line<br>Second&nbsp;&nbsp;line', rendered)
+        self.assertIn('<p>New <em>paragraph</em></p>', rendered)
+
+    def test_renders_basic_markup_without_allowing_html(self):
+        rendered = str(guide_markdown('<script>alert(1)</script> **Safe** and *clear*'))
+
+        self.assertNotIn('<script', rendered)
+        self.assertIn('<strong>Safe</strong>', rendered)
+        self.assertIn('<em>clear</em>', rendered)
+
+
 class GuideBackendTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(username='guideuser', password='pass')
@@ -395,3 +410,40 @@ class GuideBackendTests(TestCase):
         step = guide.current_version.steps.get()
         self.assertEqual(StepPhoto.objects.filter(step=step).count(), 1)
         self.assertIn('<strong>Bring ID</strong>', str(guide_markdown(step.instruction)))
+
+    def test_detail_renders_formatted_overview_and_step_spacing(self):
+        self.guide.summary = 'First line\nSecond **important** line'
+        self.guide.save(update_fields=['summary'])
+        self.step.instruction = 'Wait  two minutes.\n\nThen *continue*.'
+        self.step.save(update_fields=['instruction'])
+
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+
+        self.assertContains(response, 'First line<br>Second <strong>important</strong> line')
+        self.assertContains(response, 'Wait&nbsp;&nbsp;two minutes.')
+        self.assertContains(response, '<p>Then <em>continue</em>.</p>')
+
+    def test_create_form_explains_supported_formatting(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('guides:create'))
+
+        self.assertContains(response, 'Formatting your guide', count=2)
+        self.assertContains(response, 'guide-summary-formatting-help')
+        self.assertContains(response, 'guide-steps-formatting-help')
+        self.assertContains(response, '**bold text**')
+
+    def test_create_preserves_instruction_whitespace(self):
+        self.client.force_login(self.user)
+        instruction = '  Keep this indent\nSecond  line\n'
+
+        response = self.client.post(reverse('guides:create'), {
+            'title': 'Formatting preservation guide',
+            'steps_json': json.dumps([
+                {'title': 'Formatted step', 'instruction': instruction, 'position': 1},
+            ]),
+        })
+
+        guide = Guide.objects.get(title='Formatting preservation guide')
+        self.assertRedirects(response, reverse('guides:detail', args=[guide.slug]))
+        self.assertEqual(guide.current_version.steps.get().instruction, instruction)
