@@ -750,6 +750,9 @@ function initGuideSignIn() {
     modal.querySelectorAll('[data-guide-signin-close]').forEach((element) => {
         element.addEventListener('click', closeModal);
     });
+    document.querySelectorAll('[data-guide-signin-trigger]').forEach((element) => {
+        element.addEventListener('click', showGuideSignIn);
+    });
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
     });

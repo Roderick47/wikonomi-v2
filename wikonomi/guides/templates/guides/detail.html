@@ -121,6 +121,25 @@
             <div class="hidden rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500" data-no-filtered-questions>No questions match this filter.</div>
         </div>
     </section>
+    <section class="mt-8 border-t border-slate-200 pt-6" data-guide-accuracy-prompt>
+        <div class="flex flex-col gap-4 rounded-2xl bg-slate-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 class="text-base font-bold text-slate-900">Do you think this guide is accurate?</h2>
+                <p class="mt-1 text-sm leading-6 text-slate-600">If anything is outdated, incomplete, or unclear, help improve it for the next reader.</p>
+            </div>
+            {% if can_edit %}
+            <a href="{% url 'guides:edit' guide.slug %}" class="inline-flex flex-none items-center justify-center gap-2 rounded-lg bg-brand-purple px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-purple/90 focus:outline-none focus:ring-2 focus:ring-brand-purple/40" data-guide-bottom-edit>
+                <span aria-hidden="true">✎</span>
+                <span>Edit this guide</span>
+            </a>
+            {% else %}
+            <button type="button" class="inline-flex flex-none items-center justify-center gap-2 rounded-lg border border-brand-purple px-4 py-2.5 text-sm font-bold text-brand-purple transition hover:bg-brand-purple/5 focus:outline-none focus:ring-2 focus:ring-brand-purple/30" data-guide-signin-trigger>
+                <span aria-hidden="true">✎</span>
+                <span>Sign in to edit</span>
+            </button>
+            {% endif %}
+        </div>
+    </section>
     {% if guide.forks.exists %}<div class="pt-4 border-t border-gray-200"><p class="text-sm text-gray-500 mb-2">Adapted by {{ guide.forks.count }} other organization{{ guide.forks.count|pluralize }}</p><div class="flex flex-wrap gap-2">{% for fork in guide.forks.all %}<a href="{% url 'guides:detail' fork.slug %}" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded px-2.5 py-1">{{ fork.organization.name|default:fork.title }}</a>{% endfor %}</div></div>{% endif %}
 </div>
 
