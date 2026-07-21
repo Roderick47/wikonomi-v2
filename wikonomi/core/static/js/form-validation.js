@@ -8,7 +8,8 @@
     function fieldLabel(field) {
         if (field.dataset.validationLabel) return field.dataset.validationLabel;
         if (field.id) {
-            const label = field.form?.querySelector(`label[for="${CSS.escape(field.id)}"]`);
+            const labels = Array.from((field.form || document).querySelectorAll('label[for]'));
+            const label = labels.find(candidate => candidate.htmlFor === field.id);
             if (label) return label.textContent.replace(/\s+/g, ' ').replace(/[*:]+$/, '').trim();
         }
         return field.name ? field.name.replace(/_/g, ' ') : 'This field';
