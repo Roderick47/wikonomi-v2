@@ -248,6 +248,30 @@ class GuideBackendTests(TestCase):
         self.assertEqual(guide.organization.name, 'ICA PNG')
         self.assertEqual(guide.category.name, 'Government services')
 
+    def test_create_accepts_title_that_generates_a_slug_over_50_characters(self):
+        self.client.force_login(self.user)
+        title = 'How to Call an Ambulance with St John Ambulance PNG'
+        response = self.client.post(reverse('guides:create'), {
+            'title': title,
+            'summary': 'Emergency and non-emergency contact instructions.',
+            'steps_json': json.dumps([
+                {'title': 'Call the ambulance', 'instruction': 'Dial the emergency number.', 'position': 1},
+            ]),
+        })
+
+        guide = Guide.objects.get(title=title)
+        self.assertRedirects(response, reverse('guides:detail', args=[guide.slug]))
+        self.assertGreater(len(guide.slug), 50)
+        self.assertLessEqual(len(guide.slug), Guide._meta.get_field('slug').max_length)
+
+    def test_create_form_enables_reusable_frontend_validation(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('guides:create'))
+
+        self.assertContains(response, 'data-wk-validate')
+        self.assertContains(response, 'data-wk-guide-steps')
+        self.assertContains(response, 'js/form-validation.js')
+
     def test_create_saves_main_photo(self):
         self.client.force_login(self.user)
         response = self.client.post(reverse('guides:create'), {
