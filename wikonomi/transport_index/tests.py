@@ -398,6 +398,13 @@ class PriorityThreeUXTests(TestCase):
         self.assertContains(response, 'Paged Driver 12')
         self.assertContains(response, 'Page 2 of 2')
 
+    def test_profile_completion_form_exposes_frontend_file_limits(self):
+        form = ProfileCompletionForm()
+
+        self.assertEqual(form.fields['profile_photo'].widget.attrs['data-max-file-size'], str(5 * 1024 * 1024))
+        self.assertEqual(form.fields['vehicle_photo'].widget.attrs['data-allowed-types'], 'image/jpeg,image/png,image/webp')
+        self.assertEqual(form.fields['home_area'].widget.attrs['maxlength'], 120)
+
     def test_profile_completion_form_rejects_large_images(self):
         upload = SimpleUploadedFile('profile.jpg', b'a' * (5 * 1024 * 1024 + 1), content_type='image/jpeg')
         form = ProfileCompletionForm(files={'profile_photo': upload}, data={'bio': 'Hello', 'home_area': 'Waigani'})
