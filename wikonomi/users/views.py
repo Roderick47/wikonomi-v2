@@ -3,8 +3,11 @@ from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from django.views.generic import RedirectView
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.exceptions import ValidationError
@@ -102,6 +105,32 @@ def profile(request):
         'profile': profile,
         'analytics_dashboard_url': analytics_dashboard_url,
     })
+
+
+@login_required
+@require_POST
+def update_onboarding(request):
+    """Persist whether a user completed or dismissed the introductory tour."""
+    action = request.POST.get('action')
+    if action not in {'complete', 'dismiss'}:
+        return JsonResponse({'error': 'Invalid onboarding action.'}, status=400)
+
+    profile, _ = Profile.objects.get_or_create(user=request.user)
+    now = timezone.now()
+
+    if action == 'complete':
+        profile.onboarding_completed_at = now
+        profile.onboarding_dismissed_at = None
+        profile.save(update_fields=['onboarding_completed_at', 'onboarding_dismissed_at'])
+    elif not profile.onboarding_completed_at:
+        profile.onboarding_dismissed_at = now
+        profile.save(update_fields=['onboarding_dismissed_at'])
+
+    return JsonResponse({
+        'ok': True,
+        'action': action,
+    })
+
 
 @login_required
 def edit_profile(request):
