@@ -1,0 +1,132 @@
+<div
+    id="wikonomi-onboarding"
+    class="wk-onboarding"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-update-url="{% if user.is_authenticated %}{% url 'update_onboarding' %}{% endif %}"
+    data-auto-open="{% if user.is_authenticated %}{% if not user.profile.onboarding_completed_at and not user.profile.onboarding_dismissed_at %}true{% else %}false{% endif %}{% else %}true{% endif %}"
+    hidden
+>
+    <form class="hidden" aria-hidden="true">{% csrf_token %}</form>
+    <div class="wk-onboarding__backdrop" data-onboarding-dismiss></div>
+    <section
+        class="wk-onboarding__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Wikonomi quick tour"
+    >
+        <div class="wk-onboarding__brand-line"></div>
+        <button type="button" class="wk-onboarding__close" data-onboarding-dismiss aria-label="Close tour">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+
+        <div class="wk-onboarding__body">
+            <div class="wk-onboarding__slides">
+                <article class="wk-onboarding__slide" data-onboarding-slide>
+                    <div class="wk-onboarding__hero-icon wk-onboarding__hero-icon--purple">
+                        <span class="wk-onboarding__logo">W</span>
+                    </div>
+                    <p class="wk-onboarding__eyebrow">Welcome to Wikonomi</p>
+                    <h2>Want me to show you the ropes?</h2>
+                    <p>
+                        Wikonomi is a community-built database for useful local information in Papua New Guinea:
+                        products, prices, businesses, practical guides, and transport options.
+                    </p>
+                    <div class="wk-onboarding__value-grid">
+                        <span>Search before you spend</span>
+                        <span>Share what you find</span>
+                        <span>Help keep PNG information current</span>
+                    </div>
+                </article>
+
+                <article class="wk-onboarding__slide" data-onboarding-slide hidden>
+                    <div class="wk-onboarding__hero-icon wk-onboarding__hero-icon--purple">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.4-4.4M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/></svg>
+                    </div>
+                    <p class="wk-onboarding__eyebrow">1. Find local information</p>
+                    <h2>Search products, prices, businesses, and guides</h2>
+                    <p>
+                        Start from the homepage search box. Search for an item, brand, shop, location, or how-to topic,
+                        then compare the latest reports, dates, photos, ratings, and map locations.
+                    </p>
+                    <a href="{% url 'home' %}" class="wk-onboarding__action" data-onboarding-action>Try the search</a>
+                </article>
+
+                <article class="wk-onboarding__slide" data-onboarding-slide hidden>
+                    <div class="wk-onboarding__hero-icon wk-onboarding__hero-icon--green">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M8.5 9c0-1.4 1.6-2.5 3.5-2.5s3.5 1.1 3.5 2.5-1.6 2.5-3.5 2.5S8.5 12.6 8.5 14s1.6 2.5 3.5 2.5 3.5-1.1 3.5-2.5"/><circle cx="12" cy="12" r="9"/></svg>
+                    </div>
+                    <p class="wk-onboarding__eyebrow">2. Add a price</p>
+                    <h2>Turn something you saw in a shop into useful data</h2>
+                    <p>
+                        Tap <strong>Post → Post Prices</strong>, then add the product, price, business, branch or
+                        location, and a recent photo where possible. Accurate package sizes and dates matter.
+                    </p>
+                    <a href="{% url 'add_price' %}" class="wk-onboarding__action" data-onboarding-action>Add your first price</a>
+                </article>
+
+                <article class="wk-onboarding__slide" data-onboarding-slide hidden>
+                    <div class="wk-onboarding__hero-icon wk-onboarding__hero-icon--blue">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V8l8-5 8 5v13M8 21v-5h8v5M8 10h.01M12 10h.01M16 10h.01"/></svg>
+                    </div>
+                    <p class="wk-onboarding__eyebrow">3. Add a business</p>
+                    <h2>Help PNG businesses become easier to find</h2>
+                    <p>
+                        If a shop, service, organisation, or branch is missing, use <strong>Post → Post Business</strong>.
+                        Add the correct name, category, contact details, image, and location before linking prices or guides.
+                    </p>
+                    <a href="{% url 'add_business' %}" class="wk-onboarding__action" data-onboarding-action>Add a business</a>
+                </article>
+
+                <article class="wk-onboarding__slide" data-onboarding-slide hidden>
+                    <div class="wk-onboarding__hero-icon wk-onboarding__hero-icon--green">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v17H6.5A2.5 2.5 0 0 0 4 22V5.5ZM20 5.5A2.5 2.5 0 0 0 17.5 3H13v17h4.5A2.5 2.5 0 0 1 20 22V5.5Z"/></svg>
+                    </div>
+                    <p class="wk-onboarding__eyebrow">4. Create a practical guide</p>
+                    <h2>Document how things actually get done in PNG</h2>
+                    <p>
+                        Guides turn local experience into reusable steps—such as getting a licence, completing a process,
+                        or using a service. Add clear steps, useful links, photos, and the relevant business or organisation.
+                    </p>
+                    <a href="{% url 'guides:create' %}" class="wk-onboarding__action" data-onboarding-action>Create a guide</a>
+                </article>
+
+                <article class="wk-onboarding__slide" data-onboarding-slide hidden>
+                    <div class="wk-onboarding__hero-icon wk-onboarding__hero-icon--blue">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17h14M6 17l1-7h10l1 7M8 10l1.5-4h5L16 10M7 20h.01M17 20h.01"/><path d="M4 14h16v5H4z"/></svg>
+                    </div>
+                    <p class="wk-onboarding__eyebrow">5. Find local transport</p>
+                    <h2>Browse verified drivers and continue on WhatsApp</h2>
+                    <p>
+                        The Transport Index lets you filter verified cabs by vehicle type, home area, availability, and
+                        distance. Choose a driver, review the profile, then contact them through WhatsApp.
+                    </p>
+                    <a href="{% url 'transport_index:cab_list' %}" class="wk-onboarding__action" data-onboarding-action>Browse transport</a>
+                </article>
+
+                <article class="wk-onboarding__slide" data-onboarding-slide hidden>
+                    <div class="wk-onboarding__hero-icon wk-onboarding__hero-icon--purple">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/><path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z"/></svg>
+                    </div>
+                    <p class="wk-onboarding__eyebrow">You know the basics</p>
+                    <h2>Wikonomi becomes stronger when the information stays honest</h2>
+                    <p>
+                        Search before adding duplicates, use recent evidence, correct stale information, and ask questions
+                        when something is unclear. Community ratings, comments, edits, and confirmations help build trust.
+                    </p>
+                    <a href="{% url 'how_to_use' %}" class="wk-onboarding__action wk-onboarding__action--secondary" data-onboarding-action>Read the full user guide</a>
+                </article>
+            </div>
+        </div>
+
+        <footer class="wk-onboarding__footer">
+            <div class="wk-onboarding__progress" aria-label="Tour progress"></div>
+            <div class="wk-onboarding__controls">
+                <button type="button" class="wk-onboarding__text-button" data-onboarding-dismiss>Maybe later</button>
+                <div class="wk-onboarding__nav-buttons">
+                    <button type="button" class="wk-onboarding__back" data-onboarding-back hidden>Back</button>
+                    <button type="button" class="wk-onboarding__next" data-onboarding-next>Show me around</button>
+                </div>
+            </div>
+        </footer>
+    </section>
+</div>

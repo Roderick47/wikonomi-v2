@@ -3,7 +3,7 @@
 {% block page_title %}How to Use Wikonomi — Complete Guide{% endblock %}
 
 {% block og_tags %}
-{% with base_url="https://www.wikonomi.com" og_title="How to Use Wikonomi" og_description="A complete guide to searching, sharing, comparing, rating, editing, and bulk uploading prices on Wikonomi." og_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
+{% with base_url="https://www.wikonomi.com" og_title="How to Use Wikonomi" og_description="Learn how to search and share prices, businesses, practical guides, and local transport information across Papua New Guinea." og_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
 <link rel="canonical" href="{{ base_url }}{% url 'how_to_use' %}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Wikonomi">
@@ -46,7 +46,7 @@
                 How to use <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-green via-brand-blue to-brand-purple">Wikonomi</span>
             </h1>
             <p class="mt-6 max-w-3xl mx-auto text-lg sm:text-xl text-gray-600 leading-relaxed">
-                Wikonomi helps people in Papua New Guinea share, discover, compare, and verify local store prices. This guide walks you through every main feature, from searching for prices to bulk uploading a full business inventory.
+                Wikonomi is a community-built database for useful local information in Papua New Guinea. This guide covers searching and sharing prices, businesses, practical how-to guides, and transport options.
             </p>
             <div class="mt-8 flex flex-wrap justify-center gap-3">
                 <a href="{% url 'home' %}" class="inline-flex items-center px-5 py-2.5 rounded-full bg-brand-purple text-white text-sm font-semibold shadow hover:bg-brand-purple/90 transition-all">
@@ -57,6 +57,9 @@
                 </a>
                 <a href="{% url 'bulk_upload' %}" class="inline-flex items-center px-5 py-2.5 rounded-full border border-brand-blue text-brand-blue bg-white text-sm font-semibold hover:bg-brand-blue/10 transition-all">
                     Bulk Upload
+                </a>
+                <a href="{% url 'guides:list' %}" class="inline-flex items-center px-5 py-2.5 rounded-full border border-brand-green text-brand-green bg-white text-sm font-semibold hover:bg-brand-green/10 transition-all">
+                    Browse Guides
                 </a>
                 <a href="{% url 'about' %}" class="inline-flex items-center px-5 py-2.5 rounded-full border border-gray-300 text-gray-700 bg-white text-sm font-semibold hover:bg-gray-50 transition-all">
                     About Wikonomi
@@ -102,6 +105,8 @@
                     <a href="#location" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Locations and map</a>
                     <a href="#adding-prices" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Add a price</a>
                     <a href="#businesses" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Business profiles</a>
+                    <a href="#guides" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Practical guides</a>
+                    <a href="#transport" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Transport index</a>
                     <a href="#bulk-upload" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Bulk upload</a>
                     <a href="#shopping-list" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Shopping list</a>
                     <a href="#rating" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-brand-purple/5 hover:text-brand-purple font-medium">Ratings</a>
@@ -167,6 +172,7 @@
                             <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
                                 <li>Add new price reports.</li>
                                 <li>Add businesses to the database.</li>
+                                <li>Create practical guides and share local knowledge.</li>
                                 <li>Rate price reports and businesses.</li>
                                 <li>Use your shopping list.</li>
                                 <li>Watch products and receive notifications.</li>
@@ -320,8 +326,8 @@
                     <div class="rounded-xl border border-gray-200 p-5">
                         <h3 class="font-bold text-gray-900">How to add one price</h3>
                         <ol class="mt-3 space-y-2 text-sm text-gray-600 list-decimal pl-5">
-                            <li>Click <span class="font-semibold text-gray-900">Add</span> in the top navigation.</li>
-                            <li>Select <span class="font-semibold text-gray-900">Add Prices</span>.</li>
+                            <li>Click <span class="font-semibold text-gray-900">Post</span> in the top navigation.</li>
+                            <li>Select <span class="font-semibold text-gray-900">Post Prices</span>.</li>
                             <li>Upload up to five photos if you have them.</li>
                             <li>Enter the product name. Choose an existing product if it appears, or type a new one.</li>
                             <li>Enter the business name. Choose an existing business if it appears, or type a new one.</li>
@@ -372,8 +378,8 @@
                         <div class="rounded-xl border border-gray-200 p-5">
                             <h3 class="font-bold text-gray-900">How to add a business</h3>
                             <ol class="mt-3 space-y-2 text-sm text-gray-600 list-decimal pl-5">
-                                <li>Click <span class="font-semibold text-gray-900">Add</span> in the top navigation.</li>
-                                <li>Select <span class="font-semibold text-gray-900">Add Business</span>.</li>
+                                <li>Click <span class="font-semibold text-gray-900">Post</span> in the top navigation.</li>
+                                <li>Select <span class="font-semibold text-gray-900">Post Business</span>.</li>
                                 <li>Enter the business name.</li>
                                 <li>Choose the industry or business type.</li>
                                 <li>Select a subcategory if available.</li>
@@ -398,6 +404,71 @@
                     </div>
                     <div class="rounded-xl border border-brand-blue/30 bg-brand-blue/5 p-4 text-sm text-gray-700">
                         <span class="font-semibold text-gray-900">For businesses:</span> Treat your Wikonomi profile like a public product discovery page. Keep names, categories, and inventory prices clean so customers can find you through search.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Guides -->
+            <section id="guides" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Create and use practical guides</h2>
+                    <p class="mt-1 text-gray-600">Guides document how things actually get done in Papua New Guinea.</p>
+                </div>
+                <div class="p-6 space-y-6">
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">How to create a guide</h3>
+                            <ol class="mt-3 space-y-2 text-sm text-gray-600 list-decimal pl-5">
+                                <li>Click <span class="font-semibold text-gray-900">Post</span> in the top navigation.</li>
+                                <li>Select <span class="font-semibold text-gray-900">Add Guide</span>.</li>
+                                <li>Use a clear title that describes the outcome.</li>
+                                <li>Add a short summary and the relevant business or organisation, if there is one.</li>
+                                <li>Break the process into ordered, practical steps.</li>
+                                <li>Add useful links, photos, costs, requirements, and warnings where relevant.</li>
+                                <li>Preview the guide and publish it.</li>
+                            </ol>
+                            <div class="mt-4">
+                                <a href="{% url 'guides:create' %}" class="inline-flex items-center px-4 py-2 rounded-lg bg-brand-green text-gray-900 text-sm font-semibold hover:bg-brand-green/90">Create a Guide</a>
+                            </div>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <h3 class="font-bold text-gray-900">What makes a guide useful</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
+                                <li>It reflects the current PNG process, not an overseas version.</li>
+                                <li>Each step tells the reader what to do next.</li>
+                                <li>Important costs, documents, offices, contacts, and waiting times are included.</li>
+                                <li>Basic Markdown can be used for headings, bold text, lists, and links.</li>
+                                <li>Readers can ask general or step-specific questions and add useful tips.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="rounded-xl border border-brand-green/30 bg-brand-green/10 p-4 text-sm text-gray-700">
+                        <span class="font-semibold text-gray-900">Good guide topics:</span> getting a licence, registering a vehicle, applying for a document, visiting a public office, using a local service, or completing a common business process.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Transport -->
+            <section id="transport" class="guide-section bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-2xl font-bold text-gray-900">Find transport through the Transport Index</h2>
+                    <p class="mt-1 text-gray-600">Search verified cab profiles on Wikonomi, then continue the booking conversation on WhatsApp.</p>
+                </div>
+                <div class="p-6 space-y-5">
+                    <div class="rounded-xl border border-gray-200 p-5">
+                        <ol class="space-y-2 text-sm text-gray-600 list-decimal pl-5">
+                            <li>Open the Transport Index.</li>
+                            <li>Filter drivers by vehicle type, home area, or current availability.</li>
+                            <li>Use your location to sort listed drivers by distance where location data is available.</li>
+                            <li>Open a driver's profile and check the verified details.</li>
+                            <li>Use the protected contact button to continue through WhatsApp.</li>
+                        </ol>
+                        <div class="mt-4">
+                            <a href="{% url 'transport_index:cab_list' %}" class="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue text-white text-sm font-semibold hover:bg-brand-blue/90">Browse Verified Cabs</a>
+                        </div>
+                    </div>
+                    <div class="rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900">
+                        <span class="font-semibold">Important:</span> The current transport service is a searchable directory with a WhatsApp handoff. It is not automatic live dispatch, and passengers should still confirm the driver, fare, pickup point, and safety details directly.
                     </div>
                 </div>
             </section>
@@ -773,8 +844,8 @@
             <!-- Final CTA -->
             <section class="rounded-3xl bg-gradient-to-r from-brand-purple via-brand-blue to-brand-green p-1 shadow-lg">
                 <div class="rounded-[1.35rem] bg-white px-6 py-8 text-center">
-                    <h2 class="text-2xl font-extrabold text-gray-900">Ready to help build PNG's price database?</h2>
-                    <p class="mt-3 max-w-2xl mx-auto text-gray-600">Search before you shop. Share what you see. Correct what is wrong. The more people contribute, the more useful Wikonomi becomes for everyone.</p>
+                    <h2 class="text-2xl font-extrabold text-gray-900">Ready to help build PNG's local information database?</h2>
+                    <p class="mt-3 max-w-2xl mx-auto text-gray-600">Search before you spend. Share what you see and know. Correct what is wrong. The more people contribute, the more useful Wikonomi becomes for everyone.</p>
                     <div class="mt-6 flex flex-wrap justify-center gap-3">
                         <a href="{% url 'home' %}" class="inline-flex items-center px-5 py-2.5 rounded-full bg-brand-purple text-white text-sm font-semibold shadow hover:bg-brand-purple/90 transition-all">Start Searching</a>
                         <a href="{% url 'add_price' %}" class="inline-flex items-center px-5 py-2.5 rounded-full border border-brand-green text-brand-green bg-white text-sm font-semibold hover:bg-brand-green/10 transition-all">Add a Price</a>

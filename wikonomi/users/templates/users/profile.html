@@ -81,6 +81,8 @@
             <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 class="text-base font-bold text-slate-900">Account settings</h2>
                 <nav class="mt-4 space-y-1" aria-label="Account settings">
+                    <button type="button" data-onboarding-open class="profile-setting-link w-full text-left"><span>Take the quick tour</span><span aria-hidden="true">→</span></button>
+                    <a href="{% url 'how_to_use' %}" class="profile-setting-link"><span>Read the full user guide</span><span aria-hidden="true">→</span></a>
                     <a href="{% url 'edit_profile' %}" class="profile-setting-link"><span>Edit profile</span><span aria-hidden="true">→</span></a>
                     <a href="{% url 'change_password' %}" class="profile-setting-link"><span>Change password</span><span aria-hidden="true">→</span></a>
                     {% if analytics_dashboard_url %}<a href="{% url analytics_dashboard_url %}" class="profile-setting-link text-brand-purple"><span>Analytics Dashboard</span><span aria-hidden="true">→</span></a>{% endif %}

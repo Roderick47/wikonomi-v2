@@ -164,6 +164,93 @@ class UserProfileTest(TestCase):
         pass
 
 
+class UserOnboardingTest(TestCase):
+    """Test the one-time onboarding prompt and persistence endpoint."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='onboarding-user',
+            email='onboarding@example.com',
+            password='testpass123',
+        )
+
+    def test_new_profile_has_unseen_onboarding(self):
+        profile = self.user.profile
+
+        self.assertIsNone(profile.onboarding_completed_at)
+        self.assertIsNone(profile.onboarding_dismissed_at)
+
+    def test_new_signed_in_user_gets_automatic_welcome(self):
+        self.client.login(username=self.user.username, password='testpass123')
+
+        response = self.client.get(reverse('home'))
+
+        self.assertContains(response, 'Want me to show you the ropes?')
+        self.assertContains(response, 'data-auto-open="true"')
+        self.assertContains(response, 'Create a practical guide')
+        self.assertContains(response, 'Find local transport')
+
+    def test_dismiss_onboarding_persists_and_stops_auto_open(self):
+        self.client.login(username=self.user.username, password='testpass123')
+
+        response = self.client.post(reverse('update_onboarding'), {'action': 'dismiss'})
+
+        self.assertEqual(response.status_code, 200)
+        self.user.profile.refresh_from_db()
+        self.assertIsNotNone(self.user.profile.onboarding_dismissed_at)
+        self.assertIsNone(self.user.profile.onboarding_completed_at)
+
+        response = self.client.get(reverse('home'))
+        self.assertContains(response, 'data-auto-open="false"')
+
+    def test_complete_onboarding_replaces_dismissed_state(self):
+        profile = self.user.profile
+        profile.onboarding_dismissed_at = timezone.now()
+        profile.save(update_fields=['onboarding_dismissed_at'])
+        self.client.login(username=self.user.username, password='testpass123')
+
+        response = self.client.post(reverse('update_onboarding'), {'action': 'complete'})
+
+        self.assertEqual(response.status_code, 200)
+        profile.refresh_from_db()
+        self.assertIsNotNone(profile.onboarding_completed_at)
+        self.assertIsNone(profile.onboarding_dismissed_at)
+
+    def test_onboarding_update_rejects_invalid_action(self):
+        self.client.login(username=self.user.username, password='testpass123')
+
+        response = self.client.post(reverse('update_onboarding'), {'action': 'restart'})
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_onboarding_update_requires_login(self):
+        response = self.client.post(reverse('update_onboarding'), {'action': 'complete'})
+
+        self.assertEqual(response.status_code, 302)
+
+    def test_onboarding_update_accepts_real_csrf_flow(self):
+        client = Client(enforce_csrf_checks=True)
+        client.login(username=self.user.username, password='testpass123')
+        response = client.get(reverse('home'))
+        csrf_token = response.cookies['csrftoken'].value
+
+        response = client.post(
+            reverse('update_onboarding'),
+            {'action': 'complete'},
+            HTTP_X_CSRFTOKEN=csrf_token,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_profile_keeps_tour_and_full_guide_available(self):
+        self.client.login(username=self.user.username, password='testpass123')
+
+        response = self.client.get(reverse('profile'))
+
+        self.assertContains(response, 'Take the quick tour')
+        self.assertContains(response, 'Read the full user guide')
+
+
 class EmailVerificationTest(TestCase):
     """Test email verification functionality"""
     
