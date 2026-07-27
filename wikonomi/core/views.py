@@ -1735,7 +1735,7 @@ def _parse_csv(uploaded_file):
 
 
 @login_required
-def bulk_upload(request):
+def _legacy_bulk_upload(request):
     """Handle bulk CSV upload with preview and confirmation."""
     
     context = {
@@ -1746,8 +1746,8 @@ def bulk_upload(request):
     if request.method == 'POST':
         action = request.POST.get('action', '')
         
-        # Fallback for existing tests that don't send 'action' explicitly
-        if not action and request.FILES.get('csv_file'):
+        # Backwards-compatible default for clients that predate the action field.
+        if not action:
             action = 'preview'
         
         if action == 'preview':
@@ -2012,6 +2012,20 @@ def bulk_upload(request):
             return redirect('bulk_upload_success')
     
     return render(request, 'bulk_upload.html', context)
+
+
+@login_required
+def bulk_upload(request):
+    """Route existing CSV posts through the legacy-compatible importer."""
+    legacy_action = request.POST.get('action', '') if request.method == 'POST' else ''
+    if request.method == 'POST' and (
+        request.FILES.get('csv_file')
+        or legacy_action in {'preview', 'confirm'}
+        or not request.FILES.get('inventory_file')
+    ):
+        return _legacy_bulk_upload(request)
+    from .bulk_views import inventory_upload
+    return inventory_upload(request)
 
 
 @login_required

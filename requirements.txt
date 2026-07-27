@@ -8,6 +8,7 @@ h3
 django-allauth[socialaccount]
 gunicorn
 Pillow
+openpyxl>=3.1,<4.0
 dj-database-url
 django-storages[s3]
 boto3

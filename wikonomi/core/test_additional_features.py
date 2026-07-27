@@ -187,8 +187,12 @@ Test Product 1,10.50,PGK""".encode('utf-8')
             'business_name': 'Test Business'
         })
         
-        # Clear session to simulate expiry
-        self.client.session.clear()
+        # Expire only the legacy upload payload while preserving authentication.
+        # ``client.session.clear()`` without ``save()`` does not persist, and
+        # clearing the whole session would test login expiry instead.
+        session = self.client.session
+        session.pop('bulk_upload_data', None)
+        session.save()
         
         # Try to confirm without session data
         response2 = self.client.post(reverse('bulk_upload'), {

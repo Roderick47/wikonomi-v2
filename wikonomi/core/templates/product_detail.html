@@ -11,10 +11,10 @@
 <meta property="og:url" content="{{ base_url }}{% url 'product_detail' product.pk %}">
 <meta property="og:title" content="{{ product.name }} prices in PNG | Wikonomi">
 <meta property="og:description" content="Compare {{ total_reports }} reported prices for {{ product.name }} across local stores. Find the cheapest, most expensive, and nearest reported prices.">
-{% if product.image %}
-<meta property="og:image" content="{{ product.image.url|absolute_url:base_url }}">
-<meta property="og:image:secure_url" content="{{ product.image.url|absolute_url:base_url }}">
-<meta property="og:image:type" content="{{ product.image|image_mime_type }}">
+{% if product.display_image %}
+<meta property="og:image" content="{{ product.display_image.url|absolute_url:base_url }}">
+<meta property="og:image:secure_url" content="{{ product.display_image.url|absolute_url:base_url }}">
+<meta property="og:image:type" content="{{ product.display_image|image_mime_type }}">
 {% else %}
 <meta property="og:image" content="{{ default_image }}">
 <meta property="og:image:secure_url" content="{{ default_image }}">
@@ -26,7 +26,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ product.name }} prices in PNG | Wikonomi">
 <meta name="twitter:description" content="Compare {{ total_reports }} reported prices for {{ product.name }} across local stores.">
-{% if product.image %}<meta name="twitter:image" content="{{ product.image.url|absolute_url:base_url }}">{% else %}<meta name="twitter:image" content="{{ default_image }}">{% endif %}
+{% if product.display_image %}<meta name="twitter:image" content="{{ product.display_image.url|absolute_url:base_url }}">{% else %}<meta name="twitter:image" content="{{ default_image }}">{% endif %}
 {% endwith %}
 {% endblock %}
 
@@ -49,8 +49,8 @@
         <div class="p-6 sm:p-8 lg:p-10">
             <div class="grid gap-8 lg:grid-cols-[220px,1fr] lg:items-center">
                 <div class="mx-auto flex h-48 w-48 items-center justify-center overflow-hidden rounded-3xl border border-white bg-white/80 shadow-sm lg:mx-0">
-                    {% if product.image %}
-                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="h-full w-full object-contain p-3">
+                    {% if product.display_image %}
+                    <img src="{{ product.display_image.url }}" alt="{{ product.name }}" class="h-full w-full object-contain p-3">
                     {% else %}
                     <svg class="h-20 w-20 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                     {% endif %}
@@ -171,11 +171,16 @@
     </section>
 
 
-    {% if product_photos %}
+    {% if catalog_images or product_photos %}
     <section class="mt-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 class="text-2xl font-bold text-gray-900">Product photos</h2>
-        <p class="text-sm text-gray-600">Most recent photos submitted with reports for this product.</p>
+        <p class="text-sm text-gray-600">Catalogue and community photos for this product.</p>
         <div class="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
+            {% for image in catalog_images %}
+            <a href="{{ image.original.url }}" class="group overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                <img src="{{ image.thumbnail.url|default:image.original.url }}" alt="{{ product.name }} catalogue photo" class="h-32 w-full object-cover transition group-hover:scale-105">
+            </a>
+            {% endfor %}
             {% for photo in product_photos %}
             <a href="{% url 'price_detail' photo.price_report.pk %}" class="group overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
                 <img src="{{ photo.image.url }}" alt="{{ product.name }} photo" class="h-32 w-full object-cover transition group-hover:scale-105">
