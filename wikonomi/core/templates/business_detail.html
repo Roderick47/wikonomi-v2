@@ -154,6 +154,11 @@
             <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             Back to feed
         </a>
+        <div class="flex flex-wrap gap-2">
+        <a href="{% url 'bulk_upload' %}?business={{ business.pk }}" class="inline-flex w-fit items-center rounded-lg bg-brand-green px-3 py-1.5 text-sm font-bold text-slate-900 shadow-sm transition hover:brightness-95 sm:px-4 sm:py-2">
+            <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h10m4-2v6m-3-3h6"></path></svg>
+            Bulk Upload Inventory & Photos
+        </a>
         <a href="{% url 'business_edit' business.pk %}" class="inline-flex w-fit items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-brand-purple hover:bg-brand-purple/90 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
             <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"></path>
@@ -161,6 +166,7 @@
             </svg>
             Edit Business
         </a>
+        </div>
     </div>
 
     <!-- Business Header -->
@@ -294,6 +300,7 @@
                         <h2 class="text-lg font-semibold text-gray-900">Available Products</h2>
                         <p class="text-sm text-gray-500">Latest prices reported at {{ business.name }}.</p>
                     </div>
+                    <a href="{% url 'bulk_upload' %}?business={{ business.pk }}" class="inline-flex items-center justify-center rounded-xl border border-brand-purple px-4 py-2 text-sm font-bold text-brand-purple hover:bg-brand-purple/5">Bulk upload catalogue</a>
                     {% if products_data %}
                     <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] xl:min-w-[30rem]">
                         <label class="sr-only" for="product-search">Search products</label>
@@ -332,6 +339,7 @@
                         </svg>
                         <h3 class="mt-2 text-sm font-medium text-gray-900">No products found</h3>
                         <p class="mt-1 text-sm text-gray-500">No price reports have been made for this business yet.</p>
+                        <a href="{% url 'bulk_upload' %}?business={{ business.pk }}" class="mt-5 inline-flex rounded-xl bg-brand-purple px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-purple/90">Upload inventory and photos</a>
                     </div>
                 {% endif %}
             </div>

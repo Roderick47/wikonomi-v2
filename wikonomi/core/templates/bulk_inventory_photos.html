@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Upload Product Photos | Wikonomi{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    {% include "includes/_bulk_wizard_steps.html" %}
+
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+        <p class="text-xs font-bold uppercase tracking-wider text-brand-purple">Step 2 of 6</p>
+        <h1 class="mt-1 text-2xl font-extrabold text-slate-900">Upload product photos</h1>
+        <p class="mt-2 text-sm text-slate-600">{{ import_session.valid_rows }} products for <strong>{{ import_session.business.name }}</strong> are ready. Filenames will be matched against SKU, barcode and product name.</p>
+
+        <form method="post" enctype="multipart/form-data" id="photo-form" class="mt-7">
+            {% csrf_token %}
+            <div class="grid gap-4 md:grid-cols-3">
+                <label for="archive-input" class="cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 p-5 text-center hover:border-brand-purple hover:bg-brand-purple/5">
+                    <span class="text-3xl">🗜️</span>
+                    <span class="mt-2 block font-bold text-slate-900">Upload a ZIP</span>
+                    <span class="mt-1 block text-xs text-slate-500">Best for an exported photo library</span>
+                    <input id="archive-input" type="file" name="photo_archive" accept=".zip,application/zip" class="hidden">
+                </label>
+                <button type="button" id="choose-files" class="rounded-2xl border-2 border-dashed border-slate-300 p-5 text-center hover:border-brand-purple hover:bg-brand-purple/5">
+                    <span class="text-3xl">🖼️</span>
+                    <span class="mt-2 block font-bold text-slate-900">Choose image files</span>
+                    <span class="mt-1 block text-xs text-slate-500">JPG, PNG or WebP · hundreds at once</span>
+                </button>
+                <button type="button" id="choose-folder" class="rounded-2xl border-2 border-dashed border-slate-300 p-5 text-center hover:border-brand-purple hover:bg-brand-purple/5">
+                    <span class="text-3xl">📁</span>
+                    <span class="mt-2 block font-bold text-slate-900">Choose a folder</span>
+                    <span class="mt-1 block text-xs text-slate-500">Available in supported browsers</span>
+                </button>
+            </div>
+            <input id="photos-input" type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple class="hidden">
+            <input id="folder-input" type="file" accept="image/jpeg,image/png,image/webp" multiple webkitdirectory directory class="hidden">
+
+            <div id="selection-summary" class="mt-5 hidden rounded-2xl border border-brand-blue/20 bg-brand-blue/5 p-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <p class="font-bold text-slate-900"><span id="image-count">0</span> images selected</p>
+                        <p class="text-sm text-slate-600">Estimated upload size: <span id="image-size">0 MB</span></p>
+                    </div>
+                    <button type="button" id="clear-images" class="text-sm font-bold text-red-600 hover:underline">Remove all</button>
+                </div>
+                <div id="thumbnail-grid" class="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-5 md:grid-cols-8"></div>
+            </div>
+
+            <div id="upload-progress" class="mt-5 hidden" aria-live="polite">
+                <div class="flex justify-between text-sm font-bold text-slate-700"><span id="upload-stage">Uploading…</span><span id="upload-percent">0%</span></div>
+                <div class="mt-2 h-3 overflow-hidden rounded-full bg-slate-200"><div id="upload-bar" class="h-full rounded-full bg-brand-purple transition-all" style="width:0%"></div></div>
+                <div id="upload-errors" class="mt-3 text-sm text-amber-800"></div>
+            </div>
+
+            <p class="mt-5 text-xs text-slate-500">Maximum {{ max_image_size_mb }} MB per image. Corrupt files, executable content and unsafe ZIP paths are rejected. Uploaded sessions remain available for recovery.</p>
+
+            <div class="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+                <a href="{% url 'bulk_upload' %}?business={{ import_session.business_id }}" class="inline-flex justify-center rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">Start over</a>
+                <div class="flex flex-col gap-3 sm:flex-row">
+                    <button type="submit" name="action" value="skip" class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">Continue without photos</button>
+                    <button type="submit" name="action" value="upload" class="rounded-xl bg-brand-purple px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-brand-purple/90">Upload and match photos</button>
+                </div>
+            </div>
+        </form>
+    </section>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('photo-form');
+    const photoInput = document.getElementById('photos-input');
+    const folderInput = document.getElementById('folder-input');
+    const archiveInput = document.getElementById('archive-input');
+    const grid = document.getElementById('thumbnail-grid');
+    const summary = document.getElementById('selection-summary');
+    const count = document.getElementById('image-count');
+    const size = document.getElementById('image-size');
+    let selected = [];
+
+    document.getElementById('choose-files').addEventListener('click', () => photoInput.click());
+    document.getElementById('choose-folder').addEventListener('click', () => folderInput.click());
+    photoInput.addEventListener('change', () => addFiles(photoInput.files));
+    folderInput.addEventListener('change', () => addFiles(folderInput.files));
+    archiveInput.addEventListener('change', () => {
+        if (archiveInput.files.length) {
+            summary.classList.remove('hidden');
+            count.textContent = `ZIP: ${archiveInput.files[0].name}`;
+            size.textContent = formatBytes(archiveInput.files[0].size);
+        }
+    });
+
+    function addFiles(files) {
+        for (const file of files) {
+            if (!selected.some(existing => existing.name === file.name && existing.size === file.size && existing.lastModified === file.lastModified)) selected.push(file);
+        }
+        renderFiles();
+    }
+    function renderFiles() {
+        summary.classList.toggle('hidden', !selected.length && !archiveInput.files.length);
+        count.textContent = selected.length;
+        size.textContent = formatBytes(selected.reduce((total, file) => total + file.size, 0));
+        grid.innerHTML = '';
+        selected.slice(0, 100).forEach((file, index) => {
+            const card = document.createElement('div');
+            card.className = 'relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-white';
+            const image = document.createElement('img');
+            image.className = 'h-full w-full object-cover';
+            image.alt = file.name;
+            image.src = URL.createObjectURL(file);
+            image.onload = () => URL.revokeObjectURL(image.src);
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-xs font-bold text-white';
+            remove.textContent = '×';
+            remove.setAttribute('aria-label', `Remove ${file.name}`);
+            remove.addEventListener('click', () => { selected.splice(index, 1); renderFiles(); });
+            card.append(image, remove);
+            grid.append(card);
+        });
+        if (selected.length > 100) {
+            const more = document.createElement('p');
+            more.className = 'col-span-full text-xs text-slate-500';
+            more.textContent = `Plus ${selected.length - 100} more images`;
+            grid.append(more);
+        }
+    }
+    function formatBytes(bytes) {
+        if (!bytes) return '0 MB';
+        return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(2)} MB` : `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    document.getElementById('clear-images').addEventListener('click', () => {
+        selected = [];
+        photoInput.value = '';
+        folderInput.value = '';
+        archiveInput.value = '';
+        renderFiles();
+    });
+    form.addEventListener('submit', event => {
+        const submitter = event.submitter;
+        if (submitter && submitter.value === 'skip') return;
+        event.preventDefault();
+        const data = new FormData(form);
+        data.delete('photos');
+        selected.forEach(file => data.append('photos', file, file.name));
+        data.set('action', 'upload');
+        const progress = document.getElementById('upload-progress');
+        progress.classList.remove('hidden');
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', form.action || window.location.href);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.upload.addEventListener('progress', upload => {
+            if (!upload.lengthComputable) return;
+            const percent = Math.round(upload.loaded / upload.total * 100);
+            document.getElementById('upload-percent').textContent = `${percent}%`;
+            document.getElementById('upload-bar').style.width = `${percent}%`;
+        });
+        xhr.addEventListener('load', () => {
+            let payload = {};
+            try { payload = JSON.parse(xhr.responseText); } catch (_) {}
+            if (payload.errors && payload.errors.length) document.getElementById('upload-errors').textContent = payload.errors.slice(0, 10).join(' · ');
+            if (xhr.status >= 200 && xhr.status < 300 && payload.review_url) {
+                document.getElementById('upload-stage').textContent = 'Matching complete';
+                window.location.assign(payload.review_url);
+            }
+        });
+        xhr.addEventListener('error', () => {
+            document.getElementById('upload-errors').textContent = 'Upload interrupted. Retry safely; completed files remain in this import session.';
+        });
+        xhr.send(data);
+    });
+});
+</script>
+{% endblock %}
