@@ -11,7 +11,7 @@
         <h1 class="mt-1 text-2xl font-extrabold text-slate-900">Upload product photos</h1>
         <p class="mt-2 text-sm text-slate-600">{{ import_session.valid_rows }} products for <strong>{{ import_session.business.name }}</strong> are ready. Filenames will be matched against SKU, barcode and product name.</p>
 
-        <form method="post" enctype="multipart/form-data" id="photo-form" class="mt-7">
+        <form method="post" action="{% url 'bulk_upload_photos' session_id=import_session.pk %}" enctype="multipart/form-data" id="photo-form" class="mt-7">
             {% csrf_token %}
             <div class="grid gap-4 md:grid-cols-3">
                 <label for="archive-input" class="cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 p-5 text-center hover:border-brand-purple hover:bg-brand-purple/5">
@@ -138,32 +138,52 @@ document.addEventListener('DOMContentLoaded', () => {
         const submitter = event.submitter;
         if (submitter && submitter.value === 'skip') return;
         event.preventDefault();
+        const submitButtons = form.querySelectorAll('button[type="submit"]');
+        submitButtons.forEach(button => { button.disabled = true; });
         const data = new FormData(form);
         data.delete('photos');
         selected.forEach(file => data.append('photos', file, file.name));
         data.set('action', 'upload');
         const progress = document.getElementById('upload-progress');
+        const uploadStage = document.getElementById('upload-stage');
+        const uploadErrors = document.getElementById('upload-errors');
         progress.classList.remove('hidden');
+        uploadStage.textContent = 'Uploading…';
+        uploadErrors.textContent = '';
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', form.action || window.location.href);
+        // A control named "action" shadows HTMLFormElement.action in browsers.
+        // Read the attribute explicitly so the URL can never become a RadioNodeList.
+        const uploadUrl = form.getAttribute('action') || window.location.href;
+        xhr.open('POST', uploadUrl, true);
         xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
         xhr.upload.addEventListener('progress', upload => {
             if (!upload.lengthComputable) return;
             const percent = Math.round(upload.loaded / upload.total * 100);
             document.getElementById('upload-percent').textContent = `${percent}%`;
             document.getElementById('upload-bar').style.width = `${percent}%`;
+            if (percent === 100) uploadStage.textContent = 'Processing and matching photos…';
         });
         xhr.addEventListener('load', () => {
             let payload = {};
             try { payload = JSON.parse(xhr.responseText); } catch (_) {}
-            if (payload.errors && payload.errors.length) document.getElementById('upload-errors').textContent = payload.errors.slice(0, 10).join(' · ');
+            if (payload.errors && payload.errors.length) uploadErrors.textContent = payload.errors.slice(0, 10).join(' · ');
             if (xhr.status >= 200 && xhr.status < 300 && payload.review_url) {
-                document.getElementById('upload-stage').textContent = 'Matching complete';
+                uploadStage.textContent = 'Matching complete';
                 window.location.assign(payload.review_url);
+                return;
             }
+            uploadStage.textContent = 'Upload failed';
+            if (!uploadErrors.textContent) {
+                uploadErrors.textContent = xhr.status
+                    ? `The server could not process this upload (HTTP ${xhr.status}). Please try again.`
+                    : 'The server returned an invalid response. Please try again.';
+            }
+            submitButtons.forEach(button => { button.disabled = false; });
         });
         xhr.addEventListener('error', () => {
-            document.getElementById('upload-errors').textContent = 'Upload interrupted. Retry safely; completed files remain in this import session.';
+            uploadStage.textContent = 'Upload interrupted';
+            uploadErrors.textContent = 'Upload interrupted. Retry safely; completed files remain in this import session.';
+            submitButtons.forEach(button => { button.disabled = false; });
         });
         xhr.send(data);
     });
