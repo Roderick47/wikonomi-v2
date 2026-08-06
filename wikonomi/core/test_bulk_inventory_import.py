@@ -412,6 +412,27 @@ class BulkWizardViewTests(TestCase):
         self.assertEqual(review.status_code, 200)
         self.assertContains(review, 'Review automatic matches')
 
+    def test_photo_page_uses_explicit_upload_url_without_form_action_property(self):
+        session = BulkImportSession.objects.create(
+            user=self.user,
+            business=self.business,
+            inventory_file='imports/inventory.csv',
+            inventory_filename='inventory.csv',
+            status=BulkImportSession.Status.PHOTOS,
+            valid_rows=1,
+            expires_at=timezone.now() + timedelta(days=7),
+        )
+
+        response = self.client.get(reverse('bulk_upload_photos', args=[session.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'action="{reverse("bulk_upload_photos", args=[session.pk])}"',
+        )
+        self.assertContains(response, "form.getAttribute('action')")
+        self.assertNotContains(response, "xhr.open('POST', form.action")
+
     def test_other_user_cannot_resume_session(self):
         other = User.objects.create_user(username='other-user', password='pass')
         session = BulkImportSession.objects.create(
