@@ -54,7 +54,13 @@
                 <p class="text-xs font-bold uppercase tracking-wide text-brand-green">Resumable import found</p>
                 <h2 class="mt-1 font-bold text-slate-900">{{ active_session.business.name }}</h2>
                 <p class="mt-2 text-sm text-slate-600">{{ active_session.get_status_display }} · {{ active_session.progress_percent }}% complete. Uploaded files and completed work are still available.</p>
-                <a href="{{ active_session_url }}" class="mt-4 inline-flex rounded-xl bg-brand-green px-4 py-2 text-sm font-extrabold text-slate-900 hover:brightness-95">Resume import</a>
+                <div class="mt-4 flex flex-wrap gap-3">
+                    <a href="{{ active_session_url }}" class="inline-flex rounded-xl bg-brand-green px-4 py-2 text-sm font-extrabold text-slate-900 hover:brightness-95">Resume import</a>
+                    <form method="post" action="{% url 'bulk_upload_discard' active_session.pk %}" onsubmit="return window.confirm('Discard this import and permanently delete its uploaded files?');">
+                        {% csrf_token %}
+                        <button type="submit" class="inline-flex rounded-xl border border-red-300 bg-white px-4 py-2 text-sm font-extrabold text-red-700 hover:bg-red-50">Discard import</button>
+                    </form>
+                </div>
             </div>
             {% endif %}
             <div class="rounded-2xl border border-brand-blue/20 bg-brand-blue/5 p-5">
