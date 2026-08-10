@@ -1305,6 +1305,7 @@ def shopping_lists_view(request):
         'shopping_lists': lists,
         'active_list': active_list,
         'items': items,
+        'products': Product.objects.only('id', 'name').order_by('name'),
         'estimated_total': estimated_total,
         'currency': currency
     })
