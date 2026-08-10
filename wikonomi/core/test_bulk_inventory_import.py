@@ -433,6 +433,70 @@ class BulkWizardViewTests(TestCase):
         self.assertContains(response, "form.getAttribute('action')")
         self.assertNotContains(response, "xhr.open('POST', form.action")
 
+    def test_user_can_discard_own_session_and_staged_files(self):
+        with tempfile.TemporaryDirectory() as media_root:
+            with self.settings(MEDIA_ROOT=media_root):
+                session = BulkImportSession(
+                    user=self.user,
+                    business=self.business,
+                    inventory_filename='inventory.csv',
+                    status=BulkImportSession.Status.PHOTOS,
+                    expires_at=timezone.now() + timedelta(days=7),
+                )
+                session.inventory_file.save(
+                    'inventory.csv',
+                    ContentFile(b'Product Name,Price\nRice,10\n'),
+                    save=False,
+                )
+                session.save()
+                images, errors = stage_uploaded_images(session, [
+                    SimpleUploadedFile(
+                        'rice.jpg',
+                        image_bytes(),
+                        content_type='image/jpeg',
+                    ),
+                ])
+                self.assertFalse(errors)
+                inventory_storage = session.inventory_file.storage
+                inventory_name = session.inventory_file.name
+                image_storage = images[0].file.storage
+                image_name = images[0].file.name
+
+                response = self.client.post(
+                    reverse('bulk_upload_discard', args=[session.pk]),
+                )
+
+                self.assertRedirects(
+                    response,
+                    reverse('bulk_upload'),
+                    fetch_redirect_response=False,
+                )
+                self.assertFalse(
+                    BulkImportSession.objects.filter(pk=session.pk).exists()
+                )
+                self.assertFalse(inventory_storage.exists(inventory_name))
+                self.assertFalse(image_storage.exists(image_name))
+
+    def test_user_cannot_discard_another_users_import(self):
+        other = User.objects.create_user(username='discard-other', password='pass')
+        session = BulkImportSession.objects.create(
+            user=other,
+            business=self.business,
+            inventory_file='imports/inventory.csv',
+            inventory_filename='inventory.csv',
+            status=BulkImportSession.Status.PHOTOS,
+            expires_at=timezone.now() + timedelta(days=7),
+        )
+
+        response = self.client.post(
+            reverse('bulk_upload_discard', args=[session.pk]),
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(
+            BulkImportSession.objects.filter(pk=session.pk).exists()
+        )
+
     def test_other_user_cannot_resume_session(self):
         other = User.objects.create_user(username='other-user', password='pass')
         session = BulkImportSession.objects.create(
