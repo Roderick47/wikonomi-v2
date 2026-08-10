@@ -798,6 +798,12 @@ class ShoppingListTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('shopping_lists', response.context)
         self.assertIn('active_list', response.context)
+        self.assertEqual(list(response.context['products']), [self.product])
+        self.assertContains(response, 'list="shopping-product-list"')
+        self.assertContains(
+            response,
+            f'data-product-id="{self.product.pk}"',
+        )
 
     def test_add_to_shopping_list_with_product(self):
         """Test adding product to shopping list"""
