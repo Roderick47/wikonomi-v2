@@ -56,6 +56,34 @@ def _owned_session(request, session_id):
     )
 
 
+def _delete_session_files(session):
+    if session.inventory_file:
+        session.inventory_file.delete(save=False)
+    for image in session.images.all():
+        if image.file:
+            image.file.delete(save=False)
+
+
+@require_POST
+@login_required
+def discard_import(request, session_id):
+    with transaction.atomic():
+        session = get_object_or_404(
+            BulkImportSession.objects.select_for_update().prefetch_related('images'),
+            pk=session_id,
+            user=request.user,
+            status__in=[
+                BulkImportSession.Status.PHOTOS,
+                BulkImportSession.Status.REVIEW,
+                BulkImportSession.Status.PROCESSING,
+            ],
+        )
+        _delete_session_files(session)
+        session.delete()
+    messages.success(request, 'The previous bulk import and its uploaded files were discarded.')
+    return redirect('bulk_upload')
+
+
 def _unique_business_slug(name):
     base = slugify(name)[:220] or 'business'
     candidate = base
