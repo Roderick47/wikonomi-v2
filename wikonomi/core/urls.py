@@ -43,6 +43,11 @@ urlpatterns = [
         name='download_inventory_template',
     ),
     path(
+        'bulk-upload/<uuid:session_id>/discard/',
+        bulk_views.discard_import,
+        name='bulk_upload_discard',
+    ),
+    path(
         'bulk-upload/<uuid:session_id>/photos/',
         bulk_views.photo_upload,
         name='bulk_upload_photos',
