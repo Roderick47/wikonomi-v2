@@ -20,18 +20,14 @@
             <form method="post" enctype="multipart/form-data" class="mt-7 space-y-6" id="inventory-form">
                 {% csrf_token %}
                 <div>
-                    <label for="business" class="block text-sm font-bold text-slate-800">Business</label>
-                    <select id="business" name="business" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3 text-sm focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20">
-                        <option value="">Choose an existing business</option>
+                    <label for="business_search" class="block text-sm font-bold text-slate-800">Business</label>
+                    <input type="text" id="business_search" name="business_name" list="business_list" value="{{ selected_business.name|default:'' }}" maxlength="255" required placeholder="Type a business name..." autocomplete="off" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3 text-sm focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20">
+                    <datalist id="business_list">
                         {% for business in businesses %}
-                        <option value="{{ business.pk }}" {% if selected_business.pk == business.pk %}selected{% endif %}>{{ business.name }}</option>
+                        <option value="{{ business.name }}"></option>
                         {% endfor %}
-                    </select>
-                    <details class="mt-2">
-                        <summary class="cursor-pointer text-sm font-semibold text-brand-purple">Business is not listed?</summary>
-                        <label for="business_name" class="mt-2 block text-xs font-bold uppercase tracking-wide text-slate-500">Create it by name</label>
-                        <input id="business_name" name="business_name" maxlength="255" placeholder="e.g. Stop-N-Shop Boroko" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20">
-                    </details>
+                    </datalist>
+                    <p class="mt-2 text-sm text-slate-500">Select an existing business or type a new name to add it.</p>
                 </div>
 
                 <div>
