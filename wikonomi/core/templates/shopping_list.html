@@ -10,9 +10,14 @@
     <div class="bg-white shadow sm:rounded-lg mb-6 p-3 sm:p-5">
         <form id="add-item-form" class="flex items-center gap-2 sm:gap-4">
             <div class="flex-grow min-w-0">
-                <input type="text" id="new-item-name" 
-                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-brand-blue focus:ring-brand-purple/50 text-sm sm:text-base p-2.5 sm:p-3 border truncate" 
-                       placeholder="Add custom item..." required>
+                <input type="text" id="new-item-name" list="shopping-product-list" autocomplete="off"
+                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-brand-blue focus:ring-brand-purple/50 text-sm sm:text-base p-2.5 sm:p-3 border truncate"
+                       placeholder="Type a product or custom item..." required>
+                <datalist id="shopping-product-list">
+                    {% for product in products %}
+                    <option value="{{ product.name }}" data-product-id="{{ product.pk }}"></option>
+                    {% endfor %}
+                </datalist>
             </div>
             <button type="submit" 
                     class="shrink-0 inline-flex items-center justify-center rounded-md border border-transparent bg-brand-purple py-2 px-4 sm:py-3 sm:px-6 text-sm font-bold text-white shadow-sm hover:bg-brand-purple/90 focus:outline-none focus:ring-2 focus:ring-brand-purple/50 focus:ring-offset-2 transition-colors">
@@ -123,7 +128,18 @@
                         'X-CSRFToken': csrfToken,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ item_name: name })
+                    body: JSON.stringify((() => {
+                        const match = Array.from(
+                            document.querySelectorAll('#shopping-product-list option')
+                        ).find(option => (
+                            option.value.localeCompare(name, undefined, {
+                                sensitivity: 'accent'
+                            }) === 0
+                        ));
+                        return match
+                            ? { product_id: match.dataset.productId }
+                            : { item_name: name };
+                    })())
                 })
                 .then(response => response.json())
                 .then(data => {
