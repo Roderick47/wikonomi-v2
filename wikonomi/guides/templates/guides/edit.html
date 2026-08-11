@@ -15,12 +15,12 @@
             </div>
         </div>
     </header>
-    <form id="guide-editor-form" method="post" enctype="multipart/form-data" class="space-y-5" data-guide-slug="{{ guide.slug }}" data-guide-draft-key="wikonomi-guide-{{ guide.slug }}">
+    <form id="guide-editor-form" method="post" enctype="multipart/form-data" class="space-y-5" data-guide-slug="{{ guide.slug }}" data-guide-draft-key="wikonomi-guide-{{ guide.slug }}" data-wk-validate data-form-kind="guide" data-wk-guide-steps>
         {% csrf_token %}
         {% include "guides/_guide_fields.html" %}
         {% include "guides/_steps_editor.html" %}
         <section class="guide-form-card" id="edit-summary">
-            <div class="min-w-0 flex-1"><label for="edit_summary" class="guide-form-label">What did you change?</label><p class="guide-form-help">A short note helps the community understand this update.</p><input id="edit_summary" type="text" name="edit_summary" required {% if source_question %}value="Clarified guide after question: {{ source_question.body|truncatechars:90 }}"{% endif %} placeholder="e.g. Updated passport fees and office location" class="mt-4 block w-full rounded-lg border border-slate-300 px-3 py-3 text-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-purple/20"></div>
+            <div class="min-w-0 flex-1"><label for="edit_summary" class="guide-form-label">What did you change?</label><p class="guide-form-help">A short note helps the community understand this update.</p><input id="edit_summary" type="text" name="edit_summary" required maxlength="255" {% if source_question %}value="Clarified guide after question: {{ source_question.body|truncatechars:90 }}"{% endif %} placeholder="e.g. Updated passport fees and office location" class="mt-4 block w-full rounded-lg border border-slate-300 px-3 py-3 text-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-purple/20"></div>
         </section>
         <div class="guide-submit-bar">
             <a href="{% url 'guides:detail' guide.slug %}" class="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100">Cancel</a>

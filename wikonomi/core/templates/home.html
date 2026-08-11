@@ -168,19 +168,61 @@
 
     @keyframes textShimmer {
 
-        0% { background-position: -200% 0; }
+        0% {
 
-        50% { background-position: 200% 0; }
+            background-position: 130% 0;
 
-        100% { background-position: 200% 0; }
+            opacity: 0;
+
+        }
+
+        2% { opacity: 1; }
+
+        20% {
+
+            background-position: -30% 0;
+
+            opacity: 1;
+
+        }
+
+        23% { opacity: 0; }
+
+        24% {
+
+            background-position: 130% 0;
+
+            opacity: 0;
+
+        }
+
+        27% { opacity: 1; }
+
+        45% {
+
+            background-position: -30% 0;
+
+            opacity: 1;
+
+        }
+
+        48%, 100% {
+
+            background-position: -30% 0;
+
+            opacity: 0;
+
+        }
 
     }
 
     .shimmer-text {
 
-        background: linear-gradient(to right, #4B2798 30%, #66D17E 45%, #4DB8FF 55%, #4B2798 70%);
+        position: relative;
 
-        background-size: 200% auto;
+        display: inline-block;
+
+        background: linear-gradient(to right, #66D17E, #4DB8FF, #4B2798);
 
         color: transparent;
 
@@ -188,7 +230,61 @@
 
         background-clip: text;
 
-        animation: textShimmer 15s ease-in-out infinite;
+    }
+
+    .shimmer-text::after {
+
+        content: attr(data-text);
+
+        position: absolute;
+
+        inset: 0;
+
+        background: linear-gradient(
+
+            90deg,
+
+            #4B2798 0%,
+
+            #4B2798 38%,
+
+            #66D17E 45%,
+
+            #4DB8FF 52%,
+
+            #4B2798 59%,
+
+            #4B2798 100%
+
+        );
+
+        background-size: 300% 100%;
+
+        background-position: 130% 0;
+
+        color: transparent;
+
+        -webkit-background-clip: text;
+
+        background-clip: text;
+
+        pointer-events: none;
+
+        will-change: background-position, opacity;
+
+        animation: textShimmer 10s linear infinite;
+
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+        .shimmer-text::after {
+
+            animation: none;
+
+            opacity: 0;
+
+        }
 
     }
 
@@ -209,7 +305,7 @@
 
         <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">
 
-            <span class="shimmer-text">wikonomi</span>
+            <span class="shimmer-text" data-text="wikonomi">wikonomi</span>
 
         </h1>
 

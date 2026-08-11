@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Importing Catalogue | Wikonomi{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    {% include "includes/_bulk_wizard_steps.html" %}
+    <section class="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm sm:p-10">
+        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-purple/10 text-3xl">⚙️</div>
+        <p class="mt-5 text-xs font-bold uppercase tracking-wider text-brand-purple">Step 5 of 6</p>
+        <h1 class="mt-1 text-3xl font-extrabold text-slate-900">Building your catalogue</h1>
+        <p id="current-stage" class="mt-2 text-slate-600">{{ import_session.current_stage }}</p>
+
+        <div class="mx-auto mt-8 max-w-3xl">
+            <div class="flex justify-between text-sm font-bold text-slate-700"><span>Progress</span><span id="progress-label">{{ import_session.progress_percent }}%</span></div>
+            <div class="mt-2 h-4 overflow-hidden rounded-full bg-slate-200"><div id="progress-bar" class="h-full rounded-full bg-gradient-to-r from-brand-purple via-brand-blue to-brand-green transition-all duration-300" style="width:{{ import_session.progress_percent }}%"></div></div>
+            <p class="mt-2 text-xs text-slate-500">Estimated remaining time: <span id="eta">calculating…</span></p>
+        </div>
+
+        <dl class="mx-auto mt-8 grid max-w-3xl grid-cols-3 gap-3">
+            <div class="rounded-2xl bg-slate-50 p-4"><dt class="text-xs text-slate-500">Products created</dt><dd id="products-created" class="mt-1 text-2xl font-extrabold">{{ import_session.products_created }}</dd></div>
+            <div class="rounded-2xl bg-slate-50 p-4"><dt class="text-xs text-slate-500">Prices created</dt><dd id="prices-created" class="mt-1 text-2xl font-extrabold">{{ import_session.price_reports_created }}</dd></div>
+            <div class="rounded-2xl bg-slate-50 p-4"><dt class="text-xs text-slate-500">Photos processed</dt><dd id="photos-processed" class="mt-1 text-2xl font-extrabold">{{ import_session.photos_processed }}</dd></div>
+        </dl>
+
+        <div id="import-error" class="mx-auto mt-6 hidden max-w-3xl rounded-xl border border-amber-200 bg-amber-50 p-4 text-left text-sm text-amber-900"></div>
+        <p class="mx-auto mt-6 max-w-2xl text-xs text-slate-500">You can safely refresh this page if the connection drops. Completed rows and uploaded files are persisted, so the importer resumes instead of starting over.</p>
+    </section>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const csrf = '{{ csrf_token }}';
+    let failures = 0;
+    async function work() {
+        try {
+            const response = await fetch('{% url "bulk_upload_process" import_session.pk %}', {method: 'POST', headers: {'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest'}});
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || 'Import request failed.');
+            failures = 0;
+            update(payload);
+            if (payload.completion_url) return window.location.assign(payload.completion_url);
+            window.setTimeout(work, 250);
+        } catch (error) {
+            failures += 1;
+            const box = document.getElementById('import-error');
+            box.textContent = `${error.message} Retrying automatically; this import is resumable.`;
+            box.classList.remove('hidden');
+            window.setTimeout(work, Math.min(30000, 1000 * Math.pow(2, failures)));
+        }
+    }
+    function update(payload) {
+        document.getElementById('current-stage').textContent = payload.stage;
+        document.getElementById('progress-label').textContent = `${payload.progress_percent}%`;
+        document.getElementById('progress-bar').style.width = `${payload.progress_percent}%`;
+        document.getElementById('products-created').textContent = payload.products_created;
+        document.getElementById('prices-created').textContent = payload.price_reports_created;
+        document.getElementById('photos-processed').textContent = payload.photos_processed;
+        const seconds = payload.estimated_remaining_seconds;
+        document.getElementById('eta').textContent = seconds == null ? 'calculating…' : seconds < 60 ? `${seconds} seconds` : `${Math.ceil(seconds / 60)} minutes`;
+        document.getElementById('import-error').classList.add('hidden');
+    }
+    work();
+});
+</script>
+{% endblock %}
+
