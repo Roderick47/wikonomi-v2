@@ -130,3 +130,70 @@
         </footer>
     </section>
 </div>
+
+<style>
+    @media (max-width: 1023px) {
+        #map-fab {
+            display: none !important;
+        }
+    }
+
+    @media (max-width: 767px) {
+        #map-toggle-btn {
+            display: none !important;
+        }
+    }
+
+    .wk-mobile-nav__link--map {
+        grid-column: 1 / -1;
+        border-color: #4DB8FF !important;
+        background: #4DB8FF !important;
+        color: #0f172a !important;
+        cursor: pointer;
+    }
+
+    .wk-mobile-nav__link--map:hover,
+    .wk-mobile-nav__link--map:focus-visible {
+        border-color: #249fe8 !important;
+        background: #249fe8 !important;
+        color: #0f172a !important;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchForm = document.getElementById('search-form');
+        const mobileNav = document.getElementById('wk-mobile-nav');
+        const panel = document.getElementById('wk-mobile-nav-panel');
+        const grid = panel ? panel.querySelector('.wk-mobile-nav__grid') : null;
+
+        if (!searchForm || !mobileNav || !panel || !grid || document.getElementById('wk-mobile-map-action')) {
+            return;
+        }
+
+        const mapButton = document.createElement('button');
+        mapButton.type = 'button';
+        mapButton.id = 'wk-mobile-map-action';
+        mapButton.className = 'wk-mobile-nav__link wk-mobile-nav__link--map';
+        mapButton.innerHTML = '<svg aria-hidden="true" style="width:1rem;height:1rem;margin-right:.4rem" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>View map';
+
+        const addPriceButton = grid.querySelector('.wk-mobile-nav__link--primary');
+        if (addPriceButton) {
+            grid.insertBefore(mapButton, addPriceButton);
+        } else {
+            grid.appendChild(mapButton);
+        }
+
+        mapButton.addEventListener('click', function () {
+            panel.hidden = true;
+            const menuToggle = mobileNav.querySelector('.wk-mobile-nav__toggle');
+            if (menuToggle) {
+                menuToggle.setAttribute('aria-expanded', 'false');
+            }
+
+            if (typeof window.openMobileMap === 'function') {
+                window.openMobileMap();
+            }
+        });
+    });
+</script>
