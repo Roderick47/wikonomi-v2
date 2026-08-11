@@ -23,6 +23,7 @@
         {% else %}
         <a href="{{ shortcut_edit_url }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/5">✏️ {{ shortcut_edit_label|default:'Edit this price' }}</a>
         {% endif %}
+        {% if shortcut_add_guide_url %}<a href="{{ shortcut_add_guide_url }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/5">📖 {{ shortcut_add_guide_label|default:'Add guide' }}</a>{% endif %}
         {% if shortcut_duplicate_url %}<a href="{{ shortcut_duplicate_url }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-slate-50">📋 Duplicate this price</a>{% endif %}
         {% if shortcut_mark_delete_url and not shortcut_marked_for_deletion %}<button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50" data-shortcut-action="mark-delete">🗑️ Mark this price for deletion</button>{% endif %}
         <button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-blue/10" data-shortcut-action="comment">💬 {{ shortcut_comment_label|default:'Write Comment' }}</button>

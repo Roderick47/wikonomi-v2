@@ -32,6 +32,9 @@ class PriceReportCreateViewTest(TestCase):
         self.assertIn('businesses', response.context)
         self.assertEqual(list(response.context['products']), [self.product])
         self.assertEqual(list(response.context['businesses']), [self.business])
+        self.assertContains(response, 'data-wk-validate')
+        self.assertContains(response, 'data-form-kind="price"')
+        self.assertContains(response, 'js/form-validation.js')
 
     def test_form_valid_authenticated_user(self):
         """Test form validation with authenticated user"""
@@ -341,6 +344,48 @@ class PriceReportDetailCommentsAssetTest(TestCase):
         self.assertContains(response, 'id="wk-comment-section"')
         self.assertContains(response, 'css/comments.css')
         self.assertContains(response, 'js/comments.js')
+
+
+class BusinessDetailGuidesTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='guide-author', password='pass')
+        self.business = Business.objects.create(name='City Pharmacy', slug='city-pharmacy-guides')
+        self.other_business = Business.objects.create(name='Other Pharmacy', slug='other-pharmacy-guides')
+        self.url = reverse('business_detail', kwargs={'pk': self.business.pk})
+
+    def test_business_detail_guides_tab_only_lists_linked_guides(self):
+        from guides.models import Guide
+
+        linked_guide = Guide.objects.create(
+            title='Visit the nurse station',
+            slug='visit-the-nurse-station',
+            organization=self.business,
+            created_by=self.user,
+        )
+        Guide.objects.create(
+            title='Guide for another pharmacy',
+            slug='guide-for-another-pharmacy',
+            organization=self.other_business,
+            created_by=self.user,
+        )
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context['business_guides']), [linked_guide])
+        self.assertContains(response, 'data-business-tab="guides"')
+        self.assertContains(response, linked_guide.title)
+        self.assertNotContains(response, 'Guide for another pharmacy')
+
+    def test_business_without_guides_has_scoped_add_guide_actions(self):
+        add_guide_url = f'{reverse("guides:create")}?business={self.business.pk}'
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'No guides yet')
+        self.assertContains(response, add_guide_url, count=2)
+        self.assertContains(response, 'Add guide for this business')
 
 
 class SearchFunctionalityTest(TestCase):
@@ -753,6 +798,12 @@ class ShoppingListTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('shopping_lists', response.context)
         self.assertIn('active_list', response.context)
+        self.assertEqual(list(response.context['products']), [self.product])
+        self.assertContains(response, 'list="shopping-product-list"')
+        self.assertContains(
+            response,
+            f'data-product-id="{self.product.pk}"',
+        )
 
     def test_add_to_shopping_list_with_product(self):
         """Test adding product to shopping list"""
@@ -827,6 +878,14 @@ class PriceReportEditTest(TestCase):
             observed_at=timezone.now()
         )
         self.client.login(username='testuser', password='testpass')
+
+    def test_edit_form_enables_reusable_frontend_validation(self):
+        url = reverse('edit_price_report', args=[self.price_report.id])
+        response = self.client.get(url)
+
+        self.assertContains(response, 'data-wk-validate')
+        self.assertContains(response, 'data-form-kind="price"')
+        self.assertContains(response, 'data-max-files="5"')
 
     def test_edit_price_report_creates_history(self):
         """Test that editing price report creates history record"""
@@ -933,6 +992,8 @@ class BusinessCreateViewTest(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'business_create.html')
+        self.assertContains(response, 'data-wk-validate')
+        self.assertContains(response, 'data-form-kind="business"')
 
     def test_get_context_data_includes_businesses(self):
         """Test that the view context includes all existing businesses"""

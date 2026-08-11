@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Catalogue Import Complete | Wikonomi{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    {% include "includes/_bulk_wizard_steps.html" %}
+    <section class="overflow-hidden rounded-3xl border border-brand-green/30 bg-white shadow-sm">
+        <div class="bg-gradient-to-br from-brand-green/20 via-white to-brand-blue/10 p-7 text-center sm:p-10">
+            <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-brand-green text-4xl text-white shadow-lg">✓</div>
+            <h1 class="mt-5 text-3xl font-extrabold text-slate-900">Catalogue ready</h1>
+            <p class="mt-2 text-slate-600">{{ import_session.business.name }} now has a complete Wikonomi inventory catalogue.</p>
+        </div>
+        <div class="grid gap-3 p-5 sm:grid-cols-2 sm:p-7 lg:grid-cols-5">
+            <div class="rounded-2xl bg-slate-50 p-4 text-center"><p class="text-3xl font-extrabold">{{ import_session.price_reports_created }}</p><p class="mt-1 text-xs text-slate-500">Products imported</p></div>
+            <div class="rounded-2xl bg-green-50 p-4 text-center"><p class="text-3xl font-extrabold text-green-700">{{ import_session.photos_processed }}</p><p class="mt-1 text-xs text-green-700">Photos matched</p></div>
+            <div class="rounded-2xl bg-amber-50 p-4 text-center"><p class="text-3xl font-extrabold text-amber-800">{{ missing_count }}</p><p class="mt-1 text-xs text-amber-800">Products missing images</p></div>
+            <div class="rounded-2xl bg-slate-50 p-4 text-center"><p class="text-3xl font-extrabold">{{ import_session.duplicate_images }}</p><p class="mt-1 text-xs text-slate-500">Duplicate images</p></div>
+            <div class="rounded-2xl bg-slate-50 p-4 text-center"><p class="text-3xl font-extrabold">{{ warning_count }}</p><p class="mt-1 text-xs text-slate-500">Import warnings</p></div>
+        </div>
+        <div class="flex flex-col gap-3 border-t border-slate-200 p-5 sm:flex-row sm:justify-center sm:p-7">
+            <a href="{% url 'business_detail' import_session.business_id %}" class="inline-flex justify-center rounded-xl bg-brand-purple px-6 py-3 text-sm font-bold text-white hover:bg-brand-purple/90">View products</a>
+            <a href="{% url 'bulk_upload_report' import_session.pk %}" class="inline-flex justify-center rounded-xl border border-brand-purple px-6 py-3 text-sm font-bold text-brand-purple hover:bg-brand-purple/5">Download import report</a>
+            <a href="{% url 'bulk_upload' %}?business={{ import_session.business_id }}" class="inline-flex justify-center rounded-xl border border-slate-300 px-6 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">Import more</a>
+        </div>
+    </section>
+</div>
+{% endblock %}

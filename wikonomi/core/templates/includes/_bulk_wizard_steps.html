@@ -1,0 +1,34 @@
+<nav class="mb-8 overflow-x-auto" aria-label="Bulk import progress">
+    <ol class="flex min-w-[44rem] items-center rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+        <li class="flex flex-1 items-center">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold {% if wizard_step >= 1 %}bg-brand-purple text-white{% else %}bg-slate-100 text-slate-500{% endif %}">1</span>
+            <span class="ml-2 text-xs font-bold {% if wizard_step == 1 %}text-brand-purple{% else %}text-slate-600{% endif %}">Inventory</span>
+            <span class="mx-3 h-0.5 flex-1 {% if wizard_step > 1 %}bg-brand-green{% else %}bg-slate-200{% endif %}"></span>
+        </li>
+        <li class="flex flex-1 items-center">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold {% if wizard_step >= 2 %}bg-brand-purple text-white{% else %}bg-slate-100 text-slate-500{% endif %}">2</span>
+            <span class="ml-2 text-xs font-bold {% if wizard_step == 2 %}text-brand-purple{% else %}text-slate-600{% endif %}">Photos</span>
+            <span class="mx-3 h-0.5 flex-1 {% if wizard_step > 2 %}bg-brand-green{% else %}bg-slate-200{% endif %}"></span>
+        </li>
+        <li class="flex flex-1 items-center">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold {% if wizard_step >= 3 %}bg-brand-purple text-white{% else %}bg-slate-100 text-slate-500{% endif %}">3</span>
+            <span class="ml-2 text-xs font-bold {% if wizard_step == 3 %}text-brand-purple{% else %}text-slate-600{% endif %}">Match</span>
+            <span class="mx-3 h-0.5 flex-1 {% if wizard_step > 3 %}bg-brand-green{% else %}bg-slate-200{% endif %}"></span>
+        </li>
+        <li class="flex flex-1 items-center">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold {% if wizard_step >= 4 %}bg-brand-purple text-white{% else %}bg-slate-100 text-slate-500{% endif %}">4</span>
+            <span class="ml-2 text-xs font-bold {% if wizard_step == 4 %}text-brand-purple{% else %}text-slate-600{% endif %}">Review</span>
+            <span class="mx-3 h-0.5 flex-1 {% if wizard_step > 4 %}bg-brand-green{% else %}bg-slate-200{% endif %}"></span>
+        </li>
+        <li class="flex flex-1 items-center">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold {% if wizard_step >= 5 %}bg-brand-purple text-white{% else %}bg-slate-100 text-slate-500{% endif %}">5</span>
+            <span class="ml-2 text-xs font-bold {% if wizard_step == 5 %}text-brand-purple{% else %}text-slate-600{% endif %}">Import</span>
+            <span class="mx-3 h-0.5 flex-1 {% if wizard_step > 5 %}bg-brand-green{% else %}bg-slate-200{% endif %}"></span>
+        </li>
+        <li class="flex items-center">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold {% if wizard_step >= 6 %}bg-brand-green text-white{% else %}bg-slate-100 text-slate-500{% endif %}">✓</span>
+            <span class="ml-2 text-xs font-bold {% if wizard_step == 6 %}text-brand-green{% else %}text-slate-600{% endif %}">Done</span>
+        </li>
+    </ol>
+</nav>
+

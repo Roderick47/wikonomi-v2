@@ -1,20 +1,44 @@
 {% extends "base.html" %}
-{% load static guide_markup %}
+{% load static guide_markup socialaccount %}
 
 {% block page_title %}{{ guide.title }} — Wikonomi Guides{% endblock %}
+
+{% block og_tags %}
+<link rel="canonical" href="{{ canonical_url }}">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Wikonomi">
+<meta property="og:url" content="{{ canonical_url }}">
+<meta property="og:title" content="{{ guide.title }} — Wikonomi Guides">
+<meta property="og:description" content="{{ guide.summary|default:'A practical local guide shared by the Wikonomi community.'|striptags|truncatechars:200 }}">
+<meta property="og:image" content="{{ share_image_url }}">
+<meta property="og:image:secure_url" content="{{ share_image_url }}">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:alt" content="{% if guide.photo %}Cover image for {{ guide.title }}{% else %}Wikonomi — Your local guide to PNG{% endif %}">
+<meta property="og:locale" content="en_PG">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ guide.title }} — Wikonomi Guides">
+<meta name="twitter:description" content="{{ guide.summary|default:'A practical local guide shared by the Wikonomi community.'|striptags|truncatechars:200 }}">
+<meta name="twitter:image" content="{{ share_image_url }}">
+{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto">
     <div class="mb-2">
         <div>
             <h1 class="text-2xl font-bold text-gray-900 mb-1">{{ guide.title }}</h1>
-            <p class="text-sm text-gray-500">
-                {% if guide.organization %}{{ guide.organization.name }}<span class="mx-1.5">&middot;</span>{% endif %}
-                {% if guide.category %}{{ guide.category.name }}{% endif %}
+            <p class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-gray-500">
+                {% if guide.organization %}<a href="{% url 'business_detail' guide.organization.pk %}" class="font-semibold text-brand-purple hover:underline">{{ guide.organization.name }}</a><span aria-hidden="true">&middot;</span>{% endif %}
+                {% if guide.category %}<span>{{ guide.category.name }}</span><span aria-hidden="true">&middot;</span>{% endif %}
+                {% if has_edits %}
+                    <a href="{% url 'guides:history' guide.slug %}" class="hover:text-brand-purple hover:underline">Created by @{{ guide.created_by.username|default:'deleted-user' }}</a>
+                    {% if latest_editor %}<span aria-hidden="true">&middot;</span><a href="{% url 'guides:history' guide.slug %}" class="hover:text-brand-purple hover:underline">Edited by @{{ latest_editor.username }}</a>{% endif %}
+                {% else %}
+                    <span>Created by @{{ guide.created_by.username|default:'deleted-user' }}</span>
+                {% endif %}
             </p>
         </div>
     </div>
-    {% if guide.summary %}<p class="text-gray-700 mb-4">{{ guide.summary }}</p>{% endif %}
+    {% if guide.summary %}<div class="prose prose-sm max-w-none text-gray-700 mb-4">{{ guide.summary|guide_markdown }}</div>{% endif %}
     {% if guide.photo %}<img src="{{ guide.photo.url }}" alt="{{ guide.title }}" class="mb-6 aspect-[16/8] w-full rounded-2xl border border-slate-200 object-cover">{% endif %}
     {% if guide.forked_from %}<p class="text-xs text-gray-400 mb-4">Forked from <a href="{% url 'guides:detail' guide.forked_from.slug %}" class="text-brand-purple hover:underline">{{ guide.forked_from.title }}</a></p>{% endif %}
 
@@ -46,12 +70,12 @@
                 <div class="w-6 h-6 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center text-xs font-semibold flex-shrink-0 mt-0.5">{{ forloop.counter }}</div>
                 <div class="flex-1">
                     <div class="mb-1 flex items-start justify-between gap-3">
-                        {% if step.title %}<h3 class="font-semibold text-gray-900">{{ step.title }}</h3>{% else %}<span></span>{% endif %}
+                        {% if step.title %}<h3 class="font-semibold text-gray-900" data-step-title>{{ step.title }}</h3>{% else %}<span data-step-title></span>{% endif %}
                         <button type="button" data-ask-question data-step-id="{{ step.id }}" aria-label="Ask a question about step {{ forloop.counter }}" title="Ask about this step" class="guide-question-icon">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.23 9a4 4 0 117.54 2c-.76 1.01-2.27 1.49-2.27 3m-1.5 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         </button>
                     </div>
-                    <div class="prose prose-sm max-w-none text-gray-800 mb-2">{{ step.instruction|guide_markdown }}</div>
+                    <div class="prose prose-sm max-w-none text-gray-800 mb-2" data-step-instruction>{{ step.instruction|guide_markdown }}</div>
                     {% if step.photos.all %}<div class="mb-2 grid grid-cols-2 sm:grid-cols-3 gap-2">{% for photo in step.photos.all %}<a href="{{ photo.image.url }}" target="_blank"><img src="{{ photo.image.url }}" alt="Step photo" class="h-28 w-full rounded-lg object-cover border"></a>{% endfor %}</div>{% endif %}
                     <div class="mt-3 space-y-2" data-step-tips data-step-id="{{ step.id }}">
                         {% for tip in step.top_tips %}<article class="tip-card" data-tip-id="{{ tip.id }}"><div class="tip-votes"><button type="button" data-tip-vote data-vote-value="1" aria-label="Upvote tip" class="tip-vote-button {% if tip.viewer_vote == 1 %}is-active-up{% endif %}">▲</button><span data-tip-score>{{ tip.score }}</span><button type="button" data-tip-vote data-vote-value="-1" aria-label="Downvote tip" class="tip-vote-button {% if tip.viewer_vote == -1 %}is-active-down{% endif %}">▼</button></div><div class="min-w-0 flex-1"><p class="text-sm leading-5 text-slate-700" data-tip-body-text>{{ tip.body }}</p>{% if tip.photos.all %}<div class="mt-2 flex gap-2">{% for photo in tip.photos.all %}<a href="{{ photo.image.url }}" target="_blank"><img src="{{ photo.image.url }}" alt="Tip photo" class="h-12 w-12 rounded-lg border border-amber-200 object-cover"></a>{% endfor %}</div>{% endif %}<div class="mt-2 flex items-center gap-3 text-xs text-slate-400"><span>Tip by <strong class="text-slate-600">@{{ tip.submitted_by.username|default:'deleted-user' }}</strong></span>{% if tip.submitted_by_id == user.id %}<button type="button" data-edit-tip class="font-bold text-brand-purple hover:underline">Edit</button>{% endif %}{% if tip.submitted_by_id == user.id or user.is_staff or user.is_superuser %}<button type="button" data-delete-tip class="font-bold text-red-500 hover:underline">Delete</button>{% endif %}</div></div></article>{% endfor %}
@@ -97,10 +121,29 @@
             <div class="hidden rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500" data-no-filtered-questions>No questions match this filter.</div>
         </div>
     </section>
+    <section class="mt-8 border-t border-slate-200 pt-6" data-guide-accuracy-prompt>
+        <div class="flex flex-col gap-4 rounded-2xl bg-slate-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 class="text-base font-bold text-slate-900">Do you think this guide is accurate?</h2>
+                <p class="mt-1 text-sm leading-6 text-slate-600">If anything is outdated, incomplete, or unclear, help improve it for the next reader.</p>
+            </div>
+            {% if can_edit %}
+            <a href="{% url 'guides:edit' guide.slug %}" class="inline-flex flex-none items-center justify-center gap-2 rounded-lg bg-brand-purple px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-purple/90 focus:outline-none focus:ring-2 focus:ring-brand-purple/40" data-guide-bottom-edit>
+                <span aria-hidden="true">✎</span>
+                <span>Edit this guide</span>
+            </a>
+            {% else %}
+            <button type="button" class="inline-flex flex-none items-center justify-center gap-2 rounded-lg border border-brand-purple px-4 py-2.5 text-sm font-bold text-brand-purple transition hover:bg-brand-purple/5 focus:outline-none focus:ring-2 focus:ring-brand-purple/30" data-guide-signin-trigger>
+                <span aria-hidden="true">✎</span>
+                <span>Sign in to edit</span>
+            </button>
+            {% endif %}
+        </div>
+    </section>
     {% if guide.forks.exists %}<div class="pt-4 border-t border-gray-200"><p class="text-sm text-gray-500 mb-2">Adapted by {{ guide.forks.count }} other organization{{ guide.forks.count|pluralize }}</p><div class="flex flex-wrap gap-2">{% for fork in guide.forks.all %}<a href="{% url 'guides:detail' fork.slug %}" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded px-2.5 py-1">{{ fork.organization.name|default:fork.title }}</a>{% endfor %}</div></div>{% endif %}
 </div>
 
-<div class="fixed bottom-6 right-5 z-40 sm:bottom-8 sm:right-8" data-guide-actions>
+<div class="fixed bottom-6 right-5 z-40 flex flex-col items-end sm:bottom-8 sm:right-8" data-guide-actions>
     <div class="mb-3 hidden w-52 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl" data-guide-action-menu>
         <button type="button" data-ask-question data-step-id="general" class="guide-action-item"><span class="text-base">?</span> <span>Ask a Question</span></button>
         <button type="button" data-open-rating class="guide-action-item">★ <span>Rate Guide</span></button>
@@ -115,6 +158,22 @@
 <div class="guide-popover hidden" data-rating-popover aria-hidden="true"><div class="guide-popover-overlay" data-close-popover></div><div class="guide-popover-dialog"><button type="button" class="guide-popover-close" data-close-popover>×</button><h2 class="text-lg font-bold text-slate-900">Rate this guide</h2><p class="mt-1 text-sm text-slate-500">How useful was this guide?</p><div class="mt-5 flex justify-center gap-2" data-rating-widget data-rating-target="guide" data-object-id="{{ guide.id }}">{% for i in "12345" %}<button type="button" data-rating-value="{{ i }}" aria-label="Rate {{ i }} out of 5" class="text-4xl text-gray-300 hover:text-amber-400 {% if user_rating.score >= i|add:0 %}text-amber-400{% endif %}">★</button>{% endfor %}</div></div></div>
 
 <div class="guide-popover hidden" data-fork-popover aria-hidden="true"><div class="guide-popover-overlay" data-close-popover></div><form method="post" action="{% url 'guides:fork' guide.slug %}" class="guide-popover-dialog" data-fork-form>{% csrf_token %}<button type="button" class="guide-popover-close" data-close-popover>×</button><h2 class="text-lg font-bold text-slate-900">Copy this guide</h2><p class="mt-1 text-sm text-slate-500">Create an independent copy for another business or organization.</p><label for="fork_organization_search" class="mt-5 block text-sm font-bold text-slate-700">Business or organization</label><input id="fork_organization_search" name="organization_name" list="fork_organization_list" required value="{% if guide.organization %}{{ guide.organization.name }}{% endif %}" placeholder="Start typing a name..." class="mt-2 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-purple/20"><datalist id="fork_organization_list">{% for business in businesses %}<option value="{{ business.name }}"></option>{% endfor %}</datalist><p class="mt-2 hidden text-sm text-red-600" data-fork-error></p><button type="submit" class="mt-5 w-full rounded-lg bg-brand-purple px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-purple/90" data-fork-submit>Copy Guide</button></form></div>
+
+<div class="guide-popover hidden" data-share-popover aria-hidden="true">
+    <div class="guide-popover-overlay" data-close-popover></div>
+    <div class="guide-popover-dialog" role="dialog" aria-modal="true" aria-labelledby="guide-share-title">
+        <button type="button" class="guide-popover-close" data-close-popover aria-label="Close share preview">×</button>
+        <h2 id="guide-share-title" class="text-lg font-bold text-slate-900">Share this guide</h2>
+        <p class="mt-1 pr-8 text-sm text-slate-500">Preview the formatted guide text, then copy it or share it with another app.</p>
+        <label for="guide-share-text" class="mt-5 block text-sm font-bold text-slate-700">Share text</label>
+        <textarea id="guide-share-text" rows="12" readonly data-guide-share-text class="mt-2 block w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 font-mono text-sm leading-6 text-slate-700 focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"></textarea>
+        <p class="mt-2 text-xs text-slate-400">The complete text contains one link to this guide.</p>
+        <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button type="button" data-share-guide-apps data-title="{{ guide.title }}" class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">Share with apps</button>
+            <button type="button" data-copy-guide-share class="rounded-lg bg-brand-purple px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-purple/90">Copy share text</button>
+        </div>
+    </div>
+</div>
 
 {% if user.is_authenticated %}
 <div class="guide-popover hidden" data-question-popover aria-hidden="true"><div class="guide-popover-overlay" data-close-question></div><form class="guide-popover-dialog" data-question-form><button type="button" class="guide-popover-close" data-close-question>×</button><h2 class="text-lg font-bold text-slate-900">Ask a question</h2><p class="mt-1 text-sm text-slate-500">Choose whether this is about the whole guide or one step.</p><label for="question-context" class="mt-5 block text-sm font-bold text-slate-700">Question about</label><select id="question-context" name="step_id" data-question-step-select class="mt-2 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-brand-blue focus:ring-2 focus:ring-brand-purple/20"><option value="general">The whole guide (general)</option>{% for step in steps %}<option value="{{ step.id }}">Step {{ forloop.counter }}{% if step.title %}: {{ step.title }}{% endif %}</option>{% endfor %}</select><label for="question-body" class="mt-4 block text-sm font-bold text-slate-700">Your question</label><textarea id="question-body" name="body" maxlength="1200" rows="5" required placeholder="What would you like clarified?" class="mt-2 block w-full resize-none rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-brand-blue focus:ring-2 focus:ring-brand-purple/20"></textarea><p class="mt-2 hidden text-sm text-red-600" data-question-error></p><button type="submit" class="mt-5 w-full rounded-lg bg-brand-purple px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-purple/90" data-question-submit>Post Question</button></form></div>
@@ -145,6 +204,32 @@
     </form>
 </div>
 {% endif %}
+
+<div class="tip-modal hidden" data-guide-signin-modal aria-hidden="true">
+    <div class="tip-modal__overlay" data-guide-signin-close></div>
+    <div class="tip-modal__dialog max-w-sm" role="dialog" aria-modal="true" aria-labelledby="guide-signin-title">
+        <header class="tip-modal__header">
+            <h2 id="guide-signin-title" class="text-lg font-bold text-gray-900">Sign in to continue</h2>
+            <button type="button" class="tip-modal__close" data-guide-signin-close aria-label="Close sign-in dialog">×</button>
+        </header>
+        <div class="tip-modal__body text-center">
+            <p class="text-sm leading-6 text-slate-600">Sign in with Google to vote, rate, ask questions, and contribute to this guide.</p>
+            <form action="{% provider_login_url 'google' process='login' next=request.get_full_path %}" method="post" class="mt-5">
+                {% csrf_token %}
+                <button type="submit" data-guide-google-signin class="flex w-full items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-purple/40">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Continue with Google
+                </button>
+            </form>
+            <p class="mt-3 text-xs text-slate-400">You will return to this guide after signing in.</p>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_head %}

@@ -27,6 +27,8 @@ class Profile(models.Model):
     email_verification_token = models.UUIDField(default=uuid.uuid4, editable=False)
     email_verification_sent_at = models.DateTimeField(null=True, blank=True)
     deletion_notifications_enabled = models.BooleanField(default=True)
+    onboarding_completed_at = models.DateTimeField(null=True, blank=True)
+    onboarding_dismissed_at = models.DateTimeField(null=True, blank=True)
     
 
     @property

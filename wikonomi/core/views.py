@@ -2,6 +2,7 @@ import json
 import csv
 import io
 import re
+from urllib.parse import urlencode
 from decimal import Decimal, InvalidOperation
 from django.db import transaction
 from django.utils.text import slugify
@@ -119,12 +120,12 @@ class PriceReportForm(forms.ModelForm):
         model = PriceReport
         fields = ['category', 'subcategory', 'price', 'currency', 'latitude', 'longitude', 'notes', 'image']
         widgets = {
-            'price': forms.NumberInput(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'step': '0.01'}),
-            'currency': forms.TextInput(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'}),
+            'price': forms.NumberInput(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'step': '0.01', 'min': '0.01', 'max': '9999999999.99'}),
+            'currency': forms.TextInput(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'minlength': '3', 'maxlength': '3', 'pattern': '[A-Za-z]{3}', 'title': 'Use a three-letter currency code such as PGK.', 'data-exact-length': '3'}),
             'latitude': forms.HiddenInput(),
             'longitude': forms.HiddenInput(),
             'notes': forms.Textarea(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'rows': 3}),
-            'image': forms.FileInput(attrs={'class': 'hidden', 'accept': 'image/*'}),
+            'image': forms.FileInput(attrs={'class': 'hidden', 'accept': 'image/jpeg,image/png,image/webp', 'data-max-file-size': str(10 * 1024 * 1024), 'data-allowed-types': 'image/jpeg,image/png,image/webp', 'data-validation-anchor': '#image-drop-zone', 'data-validation-label': 'Image'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -165,7 +166,7 @@ class BusinessForm(forms.ModelForm):
         widgets = {
             'name': forms.TextInput(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'}),
             'details': forms.Textarea(attrs={'class': 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'rows': 4, 'placeholder': 'Add any additional information about this business...'}),
-            'image': forms.FileInput(attrs={'class': 'hidden', 'accept': 'image/*'}),
+            'image': forms.FileInput(attrs={'class': 'hidden', 'accept': 'image/jpeg,image/png,image/webp', 'data-max-file-size': str(10 * 1024 * 1024), 'data-allowed-types': 'image/jpeg,image/png,image/webp', 'data-validation-anchor': '#image-drop-zone', 'data-validation-label': 'Image'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -821,6 +822,7 @@ class BusinessDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         business = self.get_object()
+        from guides.models import Guide
         
         # Get all price reports for this business with location data
         price_reports = PriceReport.objects.filter(
@@ -855,6 +857,16 @@ class BusinessDetailView(DetailView):
         context['price_reports'] = price_reports
         context['reports_with_location'] = reports_with_location
         context['products_data'] = products_data
+        context['business_guides'] = Guide.objects.filter(
+            organization=business
+        ).select_related(
+            'category', 'organization', 'created_by', 'current_version'
+        ).order_by('-created_at')
+        context['guide_count'] = context['business_guides'].count()
+        context['add_guide_url'] = '{}?{}'.format(
+            reverse('guides:create'),
+            urlencode({'business': business.pk}),
+        )
         context['total_reports'] = price_reports.count()
         rating_summary = business.ratings.aggregate(
             average_rating=Avg('rating'),
@@ -1293,6 +1305,7 @@ def shopping_lists_view(request):
         'shopping_lists': lists,
         'active_list': active_list,
         'items': items,
+        'products': Product.objects.only('id', 'name').order_by('name'),
         'estimated_total': estimated_total,
         'currency': currency
     })
@@ -1723,7 +1736,7 @@ def _parse_csv(uploaded_file):
 
 
 @login_required
-def bulk_upload(request):
+def _legacy_bulk_upload(request):
     """Handle bulk CSV upload with preview and confirmation."""
     
     context = {
@@ -1734,8 +1747,8 @@ def bulk_upload(request):
     if request.method == 'POST':
         action = request.POST.get('action', '')
         
-        # Fallback for existing tests that don't send 'action' explicitly
-        if not action and request.FILES.get('csv_file'):
+        # Backwards-compatible default for clients that predate the action field.
+        if not action:
             action = 'preview'
         
         if action == 'preview':
@@ -2000,6 +2013,20 @@ def bulk_upload(request):
             return redirect('bulk_upload_success')
     
     return render(request, 'bulk_upload.html', context)
+
+
+@login_required
+def bulk_upload(request):
+    """Route existing CSV posts through the legacy-compatible importer."""
+    legacy_action = request.POST.get('action', '') if request.method == 'POST' else ''
+    if request.method == 'POST' and (
+        request.FILES.get('csv_file')
+        or legacy_action in {'preview', 'confirm'}
+        or not request.FILES.get('inventory_file')
+    ):
+        return _legacy_bulk_upload(request)
+    from .bulk_views import inventory_upload
+    return inventory_upload(request)
 
 
 @login_required
