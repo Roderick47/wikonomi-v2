@@ -51,3 +51,6 @@ class TransportIndexAccessTests(TestCase):
 
     def test_transport_url_is_canonical_route(self):
         self.assertEqual(reverse('transport_index:index'), '/transport/')
+
+    def test_legacy_cab_list_url_name_resolves_to_transport(self):
+        self.assertEqual(reverse('transport_index:cab_list'), '/transport/')
