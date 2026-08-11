@@ -1,564 +1,409 @@
 {% extends 'base.html' %}
-
 {% load custom_filters cache static %}
-
-
 
 {% block page_title %}Wikonomi — PNG Price Comparison{% endblock %}
 
-
-
 {% block og_tags %}
-
 {% with base_url="https://www.wikonomi.com" og_title="Wikonomi — Compare Prices Across PNG" og_description="Papua New Guinea's community-driven price comparison platform. See what shops near you are charging today." og_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
-
 <link rel="canonical" href="{{ base_url }}/">
-
 <meta property="og:type" content="website">
-
 <meta property="og:site_name" content="Wikonomi">
-
 <meta property="og:url" content="{{ base_url }}/">
-
 <meta property="og:title" content="{{ og_title }}">
-
 <meta property="og:description" content="{{ og_description }}">
-
 <meta property="og:image" content="{{ og_image }}">
-
 <meta property="og:image:secure_url" content="{{ og_image }}">
-
 <meta property="og:image:type" content="image/jpeg">
-
 <meta property="og:image:width" content="1200">
-
 <meta property="og:image:height" content="630">
-
 <meta property="og:locale" content="en_PG">
-
 <meta name="twitter:card" content="summary_large_image">
-
 <meta name="twitter:site" content="@wikonomi">
-
 <meta name="twitter:title" content="{{ og_title }}">
-
 <meta name="twitter:description" content="{{ og_description }}">
-
 <meta name="twitter:image" content="{{ og_image }}">
-
 {% endwith %}
-
 {% endblock %}
 
-
-
 {% block extra_head %}
-
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
-
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
-
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
-
 <style>
-
     #map {
-
         height: 100%;
-
         min-height: 320px;
-
         z-index: 1;
-
     }
-
     #map-panel.map-panel--open {
-
         display: flex !important;
-
     }
-
     @media (min-width: 1024px) {
-
         #map-panel {
-
             display: block !important;
-
         }
-
         #map-panel.map-panel--collapsed {
-
             display: none !important;
-
         }
-
         #map-shell {
-
             height: calc(100vh - var(--navbar-height, 4rem) - 2rem);
-
             min-height: 420px;
-
         }
-
     }
 
     .wk-price-marker {
-
         background: transparent;
-
         border: none;
-
     }
-
     .wk-price-marker__tag {
-
         display: inline-block;
-
         padding: 3px 8px;
-
         border-radius: 8px;
-
         font-size: 11px;
-
         font-weight: 700;
-
         color: #fff;
-
         white-space: nowrap;
-
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-
         border: 2px solid #fff;
-
         line-height: 1.2;
-
     }
-
     .wk-price-marker__tag--cheap { background: #66D17E; }
-
     .wk-price-marker__tag--mid { background: #4DB8FF; }
-
     .wk-price-marker__tag--expensive { background: #ef4444; }
-
     .wk-price-marker__tag--other { background: #4B2798; }
-
     .marker-cluster-small,
-
     .marker-cluster-medium,
-
     .marker-cluster-large {
-
         background-color: rgba(77, 184, 255, 0.35);
-
     }
-
     .marker-cluster-small div,
-
     .marker-cluster-medium div,
-
     .marker-cluster-large div {
-
         background-color: #4B2798;
-
         color: #fff;
-
         font-weight: 700;
-
     }
 
     @keyframes textShimmer {
-
-        0% {
-
-            background-position: 130% 0;
-
-            opacity: 0;
-
-        }
-
+        0% { background-position: 130% 0; opacity: 0; }
         2% { opacity: 1; }
-
-        20% {
-
-            background-position: -30% 0;
-
-            opacity: 1;
-
-        }
-
+        20% { background-position: -30% 0; opacity: 1; }
         23% { opacity: 0; }
-
-        24% {
-
-            background-position: 130% 0;
-
-            opacity: 0;
-
-        }
-
+        24% { background-position: 130% 0; opacity: 0; }
         27% { opacity: 1; }
-
-        45% {
-
-            background-position: -30% 0;
-
-            opacity: 1;
-
-        }
-
-        48%, 100% {
-
-            background-position: -30% 0;
-
-            opacity: 0;
-
-        }
-
+        45% { background-position: -30% 0; opacity: 1; }
+        48%, 100% { background-position: -30% 0; opacity: 0; }
     }
-
     .shimmer-text {
-
         position: relative;
-
         display: inline-block;
-
         background: linear-gradient(to right, #66D17E, #4DB8FF, #4B2798);
-
         color: transparent;
-
         -webkit-background-clip: text;
-
         background-clip: text;
-
     }
-
     .shimmer-text::after {
-
         content: attr(data-text);
-
         position: absolute;
-
         inset: 0;
-
-        background: linear-gradient(
-
-            90deg,
-
-            #4B2798 0%,
-
-            #4B2798 38%,
-
-            #66D17E 45%,
-
-            #4DB8FF 52%,
-
-            #4B2798 59%,
-
-            #4B2798 100%
-
-        );
-
+        background: linear-gradient(90deg, #4B2798 0%, #4B2798 38%, #66D17E 45%, #4DB8FF 52%, #4B2798 59%, #4B2798 100%);
         background-size: 300% 100%;
-
         background-position: 130% 0;
-
         color: transparent;
-
         -webkit-background-clip: text;
-
         background-clip: text;
-
         pointer-events: none;
-
         will-change: background-position, opacity;
-
         animation: textShimmer 10s linear infinite;
-
     }
 
-    @media (prefers-reduced-motion: reduce) {
+    .wk-home-shortcuts {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        margin-top: .75rem;
+        padding: .125rem .125rem .35rem;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .wk-home-shortcuts::-webkit-scrollbar { display: none; }
+    .wk-home-shortcut {
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.5rem;
+        padding: .5rem .875rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 9999px;
+        background: #fff;
+        color: #475569;
+        font-size: .875rem;
+        font-weight: 650;
+        line-height: 1.2;
+        text-decoration: none;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+        transition: border-color .15s ease, background-color .15s ease, color .15s ease, transform .15s ease;
+    }
+    .wk-home-shortcut:hover,
+    .wk-home-shortcut:focus-visible {
+        border-color: rgba(75, 39, 152, .35);
+        background: rgba(75, 39, 152, .06);
+        color: #4B2798;
+        outline: none;
+    }
+    .wk-home-shortcut:active { transform: translateY(1px); }
+    .wk-home-shortcut--primary {
+        border-color: rgba(75, 39, 152, .28);
+        background: rgba(75, 39, 152, .08);
+        color: #4B2798;
+    }
 
-        .shimmer-text::after {
+    .wk-mobile-nav {
+        position: fixed;
+        right: 1rem;
+        bottom: 1.25rem;
+        z-index: 45;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: .65rem;
+    }
+    .wk-mobile-nav__panel {
+        width: min(18rem, calc(100vw - 2rem));
+        padding: .75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        background: rgba(255, 255, 255, .98);
+        box-shadow: 0 18px 50px rgba(15, 23, 42, .18);
+        backdrop-filter: blur(12px);
+    }
+    .wk-mobile-nav__panel[hidden] { display: none; }
+    .wk-mobile-nav__title {
+        margin: 0 0 .6rem;
+        padding: 0 .25rem;
+        color: #64748b;
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+    .wk-mobile-nav__grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .5rem;
+    }
+    .wk-mobile-nav__link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.75rem;
+        padding: .65rem .75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: .8rem;
+        background: #fff;
+        color: #334155;
+        font-size: .875rem;
+        font-weight: 700;
+        text-align: center;
+        text-decoration: none;
+    }
+    .wk-mobile-nav__link:hover,
+    .wk-mobile-nav__link:focus-visible {
+        border-color: rgba(75, 39, 152, .35);
+        background: rgba(75, 39, 152, .06);
+        color: #4B2798;
+        outline: none;
+    }
+    .wk-mobile-nav__link--map {
+        grid-column: 1 / -1;
+        border-color: #4DB8FF;
+        background: #4DB8FF;
+        color: #0f172a;
+        cursor: pointer;
+    }
+    .wk-mobile-nav__link--map:hover,
+    .wk-mobile-nav__link--map:focus-visible {
+        border-color: #249fe8;
+        background: #249fe8;
+        color: #0f172a;
+    }
+    .wk-mobile-nav__link--primary {
+        grid-column: 1 / -1;
+        border-color: #4B2798;
+        background: #4B2798;
+        color: #fff;
+    }
+    .wk-mobile-nav__link--primary:hover,
+    .wk-mobile-nav__link--primary:focus-visible {
+        background: #3d207d;
+        color: #fff;
+    }
+    .wk-mobile-nav__toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        min-height: 3rem;
+        padding: .7rem 1rem;
+        border: 1px solid rgba(255, 255, 255, .35);
+        border-radius: 9999px;
+        background: #4B2798;
+        color: #fff;
+        font-size: .875rem;
+        font-weight: 800;
+        box-shadow: 0 10px 28px rgba(75, 39, 152, .28);
+    }
+    .wk-mobile-nav__toggle svg { width: 1.1rem; height: 1.1rem; }
 
-            animation: none;
-
-            opacity: 0;
-
+    @media (min-width: 640px) {
+        .wk-home-shortcuts {
+            justify-content: center;
+            flex-wrap: wrap;
+            overflow: visible;
         }
-
     }
-
+    @media (min-width: 1024px) {
+        .wk-mobile-nav { display: none !important; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .shimmer-text::after {
+            animation: none;
+            opacity: 0;
+        }
+    }
 </style>
-
 {% endblock %}
-
-
 
 {% block content %}
 {% static 'img/default-profile.svg' as default_profile_picture_url %}
 
 <!-- Hero Search Hub -->
-
 <section class="relative -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-10 sm:py-12 bg-gradient-to-br from-brand-purple/8 via-white to-brand-green/10 border-b border-slate-200">
-
     <div class="max-w-3xl mx-auto text-center">
-
         <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">
-
             <span class="shimmer-text" data-text="wikonomi">wikonomi</span>
-
         </h1>
-
         <p class="mt-2 text-base sm:text-lg text-gray-600">
-
             Share &amp; compare local prices across PNG. <a href="{% url 'about' %}" class="text-brand-purple hover:text-brand-purple/80 font-medium">Learn more</a>
-
         </p>
 
         <form method="GET" action="{% url 'home' %}" id="search-form" class="mt-8 text-left">
-
             <div class="relative">
-
                 <svg class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-
                 </svg>
-
                 <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search prices, businesses, or guides…"
-
                     class="block w-full rounded-xl border border-slate-200 bg-white py-4 pl-12 pr-28 text-base sm:text-lg shadow-sm focus:ring-2 focus:ring-brand-purple/30 focus:border-brand-blue">
-
                 <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-purple hover:bg-brand-purple/90 transition-colors">
-
                     Search
-
                 </button>
-
             </div>
 
             <div class="mt-3 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-
                 <label for="sort" class="sr-only">Sort by</label>
-
                 <select name="sort" id="sort" onchange="handleSortChange(this.value)"
-
                     class="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-gray-700 shadow-sm focus:ring-brand-purple/30 focus:border-brand-blue">
-
                     <option value="recent" {% if current_sort == 'recent' %}selected{% endif %}>Most recent</option>
-
                     <option value="price_asc" {% if current_sort == 'price_asc' %}selected{% endif %}>Price: low to high</option>
-
                     <option value="price_desc" {% if current_sort == 'price_desc' %}selected{% endif %}>Price: high to low</option>
-
                     <option value="nearest" {% if current_sort == 'nearest' %}selected{% endif %}>Nearest to me</option>
-
                 </select>
-
                 <input type="hidden" name="lat" id="user-lat" value="{{ request.GET.lat }}">
-
                 <input type="hidden" name="lng" id="user-lng" value="{{ request.GET.lng }}">
 
-                <button type="button" id="map-toggle-btn" onclick="toggleMapView()"
-
-                    class="inline-flex items-center px-3 py-2 border border-slate-200 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 shadow-sm lg:hidden">
-
-                    <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
-
-                    </svg>
-
-                    <span id="map-toggle-label">View map</span>
-
-                </button>
-
                 <button type="button" id="map-toggle-btn-desktop" onclick="toggleMapView()"
-
                     class="hidden lg:inline-flex items-center px-3 py-2 border border-slate-200 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 shadow-sm">
-
                     <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-
                     </svg>
-
                     Hide map
-
                 </button>
 
                 <span id="location-status" class="text-xs text-gray-500 hidden items-center">
-
                     <svg class="inline h-3.5 w-3.5 mr-1 text-brand-green" fill="currentColor" viewBox="0 0 20 20">
-
                         <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
-
                     </svg>
-
                     Using your location
-
                 </span>
-
-                <a href="{% url 'add_price' %}" class="inline-flex items-center px-3 py-2 text-sm font-semibold text-brand-purple hover:text-brand-purple/80">
-
-                    + Add price
-
-                </a>
-
-                <a href="{% url 'product_list' %}" class="inline-flex items-center px-3 py-2 text-sm font-semibold rounded-lg border border-brand-purple/30 text-brand-purple bg-white hover:bg-brand-purple/10">
-
-                    Browse Products
-
-                </a>
-
-                <a href="{% url 'business_list' %}" class="inline-flex items-center px-3 py-2 text-sm font-semibold rounded-lg border border-brand-blue/40 text-brand-blue bg-white hover:bg-brand-blue/10">
-
-                    Browse Businesses
-
-                </a>
-
-                <a href="{% url 'guides:list' %}" class="inline-flex items-center px-3 py-2 text-sm font-semibold rounded-lg border border-brand-purple/30 text-brand-purple bg-white hover:bg-brand-purple/10">
-
-                    Browse Guides
-
-                </a>
-
             </div>
 
+            <nav class="wk-home-shortcuts" aria-label="Wikonomi shortcuts">
+                <a href="{% url 'product_list' %}" class="wk-home-shortcut">Prices</a>
+                <a href="{% url 'business_list' %}" class="wk-home-shortcut">Businesses</a>
+                <a href="{% url 'guides:list' %}" class="wk-home-shortcut">Guides</a>
+                <a href="{% url 'transport_index:cab_list' %}" class="wk-home-shortcut">Transport</a>
+                <a href="{% url 'add_price' %}" class="wk-home-shortcut wk-home-shortcut--primary">+ Add price</a>
+            </nav>
         </form>
-
     </div>
-
 </section>
 
 <div id="sticky-search" class="hidden fixed left-0 right-0 w-full z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm" style="top: var(--navbar-height, 4rem);">
-
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-
         <form method="GET" action="{% url 'home' %}" class="flex items-center gap-2 sm:gap-3">
-
             <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search prices…"
-
                 class="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-brand-purple/30 focus:border-brand-blue">
-
             <input type="hidden" name="sort" value="{{ current_sort }}">
-
             <input type="hidden" name="lat" value="{{ request.GET.lat }}">
-
             <input type="hidden" name="lng" value="{{ request.GET.lng }}">
-
-            <button type="submit" class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-purple hover:bg-brand-purple/90 transition-colors">
-
-                Search
-
-            </button>
-
+            <button type="submit" class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-purple hover:bg-brand-purple/90 transition-colors">Search</button>
             <a href="{% url 'product_list' %}" class="hidden sm:inline-flex shrink-0 items-center px-3 py-2 text-sm font-semibold text-brand-purple hover:text-brand-purple/80">Products</a>
-
             <a href="{% url 'business_list' %}" class="hidden sm:inline-flex shrink-0 items-center px-3 py-2 text-sm font-semibold text-brand-blue hover:text-brand-blue/80">Businesses</a>
-
-            <a href="{% url 'add_price' %}" class="shrink-0 inline-flex items-center px-3 py-2 text-sm font-semibold text-brand-purple hover:text-brand-purple/80">
-
-                + Add
-
-            </a>
-
+            <a href="{% url 'add_price' %}" class="shrink-0 inline-flex items-center px-3 py-2 text-sm font-semibold text-brand-purple hover:text-brand-purple/80">+ Add</a>
         </form>
-
     </div>
-
 </div>
 
-
-
 <!-- Split layout: feed + map -->
-
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
     <div id="home-split" class="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
-
-        <!-- Feed column -->
-
         <div id="feed-column" class="lg:col-span-7 min-w-0">
-
-
-
             {% if fuel_summary and not request.GET.q %}
-
             <div class="mb-10 p-6 rounded-xl border border-slate-200 bg-gradient-to-br from-red-50/80 to-white shadow-sm">
-
                 <div class="flex items-center justify-between mb-5">
-
                     <h2 class="text-xl font-bold text-gray-900 flex items-center">
-
                         <svg class="w-5 h-5 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-
                         </svg>
-
                         Cheapest fuel prices
-
                     </h2>
-
                     <span class="text-xs text-gray-500">Updated recently</span>
-
                 </div>
-
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
                     {% for fuel in fuel_summary %}
-
                     <a href="{% url 'price_detail' fuel.report.pk %}" class="block bg-white rounded-xl border border-red-100 shadow-sm hover:shadow-md transition-shadow p-4">
-
                         <div class="text-xs font-semibold text-red-600 uppercase tracking-wide mb-1">{{ fuel.type }}</div>
-
                         <div class="text-2xl font-extrabold text-brand-green">{{ fuel.report.currency }} {{ fuel.report.price|intcomma }}</div>
-
                         <p class="mt-2 text-sm text-gray-600 truncate">
-
                             {% if fuel.report.business %}{{ fuel.report.business.name }}{% else %}Unknown location{% endif %}
-
                         </p>
-
                     </a>
-
                     {% endfor %}
-
                 </div>
-
             </div>
-
             {% endif %}
-
-
 
             {% if guides %}
             <section class="mb-10">
                 <div class="mb-4 flex items-center justify-between">
-                    <div><h2 class="text-xl font-bold text-slate-900">{% if request.GET.q %}Guides{% else %}New guides{% endif %}</h2><p class="mt-1 text-sm text-slate-500">Practical, community-written instructions</p></div>
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">{% if request.GET.q %}Guides{% else %}New guides{% endif %}</h2>
+                        <p class="mt-1 text-sm text-slate-500">Practical, community-written instructions</p>
+                    </div>
                     <a href="{% url 'guides:list' %}{% if request.GET.q %}?q={{ request.GET.q|urlencode }}{% endif %}" class="text-sm font-bold text-brand-purple hover:underline">View all →</a>
                 </div>
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">{% for guide in guides %}{% include "guides/_guide_card.html" with guide=guide %}{% endfor %}</div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {% for guide in guides %}{% include "guides/_guide_card.html" with guide=guide %}{% endfor %}
+                </div>
             </section>
             {% endif %}
 
             <header class="mb-8 pt-2">
-
                 <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">
-
-                    {% if request.GET.q %}
-
-                        Results for &ldquo;{{ request.GET.q }}&rdquo;
-
-                    {% else %}
-
-                        Recent price reports
-
-                    {% endif %}
-
+                    {% if request.GET.q %}Results for &ldquo;{{ request.GET.q }}&rdquo;{% else %}Recent price reports{% endif %}
                 </h2>
-
                 <p class="mt-1 text-sm text-gray-500">Community-submitted prices near you</p>
 
                 {% if request.GET.q %}
@@ -573,865 +418,496 @@
                     </div>
                 </div>
                 {% endif %}
-
             </header>
 
-
-
             {% if businesses %}
-
             <div class="mb-8">
-
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-
                     <svg class="h-5 w-5 mr-2 text-brand-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-
                     </svg>
-
                     Businesses ({{ businesses|length }})
-
                 </h3>
-
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-
                     {% for business in businesses %}
-
                     <a href="{% url 'business_detail' business.pk %}" class="block bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-4 hover:border-brand-blue/40">
-
                         <div class="flex items-center gap-3">
-
                             <img src="{% if business.image %}{{ business.image.url }}{% else %}{% static 'img/default-business.svg' %}{% endif %}" alt="{{ business.name }}" class="h-12 w-12 rounded-lg object-cover border border-slate-100">
-
                             <div class="min-w-0 flex-1">
-
                                 <h4 class="font-medium text-gray-900 truncate">{{ business.name }}</h4>
-
                                 {% if business.rating_count %}
                                 <span class="text-xs text-amber-600 font-medium">★ {{ business.avg_rating|floatformat:1 }}/5</span>
                                 {% else %}
                                 <span class="text-xs text-slate-500 font-medium">No ratings yet</span>
                                 {% endif %}
-
                             </div>
-
                         </div>
-
                     </a>
-
                     {% endfor %}
-
                 </div>
-
             </div>
-
-            {% if latest_prices %}
-
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Price reports ({{ latest_prices|length }})</h3>
-
+            {% if latest_prices %}<h3 class="text-lg font-semibold text-gray-800 mb-4">Price reports ({{ latest_prices|length }})</h3>{% endif %}
             {% endif %}
-
-            {% endif %}
-
-
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="price-feed">
-
                 {% for report in latest_prices %}
-
                 {% include "includes/_price_report_card.html" with report=report show_like_button=True %}
-
                 {% empty %}
-
                 <div class="col-span-full text-center text-gray-500 py-12 rounded-xl border border-dashed border-slate-200 bg-slate-50/50">
-
                     {% if request.GET.q %}
-
                         {% if not guides and not businesses %}<h3 class="text-lg font-bold text-gray-900">No results for &ldquo;{{ request.GET.q }}&rdquo;</h3>{% else %}<h3 class="text-lg font-bold text-gray-900">No matching price reports</h3>{% endif %}
                         <p class="mt-2">Try another search, or add what you were looking for.</p>
                         <div class="mt-4 flex flex-wrap justify-center gap-2">
                             <a href="{% url 'add_price' %}?product_name={{ request.GET.q|urlencode }}" class="inline-flex rounded-full bg-brand-purple px-4 py-2 text-sm font-semibold text-white hover:bg-brand-purple/90">Add product price</a>
                             <a href="{% url 'add_business' %}?name={{ request.GET.q|urlencode }}" class="inline-flex rounded-full border border-brand-blue px-4 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-blue/10">Add business</a>
                         </div>
-
                     {% else %}
-
                         No price reports yet. <a href="{% url 'add_price' %}" class="text-brand-purple font-medium">Add the first one</a>
-
                     {% endif %}
-
                 </div>
-
                 {% endfor %}
-
             </div>
-
-
 
             <div id="loading-indicator" class="text-center py-8 hidden">
-
                 <div class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-brand-purple bg-brand-purple/10">
-
                     <svg class="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0112 20c4.578 0 8.571-3.007 9.963-7.178l.002.004a9.861 9.861 0 01-4.5 1.931l-.002-.004z"></path></svg>
-
                     Loading more…
-
                 </div>
-
             </div>
-
         </div>
-
-
 
         <!-- Map column (desktop sticky / mobile overlay) -->
-
         <div id="map-panel" class="hidden lg:block fixed inset-0 z-50 flex-col bg-white lg:static lg:z-auto lg:col-span-5 lg:sticky lg:top-[calc(var(--navbar-height,4rem)+1rem)]">
-
             <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 lg:hidden shrink-0">
-
                 <h3 class="font-semibold text-gray-900">Price map</h3>
-
                 <button type="button" onclick="closeMobileMap()" class="p-2 rounded-lg text-gray-500 hover:bg-gray-100" aria-label="Close map">
-
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-
                 </button>
-
             </div>
-
             <div id="map-shell" class="flex-1 lg:flex-none p-4 lg:p-0 min-h-0">
-
                 <div class="bg-white rounded-xl border border-slate-200 shadow-sm h-full flex flex-col overflow-hidden">
-
                     <div class="hidden lg:flex items-center justify-between px-4 py-3 border-b border-slate-100">
-
                         <h3 class="text-sm font-semibold text-gray-900">Price locations</h3>
-
                     </div>
-
                     <div class="flex-1 min-h-[280px] lg:min-h-0">
-
                         <div id="map" class="rounded-b-xl"></div>
-
                     </div>
-
                     <div class="px-4 py-2.5 border-t border-slate-100 flex flex-wrap gap-3 text-xs text-gray-500">
-
                         <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brand-green"></span> Cheapest</span>
-
                         <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brand-blue"></span> Mid range</span>
-
                         <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> Highest</span>
-
                         <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brand-purple"></span> Other</span>
-
                     </div>
-
                 </div>
-
             </div>
-
         </div>
-
     </div>
-
 </div>
 
-
-
-<!-- Mobile map FAB -->
-
-<button type="button" id="map-fab" onclick="openMobileMap()"
-
-    class="lg:hidden fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 px-5 py-3 rounded-full text-white font-semibold shadow-lg bg-brand-purple hover:bg-brand-purple/90 transition-transform hover:scale-105">
-
-    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
-
-    View map
-
-</button>
-
-
+<!-- Unified mobile navigation: rendered directly so there is no layout flash. -->
+<div id="wk-mobile-nav" class="wk-mobile-nav">
+    <div id="wk-mobile-nav-panel" class="wk-mobile-nav__panel" hidden>
+        <p class="wk-mobile-nav__title">Explore Wikonomi</p>
+        <div class="wk-mobile-nav__grid">
+            <a href="{% url 'product_list' %}" class="wk-mobile-nav__link">Prices</a>
+            <a href="{% url 'business_list' %}" class="wk-mobile-nav__link">Businesses</a>
+            <a href="{% url 'guides:list' %}" class="wk-mobile-nav__link">Guides</a>
+            <a href="{% url 'transport_index:cab_list' %}" class="wk-mobile-nav__link">Transport</a>
+            <button type="button" id="wk-mobile-map-action" class="wk-mobile-nav__link wk-mobile-nav__link--map">
+                <svg aria-hidden="true" style="width:1rem;height:1rem;margin-right:.4rem" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                View map
+            </button>
+            <a href="{% url 'add_price' %}" class="wk-mobile-nav__link wk-mobile-nav__link--primary">+ Add price</a>
+        </div>
+    </div>
+    <button type="button" id="wk-mobile-nav-toggle" class="wk-mobile-nav__toggle" aria-controls="wk-mobile-nav-panel" aria-expanded="false">
+        <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        <span>Menu</span>
+    </button>
+</div>
 
 <script>
-
 function toggleLike(event, button) {
-
     event.preventDefault();
-
     event.stopPropagation();
-
     const priceId = button.dataset.priceId;
-
     fetch(`/price/${priceId}/like/`, {method: 'POST', headers: {'X-CSRFToken': '{{ csrf_token }}'}})
-
         .then(r => r.json())
-
         .then(data => {
-
             button.querySelector('[data-like-count]').textContent = data.likes_count;
-
             button.className = `p-1.5 rounded-full text-xs ${data.liked ? 'text-brand-green bg-brand-green/10' : 'text-gray-400 hover:text-brand-blue hover:bg-brand-blue/10'}`;
-
         });
-
 }
-
-
 
 let mapInstance = null;
-
 let mapClusterGroup = null;
-
 let mapInitialized = false;
-
 let mapVisibleDesktop = true;
 
-
-
 function isDesktop() {
-
     return window.matchMedia('(min-width: 1024px)').matches;
-
 }
-
-
 
 function openMobileMap() {
-
     const panel = document.getElementById('map-panel');
-
-    const fab = document.getElementById('map-fab');
-
+    if (!panel) return;
     panel.classList.add('map-panel--open');
-
     panel.classList.remove('hidden');
-
-    fab.classList.add('hidden');
-
     document.body.classList.add('overflow-hidden');
-
     ensureMapReady(() => mapInstance && mapInstance.invalidateSize());
-
 }
-
-
 
 function closeMobileMap() {
-
     const panel = document.getElementById('map-panel');
-
-    const fab = document.getElementById('map-fab');
-
+    if (!panel) return;
     panel.classList.remove('map-panel--open');
-
     if (!isDesktop()) {
-
         panel.classList.add('hidden');
-
-        fab.classList.remove('hidden');
-
         document.body.classList.remove('overflow-hidden');
-
     }
-
 }
-
-
 
 function toggleMapView() {
-
     if (!isDesktop()) {
-
         const panel = document.getElementById('map-panel');
-
-        if (panel.classList.contains('map-panel--open')) closeMobileMap();
-
+        if (panel && panel.classList.contains('map-panel--open')) closeMobileMap();
         else openMobileMap();
-
         return;
-
     }
 
     const panel = document.getElementById('map-panel');
-
     const feed = document.getElementById('feed-column');
-
-    const split = document.getElementById('home-split');
-
     const btn = document.getElementById('map-toggle-btn-desktop');
+    if (!panel || !feed || !btn) return;
 
     mapVisibleDesktop = !mapVisibleDesktop;
-
     if (mapVisibleDesktop) {
-
         panel.classList.remove('map-panel--collapsed');
-
         feed.classList.remove('lg:col-span-12');
-
         feed.classList.add('lg:col-span-7');
-
         btn.innerHTML = '<svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Hide map';
-
         ensureMapReady(() => mapInstance && mapInstance.invalidateSize());
-
     } else {
-
         panel.classList.add('map-panel--collapsed');
-
         feed.classList.remove('lg:col-span-7');
-
         feed.classList.add('lg:col-span-12');
-
         btn.innerHTML = '<svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg> Show map';
-
     }
-
 }
-
-
 
 function ensureMapReady(callback) {
-
     if (!mapInitialized) {
-
         mapInitialized = true;
-
-        setTimeout(() => { initPriceMap(); if (callback) callback(); }, 100);
-
+        setTimeout(() => {
+            initPriceMap();
+            if (callback) callback();
+        }, 100);
     } else if (callback) {
-
         callback();
-
     }
-
 }
-
-
 
 function tierColor(tier) {
-
     return {
-
         cheap: '#66D17E',
-
         mid: '#4DB8FF',
-
         expensive: '#ef4444',
-
         other: '#4B2798',
-
     }[tier] || '#4B2798';
-
 }
-
-
 
 function createPriceMarkerIcon(label, tier, productName) {
-
     const escapeHtml = value => String(value || '').replace(/[&<>"']/g, char => ({
-
         '&': '&amp;',
-
         '<': '&lt;',
-
         '>': '&gt;',
-
         '"': '&quot;',
-
         "'": '&#39;',
-
     }[char]));
-
     const color = tierColor(tier);
-
     const safeLabel = escapeHtml(label);
-
     const safeProductName = escapeHtml(productName || 'Unknown product');
 
-
-
     return L.divIcon({
-
         className: 'wk-price-marker',
-
         html: `
-
             <div style="display:flex; flex-direction:column; align-items:center; width:88px;">
-
                 <div class="wk-price-marker__tag wk-price-marker__tag--${tier}" style="display:flex; flex-direction:column; align-items:center; width:84px; padding:4px 8px; background:${color};">
-
                     <span style="max-width:70px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${safeLabel}</span>
-
                     <span style="max-width:70px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9px; font-weight:600; color:rgba(255,255,255,0.78); line-height:1.1;">${safeProductName}</span>
-
                 </div>
-
                 <div style="width:0; height:0; border-left:7px solid transparent; border-right:7px solid transparent; border-top:8px solid ${color};"></div>
-
             </div>`,
-
         iconSize: [88, 42],
-
         iconAnchor: [44, 42],
-
         popupAnchor: [0, -44],
-
     });
-
 }
-
-
 
 function shortPriceLabel(priceStr) {
-
     const parts = priceStr.split(' ');
-
     if (parts.length >= 2) return parts[0] + ' ' + parts[1];
-
     return priceStr;
-
 }
-
-
 
 function initPriceMap() {
-
     try {
-
         const userLat = document.getElementById('user-lat').value;
-
         const userLng = document.getElementById('user-lng').value;
-
         const searchQuery = new URLSearchParams(window.location.search).get('q') || '';
-
         const currentSort = new URLSearchParams(window.location.search).get('sort') || 'recent';
 
-
-
         let centerLat = -9.4438;
-
         let centerLng = 147.1803;
-
         let zoomLevel = 12;
-
         if (userLat && userLng) {
-
             centerLat = parseFloat(userLat);
-
             centerLng = parseFloat(userLng);
-
         }
-
-
 
         if (mapInstance) {
-
             mapInstance.remove();
-
             mapInstance = null;
-
         }
-
-
 
         mapInstance = L.map('map', { scrollWheelZoom: true }).setView([centerLat, centerLng], zoomLevel);
-
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-
             maxZoom: 19,
-
             attribution: '© OpenStreetMap'
-
         }).addTo(mapInstance);
 
-
-
         mapClusterGroup = L.markerClusterGroup({
-
             maxClusterRadius: 45,
-
             spiderfyOnMaxZoom: true,
-
             showCoverageOnHover: false,
-
-            // Our price-tag markers are ~88px wide, much larger than the library's
-            // default pin icon. The default spiderfy spacing (built around small pins)
-            // leaves the spread-out tags overlapping, so taps meant for a tag miss it,
-            // land on the map instead, and immediately collapse the spiderfy back in.
-            // Multiplying the spacing gives each tag enough room to be tapped reliably.
             spiderfyDistanceMultiplier: 3.2,
-
             spiderLegPolylineOptions: { weight: 1.5, color: '#94a3b8', opacity: 0.7 },
-
         });
 
-
-
         const bounds = [];
-
-
-
         if (userLat && userLng) {
-
             const uLat = parseFloat(userLat);
-
             const uLng = parseFloat(userLng);
-
             L.circleMarker([uLat, uLng], { radius: 8, color: '#6b7280', fillColor: '#9ca3af', fillOpacity: 0.9, weight: 2 })
-
                 .addTo(mapInstance)
-
                 .bindPopup('<strong>Your location</strong>');
-
             bounds.push([uLat, uLng]);
-
         }
-
-
 
         const urlArgs = new URLSearchParams({ q: searchQuery, sort: currentSort, lat: userLat, lng: userLng }).toString();
-
         fetch(`/api/map-prices/?${urlArgs}`)
-
             .then(res => res.json())
-
             .then(data => {
-
                 if (!data.items || !data.items.length) return;
 
-
-
                 let minPrice = Infinity;
-
                 let maxPrice = -Infinity;
-
                 data.items.forEach(p => {
-
                     if (p.rawPrice < minPrice) minPrice = p.rawPrice;
-
                     if (p.rawPrice > maxPrice) maxPrice = p.rawPrice;
-
                 });
-
-
 
                 data.items.forEach(price => {
-
                     let tier = 'other';
-
                     if (price.rawPrice <= minPrice) tier = 'cheap';
-
                     else if (price.rawPrice >= maxPrice) tier = 'expensive';
-
                     else if (price.rawPrice < (minPrice + maxPrice) / 2) tier = 'mid';
 
-
-
                     const marker = L.marker([price.lat, price.lng], {
-
                         icon: createPriceMarkerIcon(shortPriceLabel(price.price), tier, price.product),
-
                     });
-
                     marker.bindPopup(`
-
                         <div class="p-1 min-w-[140px]">
-
                             <p class="font-semibold text-sm text-gray-900">${price.product}</p>
-
                             <p class="text-brand-green font-bold">${price.price}</p>
-
                             ${price.business ? `<p class="text-xs text-gray-500 mt-1">${price.business}</p>` : ''}
-
                             <p class="text-xs text-gray-400">${price.date}</p>
-
                             <a href="${price.url}" class="text-brand-purple text-xs font-medium hover:underline mt-1 inline-block">View details →</a>
-
                         </div>
-
                     `);
-
                     mapClusterGroup.addLayer(marker);
-
                     bounds.push([price.lat, price.lng]);
-
                 });
 
-
-
                 mapInstance.addLayer(mapClusterGroup);
-
                 if (bounds.length) mapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
-
             })
-
             .catch(err => console.error('Map load failed:', err));
-
     } catch (error) {
-
         console.error('Map init error:', error);
-
     }
-
 }
 
-
+function setMobileMenuOpen(open) {
+    const panel = document.getElementById('wk-mobile-nav-panel');
+    const toggle = document.getElementById('wk-mobile-nav-toggle');
+    if (!panel || !toggle) return;
+    panel.hidden = !open;
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
 
 document.addEventListener('DOMContentLoaded', function() {
-
     let currentPage = 2;
-
     let isLoading = false;
-
     let hasMore = true;
 
-
-
     const priceFeed = document.getElementById('price-feed');
-
     const loadingIndicator = document.getElementById('loading-indicator');
-
     const searchQuery = new URLSearchParams(window.location.search).get('q') || '';
-
     const currentSort = new URLSearchParams(window.location.search).get('sort') || 'recent';
-
     const userLat = new URLSearchParams(window.location.search).get('lat') || '';
-
     const userLng = new URLSearchParams(window.location.search).get('lng') || '';
 
+    const mobileNav = document.getElementById('wk-mobile-nav');
+    const mobileMenuToggle = document.getElementById('wk-mobile-nav-toggle');
+    const mobileMapAction = document.getElementById('wk-mobile-map-action');
 
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', function () {
+            const panel = document.getElementById('wk-mobile-nav-panel');
+            setMobileMenuOpen(panel ? panel.hidden : false);
+        });
+    }
+
+    if (mobileMapAction) {
+        mobileMapAction.addEventListener('click', function () {
+            setMobileMenuOpen(false);
+            openMobileMap();
+        });
+    }
+
+    document.addEventListener('click', function (event) {
+        if (mobileNav && !mobileNav.contains(event.target)) setMobileMenuOpen(false);
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            const panel = document.getElementById('wk-mobile-nav-panel');
+            if (panel && !panel.hidden) {
+                setMobileMenuOpen(false);
+                if (mobileMenuToggle) mobileMenuToggle.focus();
+            }
+        }
+    });
 
     const stickySearch = document.getElementById('sticky-search');
-
     const heroSection = document.querySelector('section.relative');
-
     if (stickySearch && heroSection && 'IntersectionObserver' in window) {
-
         const stickySearchObserver = new IntersectionObserver(entries => {
-
             const heroEntry = entries[0];
-
             stickySearch.classList.toggle('hidden', heroEntry.isIntersecting);
-
         }, { rootMargin: '-60px 0px 0px 0px' });
-
         stickySearchObserver.observe(heroSection);
-
     }
-
-
 
     if (userLat && userLng) {
-
         document.getElementById('location-status').classList.remove('hidden');
-
         document.getElementById('location-status').classList.add('inline-flex');
-
     }
 
-
-
-    if (isDesktop()) {
-
-        ensureMapReady();
-
-    }
-
-
+    if (isDesktop()) ensureMapReady();
 
     window.addEventListener('resize', function() {
-
+        const mapPanel = document.getElementById('map-panel');
         if (isDesktop()) {
-
             document.body.classList.remove('overflow-hidden');
-
-            document.getElementById('map-fab').classList.toggle('hidden', mapVisibleDesktop);
-
+            if (mapPanel) {
+                mapPanel.classList.remove('map-panel--open');
+                mapPanel.classList.remove('hidden');
+            }
+            setMobileMenuOpen(false);
             if (mapInstance) setTimeout(() => mapInstance.invalidateSize(), 150);
-
+        } else if (mapPanel && !mapPanel.classList.contains('map-panel--open')) {
+            mapPanel.classList.add('hidden');
         }
-
     });
-
-
 
     function loadMorePrices() {
-
         if (isLoading || !hasMore) return;
-
         isLoading = true;
-
         loadingIndicator.classList.remove('hidden');
 
-
-
         fetch(`{% url 'load_more_prices' %}?page=${currentPage}&q=${encodeURIComponent(searchQuery)}&sort=${encodeURIComponent(currentSort)}&lat=${encodeURIComponent(userLat)}&lng=${encodeURIComponent(userLng)}`)
-
             .then(r => r.json())
-
             .then(data => {
-
                 if (data.items && data.items.length) {
-
                     priceFeed.insertAdjacentHTML('beforeend', data.items.join(''));
-
                     currentPage++;
-
                     hasMore = data.has_more;
-
                 } else {
-
                     hasMore = false;
-
                 }
-
                 if (data.businesses && data.businesses.length && currentPage === 3) {
-
                     let section = document.getElementById('business-section');
-
                     if (!section) {
-
                         section = createBusinessSection();
-
                         priceFeed.parentNode.insertBefore(section, priceFeed);
-
                     }
-
                     const grid = section.querySelector('#business-grid');
-
                     data.businesses.forEach(b => grid.appendChild(createBusinessCard(b)));
-
                 }
-
                 isLoading = false;
-
                 loadingIndicator.classList.add('hidden');
-
             })
-
             .catch(() => {
-
                 isLoading = false;
-
                 loadingIndicator.classList.add('hidden');
-
             });
-
     }
-
-
 
     function createBusinessSection() {
-
         const section = document.createElement('div');
-
         section.id = 'business-section';
-
         section.className = 'mb-8';
-
         section.innerHTML = `
-
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Businesses</h3>
-
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6" id="business-grid"></div>`;
-
         return section;
-
     }
-
-
 
     function createBusinessCard(business) {
-
         const card = document.createElement('a');
-
         card.href = `/business/${business.id}/`;
-
         card.className = 'block bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md p-4';
-
         const imageHtml = `<img src="${business.image_url}" alt="" class="h-12 w-12 rounded-lg object-cover border border-slate-100">`;
-
         const ratingHtml = business.rating_count
-
             ? `<span class="text-xs text-amber-600 font-medium">★ ${Number(business.avg_rating).toFixed(1)}/5</span>`
-
             : '<span class="text-xs text-slate-500 font-medium">No ratings yet</span>';
-
         card.innerHTML = `<div class="flex items-center gap-3">${imageHtml}<div><h4 class="font-medium text-gray-900">${business.name}</h4>${ratingHtml}</div></div>`;
-
         return card;
-
     }
-
-
 
     window.addEventListener('scroll', function() {
-
         if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800) loadMorePrices();
-
     });
-
 });
 
-
-
 function handleSortChange(sortValue) {
-
     if (sortValue === 'nearest') {
-
         const urlParams = new URLSearchParams(window.location.search);
-
         if (urlParams.get('lat') && urlParams.get('lng')) {
-
             document.getElementById('search-form').submit();
-
         } else if (navigator.geolocation) {
-
             navigator.geolocation.getCurrentPosition(
-
                 function(pos) {
-
                     document.getElementById('user-lat').value = pos.coords.latitude;
-
                     document.getElementById('user-lng').value = pos.coords.longitude;
-
                     document.getElementById('location-status').classList.remove('hidden');
-
                     document.getElementById('location-status').classList.add('inline-flex');
-
                     document.getElementById('search-form').submit();
-
                 },
-
                 function() {
-
                     alert('Unable to get your location. Please allow access to sort by nearest.');
-
                     document.getElementById('sort').value = 'recent';
-
                 }
-
             );
-
         } else {
-
             alert('Geolocation is not supported by your browser.');
-
             document.getElementById('sort').value = 'recent';
-
         }
-
     } else {
-
         document.getElementById('search-form').submit();
-
     }
-
 }
-
 </script>
-
 {% endblock %}
