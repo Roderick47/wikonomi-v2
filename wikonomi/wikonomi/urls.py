@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.generic import RedirectView
 from users import views as user_views
 from transport_index.views import robots_txt
 
@@ -35,7 +36,8 @@ urlpatterns = [
     path('analytics/', include('analytics.urls')),
     path('guides/', include('guides.urls')),
     path('api/comments/', include('comments.urls')),
-    path('', include('transport_index.urls')),
+    path('transport/', include('transport_index.urls')),
+    path('cabs/', RedirectView.as_view(pattern_name='transport_index:index', permanent=True)),
 ]
 
 # Serve local media files during development only.

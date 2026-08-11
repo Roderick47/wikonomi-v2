@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Wikonomi Transport — Coming Soon{% endblock %}
+
+{% block og_tags %}
+<meta name="description" content="Wikonomi Transport is coming soon: trusted local transport listings with WhatsApp AI assistance for Papua New Guinea.">
+<meta name="robots" content="index, follow">
+{% endblock %}
+
+{% block content %}
+<section class="relative isolate overflow-hidden rounded-3xl bg-gray-950 px-6 py-16 text-white shadow-2xl sm:px-12 sm:py-24">
+    <div class="absolute inset-0 -z-10 opacity-70" style="background: radial-gradient(circle at 15% 20%, rgba(102,209,126,.38), transparent 28%), radial-gradient(circle at 88% 15%, rgba(77,184,255,.38), transparent 28%), radial-gradient(circle at 65% 90%, rgba(75,39,152,.55), transparent 35%);"></div>
+    <div class="mx-auto max-w-4xl text-center">
+        <span class="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold backdrop-blur">
+            Wikonomi Transport &middot; Coming soon
+        </span>
+        <h1 class="mt-8 text-4xl font-black tracking-tight sm:text-6xl">
+            Local transport, easier to <span class="text-brand-green">find</span> and trust.
+        </h1>
+        <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-300 sm:text-xl">
+            We are building a transport directory for Papua New Guinea that helps passengers discover local drivers and helps transport operators grow their business.
+        </p>
+    </div>
+</section>
+
+<section class="mx-auto max-w-6xl py-16">
+    <div class="text-center">
+        <p class="text-sm font-bold uppercase tracking-[0.2em] text-brand-purple">Built for operators and passengers</p>
+        <h2 class="mt-3 text-3xl font-bold text-gray-900 sm:text-4xl">More than a transport listing</h2>
+        <p class="mx-auto mt-4 max-w-2xl text-gray-600">A simple, accessible way to connect with customers, manage availability, and build confidence in local transport.</p>
+    </div>
+
+    <div class="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <article class="rounded-2xl border-2 border-green-200 bg-green-50 p-7 shadow-sm md:col-span-2 lg:col-span-1">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-500 text-2xl text-white">💬</div>
+            <span class="mt-5 inline-block rounded-full bg-green-600 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white">Featured</span>
+            <h3 class="mt-3 text-xl font-bold text-gray-900">WhatsApp AI chat</h3>
+            <p class="mt-3 leading-7 text-gray-700">Passengers will be able to chat naturally on WhatsApp to find suitable nearby transport, check availability, and get connected without downloading another app.</p>
+        </article>
+
+        <article class="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-purple/10 text-2xl">📍</div>
+            <h3 class="mt-5 text-xl font-bold text-gray-900">Local discovery</h3>
+            <p class="mt-3 leading-7 text-gray-600">Be discovered by passengers searching by area, route, and transport type, from taxis and hire cars to PMVs and informal operators.</p>
+        </article>
+
+        <article class="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-blue/10 text-2xl">✅</div>
+            <h3 class="mt-5 text-xl font-bold text-gray-900">Trusted profiles</h3>
+            <p class="mt-3 leading-7 text-gray-600">Show customers who you are with a driver profile, vehicle details, photos, service area, and verification status.</p>
+        </article>
+
+        <article class="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-green/20 text-2xl">🟢</div>
+            <h3 class="mt-5 text-xl font-bold text-gray-900">Live availability</h3>
+            <p class="mt-3 leading-7 text-gray-600">Let customers know when you are available, busy, or offline and keep your current operating area up to date.</p>
+        </article>
+
+        <article class="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-2xl">⭐</div>
+            <h3 class="mt-5 text-xl font-bold text-gray-900">Reputation that travels</h3>
+            <p class="mt-3 leading-7 text-gray-600">Build customer confidence through useful listing details and community feedback as the service grows.</p>
+        </article>
+
+        <article class="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-blue/10 text-2xl">📈</div>
+            <h3 class="mt-5 text-xl font-bold text-gray-900">A digital storefront</h3>
+            <p class="mt-3 leading-7 text-gray-600">Give your transport service a shareable Wikonomi presence and reach more customers through a platform built for PNG.</p>
+        </article>
+    </div>
+</section>
+
+<section class="rounded-3xl bg-gradient-to-r from-brand-purple to-indigo-700 px-6 py-12 text-center text-white sm:px-12">
+    <h2 class="text-3xl font-bold">We are getting the journey ready.</h2>
+    <p class="mx-auto mt-4 max-w-2xl text-purple-100">The transport directory and WhatsApp assistant are currently on hold while we focus on making the experience useful, safe, and reliable. Watch this space.</p>
+    <a href="{% url 'home' %}" class="mt-7 inline-flex rounded-xl bg-white px-6 py-3 font-bold text-brand-purple shadow hover:bg-gray-100">Explore Wikonomi prices</a>
+</section>
+{% endblock %}
