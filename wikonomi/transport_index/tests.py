@@ -4,6 +4,14 @@ from django.urls import reverse
 
 
 class TransportIndexAccessTests(TestCase):
+    def test_robots_txt_is_available(self):
+        response = self.client.get('/robots.txt', HTTP_HOST='www.wikonomi.com')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/plain')
+        self.assertContains(response, 'User-agent: *')
+        self.assertContains(response, 'Sitemap: http://www.wikonomi.com/sitemap.xml')
+
     def test_public_user_sees_coming_soon_page(self):
         response = self.client.get(reverse('transport_index:index'))
 

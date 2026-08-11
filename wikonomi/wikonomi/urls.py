@@ -23,6 +23,7 @@ from users import views as user_views
 from transport_index.views import robots_txt
 
 urlpatterns = [
+    path('robots.txt', robots_txt, name='robots_txt'),
     path('admin/', admin.site.urls),
     path('robots.txt', robots_txt, name='robots_txt'),
     # Override specific allauth URLs to redirect to custom templates

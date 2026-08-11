@@ -11,13 +11,25 @@ from django.http import (
 )
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_GET, require_http_methods
 
 from .models import CabDriver
 from .router import dispatch_inbound_message
 from .whatsapp_client import get_webhook_verify_token
 
 logger = logging.getLogger(__name__)
+
+
+@require_GET
+def robots_txt(request):
+    """Return the site-wide crawler policy as plain text.
+
+    This view remains here for compatibility with the project URL configuration
+    used in production, which imports it from ``transport_index.views``.
+    """
+    sitemap_url = request.build_absolute_uri('/sitemap.xml')
+    content = f'User-agent: *\nAllow: /\nSitemap: {sitemap_url}\n'
+    return HttpResponse(content, content_type='text/plain')
 
 
 def transport_index(request):
