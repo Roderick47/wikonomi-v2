@@ -1,3 +1,15 @@
+/* Homepage mobile navigation is unified under the floating Menu.
+   Hide legacy map controls before first paint so they never flash on screen. */
+#map-fab {
+    display: none !important;
+}
+
+@media (max-width: 767px) {
+    #map-toggle-btn {
+        display: none !important;
+    }
+}
+
 .wk-onboarding[hidden],
 .wk-onboarding__slide[hidden] {
     display: none;
