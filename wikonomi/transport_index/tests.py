@@ -19,6 +19,18 @@ class TransportIndexAccessTests(TestCase):
         self.assertContains(response, 'WhatsApp AI chat')
         self.assertTemplateUsed(response, 'transport_index/coming_soon.html')
 
+    def test_authenticated_user_sees_coming_soon_page(self):
+        user = get_user_model().objects.create_user(
+            username='transport-user',
+            password='test-password',
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('transport_index:index'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'transport_index/coming_soon.html')
+
     def test_staff_user_sees_admin_preview(self):
         user = get_user_model().objects.create_user(
             username='transport-admin',

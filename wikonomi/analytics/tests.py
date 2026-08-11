@@ -1,11 +1,32 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.db import DatabaseError
+from django.http import HttpResponse
+from django.test import RequestFactory, SimpleTestCase, TestCase
 from django.utils import timezone
 
 from .models import DashboardAccess, SiteVisit
+from .middleware import SiteVisitTrackingMiddleware
 from .views import build_dashboard_context
+
+
+class SiteVisitTrackingMiddlewareTests(SimpleTestCase):
+    def test_database_error_does_not_replace_successful_response(self):
+        request = RequestFactory().get('/')
+        response = HttpResponse('ok')
+        middleware = SiteVisitTrackingMiddleware(lambda incoming_request: response)
+
+        with patch.object(
+            middleware,
+            'track_visit',
+            side_effect=DatabaseError('not ready'),
+        ):
+            result = middleware(request)
+
+        self.assertIs(result, response)
+        self.assertEqual(result.status_code, 200)
 
 
 class FounderVisitorMetricsTest(TestCase):
