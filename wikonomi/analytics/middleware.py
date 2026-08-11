@@ -1,9 +1,13 @@
 import hashlib
+import logging
 
 from django.conf import settings
+from django.db import DatabaseError
 from django.utils import timezone
 
 from .models import SiteVisit
+
+logger = logging.getLogger(__name__)
 
 
 class SiteVisitTrackingMiddleware:
@@ -24,7 +28,12 @@ class SiteVisitTrackingMiddleware:
 
     def __call__(self, request):
         response = self.get_response(request)
-        self.track_visit(request, response)
+        try:
+            self.track_visit(request, response)
+        except DatabaseError:
+            # Analytics must fail open: losing one visit is preferable to turning
+            # an otherwise successful page response into a site-wide 500.
+            logger.exception('Unable to record site visit analytics')
         return response
 
     def should_track(self, request, response):

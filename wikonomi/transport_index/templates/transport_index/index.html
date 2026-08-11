@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Wikonomi Transport — Admin Preview{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-6xl">
+    <div class="mb-8 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900">
+        <strong>Administrator preview:</strong> this unfinished directory is hidden from public users while the transport feature is on hold.
+    </div>
+    <div class="flex items-end justify-between gap-4">
+        <div>
+            <p class="text-sm font-bold uppercase tracking-wider text-brand-purple">Wikonomi Transport</p>
+            <h1 class="mt-2 text-4xl font-black text-gray-900">Active transport listings</h1>
+        </div>
+        <span class="rounded-full bg-gray-200 px-4 py-2 text-sm font-semibold text-gray-700">{{ drivers|length }} listing{{ drivers|length|pluralize }}</span>
+    </div>
+    <div class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {% for driver in drivers %}
+        <article class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 class="text-xl font-bold text-gray-900">{{ driver.display_name }}</h2>
+            <p class="mt-1 text-sm font-semibold uppercase tracking-wide text-brand-purple">{{ driver.get_vehicle_type_display }}</p>
+            <dl class="mt-5 space-y-2 text-sm text-gray-600">
+                <div><dt class="inline font-semibold text-gray-900">Vehicle:</dt> <dd class="inline">{{ driver.vehicle_make_model|default:'Not provided' }}</dd></div>
+                <div><dt class="inline font-semibold text-gray-900">Area:</dt> <dd class="inline">{{ driver.home_area|default:'Not provided' }}</dd></div>
+                <div><dt class="inline font-semibold text-gray-900">Verified:</dt> <dd class="inline">{{ driver.is_verified|yesno:'Yes,No' }}</dd></div>
+            </dl>
+        </article>
+        {% empty %}
+        <div class="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-500 md:col-span-2 lg:col-span-3">No active transport listings yet.</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
