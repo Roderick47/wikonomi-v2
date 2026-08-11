@@ -741,20 +741,6 @@
 
 
 
-<!-- Mobile map FAB -->
-
-<button type="button" id="map-fab" onclick="openMobileMap()"
-
-    class="lg:hidden fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 px-5 py-3 rounded-full text-white font-semibold shadow-lg bg-brand-purple hover:bg-brand-purple/90 transition-transform hover:scale-105">
-
-    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
-
-    View map
-
-</button>
-
-
-
 <script>
 
 function toggleLike(event, button) {
@@ -803,13 +789,9 @@ function openMobileMap() {
 
     const panel = document.getElementById('map-panel');
 
-    const fab = document.getElementById('map-fab');
-
     panel.classList.add('map-panel--open');
 
     panel.classList.remove('hidden');
-
-    fab.classList.add('hidden');
 
     document.body.classList.add('overflow-hidden');
 
@@ -823,15 +805,11 @@ function closeMobileMap() {
 
     const panel = document.getElementById('map-panel');
 
-    const fab = document.getElementById('map-fab');
-
     panel.classList.remove('map-panel--open');
 
     if (!isDesktop()) {
 
         panel.classList.add('hidden');
-
-        fab.classList.remove('hidden');
 
         document.body.classList.remove('overflow-hidden');
 
@@ -1247,8 +1225,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isDesktop()) {
 
             document.body.classList.remove('overflow-hidden');
-
-            document.getElementById('map-fab').classList.toggle('hidden', mapVisibleDesktop);
 
             if (mapInstance) setTimeout(() => mapInstance.invalidateSize(), 150);
 
