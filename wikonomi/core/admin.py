@@ -1,5 +1,18 @@
 from django.contrib import admin
-from .models import Category, Product, PriceReport, ProductAlias, Business, BusinessAlias, BusinessBranch
+from .models import (
+    BulkImportImage,
+    BulkImportRow,
+    BulkImportSession,
+    Business,
+    BusinessAlias,
+    BusinessBranch,
+    BusinessInventoryItem,
+    Category,
+    PriceReport,
+    Product,
+    ProductAlias,
+    ProductImage,
+)
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -92,3 +105,52 @@ class PriceReportAdmin(admin.ModelAdmin):
     list_filter = ('currency', 'observed_at', 'product__category', 'business')
     search_fields = ('product__name', 'user__username', 'notes', 'business__name')
     readonly_fields = ('observed_at', 'updated_at', 'h3_res9', 'h3_res8')
+
+
+@admin.register(ProductImage)
+class ProductImageAdmin(admin.ModelAdmin):
+    list_display = ('product', 'business', 'original_filename', 'is_primary', 'sort_order', 'created_at')
+    list_filter = ('is_primary', 'business', 'created_at')
+    search_fields = ('product__name', 'business__name', 'original_filename', 'content_hash')
+    readonly_fields = ('created_at', 'content_hash')
+
+
+@admin.register(BusinessInventoryItem)
+class BusinessInventoryItemAdmin(admin.ModelAdmin):
+    list_display = ('business', 'product', 'sku', 'barcode', 'stock_quantity', 'updated_at')
+    list_filter = ('business', 'updated_at')
+    search_fields = ('business__name', 'product__name', 'sku', 'barcode', 'brand')
+    readonly_fields = ('created_at', 'updated_at')
+
+
+class BulkImportRowInline(admin.TabularInline):
+    model = BulkImportRow
+    extra = 0
+    fields = ('row_number', 'product_name', 'sku', 'barcode', 'status', 'product')
+    readonly_fields = fields
+    can_delete = False
+    show_change_link = True
+
+
+@admin.register(BulkImportSession)
+class BulkImportSessionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'business', 'user', 'status', 'valid_rows', 'total_images', 'progress_percent', 'created_at')
+    list_filter = ('status', 'business', 'created_at')
+    search_fields = ('id', 'business__name', 'user__username', 'inventory_filename')
+    readonly_fields = ('id', 'created_at', 'updated_at', 'started_at', 'completed_at')
+
+
+@admin.register(BulkImportRow)
+class BulkImportRowAdmin(admin.ModelAdmin):
+    list_display = ('session', 'row_number', 'product_name', 'sku', 'barcode', 'status')
+    list_filter = ('status',)
+    search_fields = ('product_name', 'sku', 'barcode', 'session__business__name')
+    readonly_fields = ('imported_at',)
+
+
+@admin.register(BulkImportImage)
+class BulkImportImageAdmin(admin.ModelAdmin):
+    list_display = ('original_filename', 'session', 'status', 'match_method', 'confidence', 'is_primary')
+    list_filter = ('status', 'match_method', 'is_primary')
+    search_fields = ('original_filename', 'content_hash', 'session__business__name')
+    readonly_fields = ('uploaded_at', 'imported_at', 'content_hash')

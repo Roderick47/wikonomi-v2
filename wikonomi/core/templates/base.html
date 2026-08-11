@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block page_title %}Wikonomi — PNG Price Comparison{% endblock %}</title>
     {% block og_tags %}
-    {% with base_url="https://www.wikonomi.com" default_title="Wikonomi — PNG Price Comparison" default_description="Find and compare prices across shops in Papua New Guinea." default_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
+    {% with base_url="https://www.wikonomi.com" default_title="Wikonomi — Your Local Guide to PNG" default_description="Discover products, businesses, local prices, and practical guides for getting things done across Papua New Guinea." default_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
     <link rel="canonical" href="{{ base_url }}{{ request.path }}">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Wikonomi">
@@ -49,7 +50,10 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="stylesheet" href="{% static 'css/onboarding.css' %}">
     {% block extra_head %}{% endblock %}
+    <script src="{% static 'js/form-validation.js' %}" defer></script>
+    <script src="{% static 'js/onboarding.js' %}" defer></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
     <nav id="site-navbar" class="bg-white shadow sticky top-0 z-50">
@@ -63,6 +67,7 @@
                         <a href="{% url 'product_list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-purple hover:bg-brand-purple/10 transition-colors">Prices</a>
                         <a href="{% url 'business_list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-blue hover:bg-brand-blue/10 transition-colors">Businesses</a>
                         <a href="{% url 'guides:list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-green hover:bg-brand-green/10 transition-colors">Guides</a>
+                        <a href="{% url 'transport_index:cab_list' %}" class="hidden lg:block px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-purple hover:bg-brand-purple/10 transition-colors">Transport</a>
                     </div>
                 </div>
                 <div class="flex items-center space-x-2 sm:space-x-4">
@@ -137,6 +142,8 @@
             </div>
             <div class="mt-4 md:mt-0 space-x-4">
                 <a href="{% url 'about' %}" class="text-gray-500 hover:text-brand-purple text-sm font-medium">About Wikonomi</a>
+                <a href="{% url 'how_to_use' %}" class="text-gray-500 hover:text-brand-purple text-sm font-medium">How it works</a>
+                <button type="button" data-onboarding-open class="text-gray-500 hover:text-brand-purple text-sm font-medium">Quick tour</button>
             </div>
         </div>
     </footer>
@@ -153,6 +160,8 @@
 
     <!-- Global Toast Notifications -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-[100] flex flex-col items-end gap-2 max-w-sm w-full pointer-events-none" aria-live="polite" aria-atomic="false"></div>
+
+    {% include 'includes/_onboarding.html' %}
 
     <script>
         function acceptCookies() {
@@ -178,6 +187,7 @@
         // Close dropdown when clicking outside
         document.addEventListener('click', function(event) {
             const dropdown = document.getElementById('add-dropdown');
+            if (!dropdown) return;
             const button = event.target.closest('button[onclick="toggleAddDropdown()"]');
             
             if (!dropdown.contains(event.target) && !button) {
@@ -200,12 +210,13 @@
                 event.stopPropagation();
             }
 
-            const { title, text, url } = data;
+            const { title, text, url, urlInText } = data;
+            const shareUrl = url || window.location.href;
             const shareData = {
                 title: title || 'Check out this price on Wikonomi',
-                text: text || `Check out the price for ${title} on Wikonomi!`,
-                url: url || window.location.href
+                text: text || `Check out the price for ${title} on Wikonomi!`
             };
+            if (!urlInText) shareData.url = shareUrl;
 
             if (navigator.share) {
                 try {
@@ -214,11 +225,11 @@
                 } catch (err) {
                     if (err.name !== 'AbortError') {
                         console.error('Error sharing:', err);
-                        copyToClipboard(shareData.url);
+                        copyToClipboard(shareUrl);
                     }
                 }
             } else {
-                copyToClipboard(shareData.url);
+                copyToClipboard(shareUrl);
             }
         }
 

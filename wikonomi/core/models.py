@@ -12,9 +12,52 @@ from django.core.files.base import ContentFile
 from django.utils.text import slugify
 from difflib import SequenceMatcher
 from io import BytesIO
+from pathlib import Path
+import uuid
 import re
 
 from PIL import Image, ImageOps
+
+
+def _safe_image_extension(filename):
+    extension = Path(filename or '').suffix.lower()
+    return extension if extension in {'.jpg', '.jpeg', '.png', '.webp'} else '.jpg'
+
+
+def bulk_import_inventory_path(instance, filename):
+    extension = Path(filename or '').suffix.lower()
+    return f'businesses/{instance.business_id}/imports/{instance.pk}/inventory{extension}'
+
+
+def bulk_import_staging_path(instance, filename):
+    extension = _safe_image_extension(filename)
+    return (
+        f'businesses/{instance.session.business_id}/imports/'
+        f'{instance.session_id}/images/{uuid.uuid4().hex}{extension}'
+    )
+
+
+def product_image_original_path(instance, filename):
+    extension = _safe_image_extension(filename)
+    return (
+        f'businesses/{instance.business_id or "community"}/products/'
+        f'{instance.product_id}/original/{uuid.uuid4().hex}{extension}'
+    )
+
+
+def product_image_medium_path(instance, filename):
+    return (
+        f'businesses/{instance.business_id or "community"}/products/'
+        f'{instance.product_id}/medium/{uuid.uuid4().hex}.jpg'
+    )
+
+
+def product_image_thumbnail_path(instance, filename):
+    return (
+        f'businesses/{instance.business_id or "community"}/products/'
+        f'{instance.product_id}/thumb/{uuid.uuid4().hex}.jpg'
+    )
+
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -36,6 +79,60 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def primary_catalog_image(self):
+        """Prefer the new responsive catalogue image, then the legacy image."""
+        images = list(self.catalog_images.all())
+        return next((image for image in images if image.is_primary), None) or (
+            images[0] if images else None
+        )
+
+    @property
+    def display_image(self):
+        catalogue_image = self.primary_catalog_image
+        if catalogue_image:
+            return catalogue_image.display_image
+        return self.image
+
+
+class ProductImage(models.Model):
+    """An original product image plus responsive derivatives."""
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='catalog_images',
+    )
+    business = models.ForeignKey(
+        'Business',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='product_images',
+    )
+    original = models.ImageField(upload_to=product_image_original_path)
+    medium = models.ImageField(upload_to=product_image_medium_path, blank=True)
+    thumbnail = models.ImageField(upload_to=product_image_thumbnail_path, blank=True)
+    original_filename = models.CharField(max_length=255, blank=True)
+    content_hash = models.CharField(max_length=64, db_index=True)
+    is_primary = models.BooleanField(default=False, db_index=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['sort_order', 'created_at']
+        indexes = [
+            models.Index(fields=['product', 'is_primary', 'sort_order']),
+            models.Index(fields=['business', 'content_hash']),
+        ]
+
+    @property
+    def display_image(self):
+        return self.medium or self.original
+
+    def __str__(self):
+        return f'{self.product.name}: {self.original_filename or self.pk}'
 
 class ProductAlias(models.Model):
     """
@@ -879,6 +976,255 @@ class PriceReportPhoto(models.Model):
 
     def __str__(self):
         return f"Photo for {self.price_report}"
+
+
+class BulkImportSession(models.Model):
+    """Persistent, resumable state for the inventory and photo wizard."""
+
+    class Status(models.TextChoices):
+        INVENTORY = 'inventory', 'Inventory upload'
+        PHOTOS = 'photos', 'Photo upload'
+        REVIEW = 'review', 'Review'
+        PROCESSING = 'processing', 'Importing'
+        COMPLETED = 'completed', 'Completed'
+        FAILED = 'failed', 'Failed'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='bulk_import_sessions',
+    )
+    business = models.ForeignKey(
+        Business,
+        on_delete=models.CASCADE,
+        related_name='bulk_import_sessions',
+    )
+    inventory_file = models.FileField(upload_to=bulk_import_inventory_path)
+    inventory_filename = models.CharField(max_length=255)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.INVENTORY,
+        db_index=True,
+    )
+    current_stage = models.CharField(max_length=80, blank=True)
+    progress_percent = models.PositiveSmallIntegerField(default=0)
+    total_rows = models.PositiveIntegerField(default=0)
+    valid_rows = models.PositiveIntegerField(default=0)
+    invalid_rows = models.PositiveIntegerField(default=0)
+    total_images = models.PositiveIntegerField(default=0)
+    matched_images = models.PositiveIntegerField(default=0)
+    unmatched_images = models.PositiveIntegerField(default=0)
+    duplicate_images = models.PositiveIntegerField(default=0)
+    duplicate_products = models.PositiveIntegerField(default=0)
+    products_created = models.PositiveIntegerField(default=0)
+    price_reports_created = models.PositiveIntegerField(default=0)
+    photos_processed = models.PositiveIntegerField(default=0)
+    warnings = models.JSONField(default=list, blank=True)
+    errors = models.JSONField(default=list, blank=True)
+    last_error = models.TextField(blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'status', '-created_at']),
+            models.Index(fields=['expires_at']),
+        ]
+
+    @property
+    def can_continue(self):
+        return self.status not in {self.Status.COMPLETED, self.Status.FAILED}
+
+    def __str__(self):
+        return f'{self.business.name} import {self.pk}'
+
+
+class BulkImportRow(models.Model):
+    class Status(models.TextChoices):
+        VALID = 'valid', 'Valid'
+        INVALID = 'invalid', 'Invalid'
+        IMPORTED = 'imported', 'Imported'
+        FAILED = 'failed', 'Failed'
+
+    session = models.ForeignKey(
+        BulkImportSession,
+        on_delete=models.CASCADE,
+        related_name='rows',
+    )
+    row_number = models.PositiveIntegerField()
+    sku = models.CharField(max_length=120, blank=True, db_index=True)
+    barcode = models.CharField(max_length=120, blank=True, db_index=True)
+    product_name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    brand = models.CharField(max_length=255, blank=True)
+    category_name = models.CharField(max_length=255, blank=True)
+    unit = models.CharField(max_length=80, blank=True)
+    price = models.DecimalField(max_digits=12, decimal_places=2, null=True)
+    currency = models.CharField(max_length=3, default='PGK')
+    stock_quantity = models.DecimalField(
+        max_digits=14,
+        decimal_places=3,
+        null=True,
+        blank=True,
+    )
+    notes = models.TextField(blank=True)
+    tags = models.TextField(blank=True)
+    status = models.CharField(
+        max_length=12,
+        choices=Status.choices,
+        default=Status.VALID,
+        db_index=True,
+    )
+    validation_errors = models.JSONField(default=list, blank=True)
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='bulk_import_rows',
+    )
+    price_report = models.ForeignKey(
+        PriceReport,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='bulk_import_rows',
+    )
+    imported_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['row_number']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['session', 'row_number'],
+                name='unique_bulk_import_row',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['session', 'status', 'row_number']),
+            models.Index(fields=['session', 'sku']),
+            models.Index(fields=['session', 'barcode']),
+        ]
+
+    def __str__(self):
+        return f'Row {self.row_number}: {self.product_name}'
+
+
+class BulkImportImage(models.Model):
+    class Status(models.TextChoices):
+        UPLOADED = 'uploaded', 'Uploaded'
+        MATCHED = 'matched', 'Matched'
+        UNMATCHED = 'unmatched', 'Unmatched'
+        DUPLICATE = 'duplicate', 'Duplicate'
+        SKIPPED = 'skipped', 'Skipped'
+        REJECTED = 'rejected', 'Rejected'
+        IMPORTED = 'imported', 'Imported'
+
+    session = models.ForeignKey(
+        BulkImportSession,
+        on_delete=models.CASCADE,
+        related_name='images',
+    )
+    file = models.ImageField(upload_to=bulk_import_staging_path)
+    original_filename = models.CharField(max_length=255)
+    content_type = models.CharField(max_length=100)
+    size_bytes = models.PositiveBigIntegerField(default=0)
+    content_hash = models.CharField(max_length=64, db_index=True)
+    status = models.CharField(
+        max_length=12,
+        choices=Status.choices,
+        default=Status.UPLOADED,
+        db_index=True,
+    )
+    matched_row = models.ForeignKey(
+        BulkImportRow,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='matched_images',
+    )
+    duplicate_of = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='duplicates',
+    )
+    match_method = models.CharField(max_length=40, blank=True)
+    confidence = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    is_primary = models.BooleanField(default=False)
+    sort_order = models.PositiveIntegerField(default=0)
+    warning = models.TextField(blank=True)
+    error = models.TextField(blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    imported_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['uploaded_at', 'id']
+        indexes = [
+            models.Index(fields=['session', 'status']),
+            models.Index(fields=['session', 'content_hash']),
+            models.Index(fields=['matched_row', 'is_primary', 'sort_order']),
+        ]
+
+    def __str__(self):
+        return self.original_filename
+
+
+class BusinessInventoryItem(models.Model):
+    """Business-specific inventory metadata kept separate from global products."""
+
+    business = models.ForeignKey(
+        Business,
+        on_delete=models.CASCADE,
+        related_name='inventory_items',
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='business_inventory_items',
+    )
+    sku = models.CharField(max_length=120, blank=True, db_index=True)
+    barcode = models.CharField(max_length=120, blank=True, db_index=True)
+    description = models.TextField(blank=True)
+    brand = models.CharField(max_length=255, blank=True)
+    unit = models.CharField(max_length=80, blank=True)
+    stock_quantity = models.DecimalField(
+        max_digits=14,
+        decimal_places=3,
+        null=True,
+        blank=True,
+    )
+    last_import_session = models.ForeignKey(
+        BulkImportSession,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='inventory_items',
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['business', 'product'],
+                name='unique_business_inventory_product',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['business', 'sku']),
+            models.Index(fields=['business', 'barcode']),
+        ]
+
+    def __str__(self):
+        return f'{self.business.name}: {self.product.name}'
 
 # Auto H3 population
 

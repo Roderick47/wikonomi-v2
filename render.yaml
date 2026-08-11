@@ -1,0 +1,7 @@
+services:
+  - type: cron
+    name: wikonomi-transport-stale-cabs
+    runtime: python
+    schedule: "*/10 * * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd wikonomi && python manage.py mark_stale_cabs_offline --minutes 20

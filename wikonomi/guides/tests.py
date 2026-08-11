@@ -18,6 +18,21 @@ def tiny_png(name='tiny.png'):
     )
 
 
+class GuideMarkupTests(TestCase):
+    def test_preserves_line_breaks_paragraphs_and_multiple_spaces(self):
+        rendered = str(guide_markdown('First line\nSecond  line\n\nNew *paragraph*'))
+
+        self.assertIn('First line<br>Second&nbsp;&nbsp;line', rendered)
+        self.assertIn('<p>New <em>paragraph</em></p>', rendered)
+
+    def test_renders_basic_markup_without_allowing_html(self):
+        rendered = str(guide_markdown('<script>alert(1)</script> **Safe** and *clear*'))
+
+        self.assertNotIn('<script', rendered)
+        self.assertIn('<strong>Safe</strong>', rendered)
+        self.assertIn('<em>clear</em>', rendered)
+
+
 class GuideBackendTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(username='guideuser', password='pass')
@@ -32,6 +47,97 @@ class GuideBackendTests(TestCase):
         self.step = Step.objects.create(version=self.version, position=2.0, title='Prepare documents', instruction='Bring ID')
         self.guide.current_version = self.version
         self.guide.save(update_fields=['current_version'])
+
+    def test_detail_links_business_and_shows_unlinked_creator_before_edits(self):
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+
+        self.assertContains(response, f'href="{reverse("business_detail", args=[self.business.pk])}"')
+        self.assertContains(response, 'Created by @guideuser')
+        self.assertFalse(response.context['has_edits'])
+        self.assertNotContains(response, reverse('guides:history', args=[self.guide.slug]))
+
+    def test_detail_links_creator_and_latest_editor_to_history_after_edit(self):
+        editor = get_user_model().objects.create_user(username='helpful-editor', password='pass')
+        edited_version = GuideVersion.objects.create(
+            guide=self.guide,
+            edited_by=editor,
+            edit_summary='Clarified required documents',
+        )
+        self.guide.current_version = edited_version
+        self.guide.save(update_fields=['current_version'])
+
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+        history_url = reverse('guides:history', args=[self.guide.slug])
+
+        self.assertTrue(response.context['has_edits'])
+        self.assertEqual(response.context['latest_editor'], editor)
+        self.assertContains(response, 'Created by @guideuser')
+        self.assertContains(response, 'Edited by @helpful-editor')
+        self.assertContains(response, f'href="{history_url}"', count=2)
+
+    def test_detail_social_image_uses_guide_photo_or_branded_fallback(self):
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+        self.assertEqual(
+            response.context['share_image_url'],
+            'http://testserver/static/img/wikonomi-og-default.jpg',
+        )
+        self.assertContains(
+            response,
+            '<meta property="og:image" content="http://testserver/static/img/wikonomi-og-default.jpg">',
+            html=True,
+        )
+
+        self.guide.photo = tiny_png('guide-share.png')
+        self.guide.save(update_fields=['photo'])
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+
+        self.assertEqual(
+            response.context['share_image_url'],
+            f'http://testserver{self.guide.photo.url}',
+        )
+        self.assertContains(
+            response,
+            f'<meta property="og:image" content="http://testserver{self.guide.photo.url}">',
+            html=True,
+        )
+
+    def test_detail_includes_desktop_share_text_preview(self):
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+
+        self.assertContains(response, 'data-share-popover')
+        self.assertContains(response, 'data-guide-share-text')
+        self.assertContains(response, 'data-copy-guide-share')
+        self.assertContains(response, 'Copy share text')
+
+    def test_create_prefills_business_from_business_detail_link(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse('guides:create'),
+            {'business': self.business.pk},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['source_business'], self.business)
+        self.assertEqual(
+            response.context['form'].initial['organization_name'],
+            self.business.name,
+        )
+        self.assertEqual(
+            response.context['guide_draft_key'],
+            f'wikonomi-guide-new-business-{self.business.pk}',
+        )
+        self.assertContains(response, f'Creating for {self.business.name}')
+        self.assertContains(response, f'value="{self.business.name}"')
+
+    def test_create_ignores_unknown_business_prefill(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('guides:create'), {'business': 'not-an-id'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.context['source_business'])
+        self.assertEqual(response.context['guide_draft_key'], 'wikonomi-guide-new')
 
     def test_guide_rate_requires_auth_json_status(self):
         response = self.client.post(
@@ -157,6 +263,30 @@ class GuideBackendTests(TestCase):
         self.assertEqual(guide.organization.name, 'ICA PNG')
         self.assertEqual(guide.category.name, 'Government services')
 
+    def test_create_accepts_title_that_generates_a_slug_over_50_characters(self):
+        self.client.force_login(self.user)
+        title = 'How to Call an Ambulance with St John Ambulance PNG'
+        response = self.client.post(reverse('guides:create'), {
+            'title': title,
+            'summary': 'Emergency and non-emergency contact instructions.',
+            'steps_json': json.dumps([
+                {'title': 'Call the ambulance', 'instruction': 'Dial the emergency number.', 'position': 1},
+            ]),
+        })
+
+        guide = Guide.objects.get(title=title)
+        self.assertRedirects(response, reverse('guides:detail', args=[guide.slug]))
+        self.assertGreater(len(guide.slug), 50)
+        self.assertLessEqual(len(guide.slug), Guide._meta.get_field('slug').max_length)
+
+    def test_create_form_enables_reusable_frontend_validation(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('guides:create'))
+
+        self.assertContains(response, 'data-wk-validate')
+        self.assertContains(response, 'data-wk-guide-steps')
+        self.assertContains(response, 'js/form-validation.js')
+
     def test_create_saves_main_photo(self):
         self.client.force_login(self.user)
         response = self.client.post(reverse('guides:create'), {
@@ -280,3 +410,58 @@ class GuideBackendTests(TestCase):
         step = guide.current_version.steps.get()
         self.assertEqual(StepPhoto.objects.filter(step=step).count(), 1)
         self.assertIn('<strong>Bring ID</strong>', str(guide_markdown(step.instruction)))
+
+    def test_detail_renders_formatted_overview_and_step_spacing(self):
+        self.guide.summary = 'First line\nSecond **important** line'
+        self.guide.save(update_fields=['summary'])
+        self.step.instruction = 'Wait  two minutes.\n\nThen *continue*.'
+        self.step.save(update_fields=['instruction'])
+
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+
+        self.assertContains(response, 'First line<br>Second <strong>important</strong> line')
+        self.assertContains(response, 'Wait&nbsp;&nbsp;two minutes.')
+        self.assertContains(response, '<p>Then <em>continue</em>.</p>')
+
+    def test_create_form_explains_supported_formatting(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('guides:create'))
+
+        self.assertContains(response, 'Formatting your guide', count=2)
+        self.assertContains(response, 'guide-summary-formatting-help')
+        self.assertContains(response, 'guide-steps-formatting-help')
+        self.assertContains(response, '**bold text**')
+
+    def test_create_preserves_instruction_whitespace(self):
+        self.client.force_login(self.user)
+        instruction = '  Keep this indent\nSecond  line\n'
+
+        response = self.client.post(reverse('guides:create'), {
+            'title': 'Formatting preservation guide',
+            'steps_json': json.dumps([
+                {'title': 'Formatted step', 'instruction': instruction, 'position': 1},
+            ]),
+        })
+
+        guide = Guide.objects.get(title='Formatting preservation guide')
+        self.assertRedirects(response, reverse('guides:detail', args=[guide.slug]))
+        self.assertEqual(guide.current_version.steps.get().instruction, instruction)
+
+    def test_detail_shows_bottom_accuracy_edit_prompt_to_authenticated_users(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+
+        self.assertContains(response, 'data-guide-accuracy-prompt')
+        self.assertContains(response, 'Do you think this guide is accurate?')
+        self.assertContains(response, 'data-guide-bottom-edit')
+        self.assertContains(response, reverse('guides:edit', args=[self.guide.slug]))
+
+    def test_detail_prompts_anonymous_users_to_sign_in_before_editing(self):
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+
+        self.assertContains(response, 'data-guide-accuracy-prompt')
+        self.assertContains(response, 'data-guide-signin-trigger')
+        self.assertContains(response, 'Sign in to edit')
+        self.assertNotContains(response, 'data-guide-bottom-edit')

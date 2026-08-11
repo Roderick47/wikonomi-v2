@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Bulk Inventory Import | Wikonomi{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    {% include "includes/_bulk_wizard_steps.html" %}
+
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-wider text-brand-purple">Step 1 of 6</p>
+                    <h1 class="mt-1 text-2xl font-extrabold text-slate-900">Upload your inventory</h1>
+                    <p class="mt-2 max-w-2xl text-sm text-slate-600">Export your catalogue from your POS system, then upload it as XLSX or CSV. Excel is preferred for large inventories.</p>
+                </div>
+                <a href="{% url 'download_inventory_template' %}" class="inline-flex items-center rounded-xl border border-brand-purple px-4 py-2 text-sm font-bold text-brand-purple hover:bg-brand-purple/5">Download Excel template</a>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" class="mt-7 space-y-6" id="inventory-form">
+                {% csrf_token %}
+                <div>
+                    <label for="business_search" class="block text-sm font-bold text-slate-800">Business</label>
+                    <input type="text" id="business_search" name="business_name" list="business_list" value="{{ selected_business.name|default:'' }}" maxlength="255" required placeholder="Type a business name..." autocomplete="off" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3 text-sm focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20">
+                    <datalist id="business_list">
+                        {% for business in businesses %}
+                        <option value="{{ business.name }}"></option>
+                        {% endfor %}
+                    </datalist>
+                    <p class="mt-2 text-sm text-slate-500">Select an existing business or type a new name to add it.</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-800">Inventory spreadsheet</label>
+                    <label for="inventory-file" id="inventory-drop-zone" class="mt-2 flex min-h-52 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 text-center transition hover:border-brand-purple hover:bg-brand-purple/5">
+                        <svg class="h-12 w-12 text-brand-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 12v9m0-9l-3 3m3-3l3 3"></path></svg>
+                        <span class="mt-3 text-base font-bold text-slate-900">Choose an XLSX or CSV file</span>
+                        <span class="mt-1 text-sm text-slate-500">or drag and drop it here · up to 50,000 rows</span>
+                        <span id="inventory-file-label" class="mt-4 hidden rounded-full bg-brand-green/10 px-3 py-1 text-sm font-bold text-brand-green"></span>
+                    </label>
+                    <input id="inventory-file" type="file" name="inventory_file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden">
+                </div>
+
+                <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <a href="{% url 'add_price' %}" class="inline-flex justify-center rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">Add one price instead</a>
+                    <button class="inline-flex justify-center rounded-xl bg-brand-purple px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-brand-purple/90">Validate spreadsheet</button>
+                </div>
+            </form>
+        </section>
+
+        <aside class="space-y-5">
+            {% if active_session %}
+            <div class="rounded-2xl border border-brand-green/30 bg-brand-green/10 p-5">
+                <p class="text-xs font-bold uppercase tracking-wide text-brand-green">Resumable import found</p>
+                <h2 class="mt-1 font-bold text-slate-900">{{ active_session.business.name }}</h2>
+                <p class="mt-2 text-sm text-slate-600">{{ active_session.get_status_display }} · {{ active_session.progress_percent }}% complete. Uploaded files and completed work are still available.</p>
+                <div class="mt-4 flex flex-wrap gap-3">
+                    <a href="{{ active_session_url }}" class="inline-flex rounded-xl bg-brand-green px-4 py-2 text-sm font-extrabold text-slate-900 hover:brightness-95">Resume import</a>
+                    <form method="post" action="{% url 'bulk_upload_discard' active_session.pk %}" onsubmit="return window.confirm('Discard this import and permanently delete its uploaded files?');">
+                        {% csrf_token %}
+                        <button type="submit" class="inline-flex rounded-xl border border-red-300 bg-white px-4 py-2 text-sm font-extrabold text-red-700 hover:bg-red-50">Discard import</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+            <div class="rounded-2xl border border-brand-blue/20 bg-brand-blue/5 p-5">
+                <h2 class="font-bold text-slate-900">Supported columns</h2>
+                <p class="mt-2 text-sm text-slate-600"><strong>Required:</strong> Product Name, Price</p>
+                <p class="mt-2 text-sm leading-6 text-slate-600">SKU, Barcode, Description, Brand, Category, Unit, Currency and Stock Quantity are also supported. Existing <code>product_name</code>, <code>notes</code> and <code>tags</code> columns remain compatible.</p>
+            </div>
+
+            {% if validation %}
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h2 class="font-bold text-slate-900">Validation result</h2>
+                <dl class="mt-4 grid grid-cols-3 gap-2 text-center">
+                    <div class="rounded-xl bg-slate-100 p-3"><dt class="text-xs text-slate-500">Rows</dt><dd class="mt-1 text-xl font-extrabold">{{ validation.total_rows }}</dd></div>
+                    <div class="rounded-xl bg-green-50 p-3"><dt class="text-xs text-green-700">Valid</dt><dd class="mt-1 text-xl font-extrabold text-green-700">{{ validation.valid_rows }}</dd></div>
+                    <div class="rounded-xl bg-red-50 p-3"><dt class="text-xs text-red-700">Invalid</dt><dd class="mt-1 text-xl font-extrabold text-red-700">{{ validation.invalid_rows }}</dd></div>
+                </dl>
+                {% if validation.missing_required_fields %}
+                <div class="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+                    <p class="font-bold">Missing required fields</p>
+                    {% for field, count in validation.missing_required_fields.items %}
+                    {% if count %}<p class="mt-1">{{ field|title }}: {{ count }} row{{ count|pluralize }}</p>{% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </aside>
+    </div>
+
+    {% if validation_rows %}
+    <section class="mt-6 rounded-2xl border border-red-200 bg-white p-5 shadow-sm">
+        <h2 class="text-lg font-bold text-slate-900">Rows to fix</h2>
+        <p class="mt-1 text-sm text-slate-600">Correct these rows in your spreadsheet, then upload it again. No products have been imported.</p>
+        <div class="mt-4 max-h-96 overflow-auto rounded-xl border border-slate-200">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="sticky top-0 bg-slate-50"><tr><th class="px-4 py-3 text-left">Row</th><th class="px-4 py-3 text-left">Product</th><th class="px-4 py-3 text-left">Problem</th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for row in validation_rows %}
+                    <tr><td class="px-4 py-3 font-mono">{{ row.row_number }}</td><td class="px-4 py-3">{{ row.product_name|default:"—" }}</td><td class="px-4 py-3 text-red-700">{{ row.validation_errors|join:"; " }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('inventory-file');
+    const drop = document.getElementById('inventory-drop-zone');
+    const label = document.getElementById('inventory-file-label');
+    const showFile = () => {
+        if (!input.files.length) return;
+        const file = input.files[0];
+        label.textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+        label.classList.remove('hidden');
+    };
+    input.addEventListener('change', showFile);
+    ['dragenter', 'dragover'].forEach(name => drop.addEventListener(name, event => {
+        event.preventDefault();
+        drop.classList.add('border-brand-purple', 'bg-brand-purple/5');
+    }));
+    ['dragleave', 'drop'].forEach(name => drop.addEventListener(name, event => {
+        event.preventDefault();
+        drop.classList.remove('border-brand-purple', 'bg-brand-purple/5');
+    }));
+    drop.addEventListener('drop', event => {
+        if (event.dataTransfer.files.length) {
+            input.files = event.dataTransfer.files;
+            showFile();
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initGuideActions();
     initGuideQuestions();
     initGuideDeletion();
+    initGuideSignIn();
 });
 
 function initGuidePhotoPreview() {
@@ -93,7 +94,7 @@ function initGuideRating() {
             });
             if (response.status === 401 || response.status === 403) {
                 showToast('Please log in to rate this guide', 'info');
-                window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`;
+                showGuideSignIn();
                 return;
             }
             if (!response.ok) throw new Error('Rating request failed');
@@ -204,7 +205,8 @@ function initTips() {
                     body: formData,
                 });
                 const data = await response.json().catch(() => ({}));
-                if (response.status === 401 || response.status === 403) { window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`; return; }
+                if (response.status === 401 || response.status === 403) { showGuideSignIn();
+                return; }
                 if (!response.ok) throw new Error(data.error || firstFormError(data.errors) || 'Failed to add tip');
                 const tipList = document.querySelector(`[data-step-tips][data-step-id="${stepId}"]`);
                 if (tipList) tipList.appendChild(buildTipElement(data));
@@ -248,7 +250,8 @@ async function voteTip(slug, button) {
     try {
         const card = button.closest('[data-tip-id]');
         const response = await fetch(`/guides/${slug}/steps/tips/${card.dataset.tipId}/vote/`, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'}, body: JSON.stringify({value: Number(button.dataset.voteValue)})});
-        if (response.status === 401 || response.status === 403) { window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`; return; }
+        if (response.status === 401 || response.status === 403) { showGuideSignIn();
+                return; }
         if (!response.ok) throw new Error('Vote failed');
         const data = await response.json();
         card.querySelector('[data-tip-score]').textContent = data.score;
@@ -323,7 +326,7 @@ function initGuideActions() {
         const share = event.target.closest('[data-share-guide]');
         if (rating) openGuidePopover(document.querySelector('[data-rating-popover]'));
         if (fork) openGuidePopover(document.querySelector('[data-fork-popover]'));
-        if (share) sharePriceReport(event, {title: share.dataset.title, text: 'Check out this Wikonomi guide.', url: window.location.href});
+        if (share) shareGuide(event, share.dataset.title);
         if (rating || fork || share) closeMenu();
         if (event.target.closest('[data-close-popover]')) closeGuidePopovers();
     });
@@ -335,14 +338,120 @@ function initGuideActions() {
         submit.disabled = true; submit.textContent = 'Copying…'; error.classList.add('hidden');
         try {
             const response = await fetch(forkForm.action, {method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'}, body: new FormData(forkForm)});
-            if (response.redirected && response.url.includes('/login/')) { window.location.href = response.url; return; }
+            if (response.redirected && response.url.includes('/login/')) { showGuideSignIn(); return; }
             const data = await response.json().catch(() => ({}));
-            if (response.status === 401 || response.status === 403) { window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`; return; }
+            if (response.status === 401 || response.status === 403) { showGuideSignIn();
+                return; }
             if (!response.ok) throw new Error(firstFormError(data.errors) || data.error || 'Could not copy guide');
             window.location.href = data.url;
         } catch (err) { error.textContent = err.message; error.classList.remove('hidden'); submit.disabled = false; submit.textContent = 'Copy Guide'; }
     });
 }
+
+function buildGuideShareText(title) {
+    const maxTitleLength = 120;
+    const maxStepLength = 220;
+    const cleanText = (value) => (value || '').replace(/\s+/g, ' ').trim();
+    const truncate = (value, maxLength) => {
+        const text = cleanText(value);
+        return text.length > maxLength ? text.slice(0, maxLength - 1).trimEnd() + '…' : text;
+    };
+    const steps = [...document.querySelectorAll('[data-steps-list] > [data-step-id]')].map((step, index) => {
+        const stepTitle = cleanText(step.querySelector('[data-step-title]')?.textContent);
+        const instruction = cleanText(step.querySelector('[data-step-instruction]')?.textContent);
+        const summary = [stepTitle, instruction].filter(Boolean).join(': ');
+        return summary ? `${index + 1}. ${truncate(summary, maxStepLength)}` : '';
+    }).filter(Boolean);
+    return [
+        `How to: ${truncate(title, maxTitleLength)}`,
+        steps.length ? `\nSteps:\n${steps.join('\n')}` : '',
+        `\n\nRead the full guide on Wikonomi:\n${window.location.href}`,
+    ].join('');
+}
+
+function isMobileShareEnvironment() {
+    const mobileUserAgent = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+    const mobileClientHint = Boolean(navigator.userAgentData?.mobile);
+    const coarseNarrowScreen = window.matchMedia?.('(max-width: 768px) and (pointer: coarse)').matches;
+    return mobileUserAgent || mobileClientHint || coarseNarrowScreen;
+}
+
+function shareGuide(event, title) {
+    const text = buildGuideShareText(title);
+
+    // Mobile share sheets reliably surface the supplied text and are still the
+    // quickest route to WhatsApp and other apps. Desktop share sheets often do
+    // not show the text or offer a copy action, so show Wikonomi's own preview.
+    if (navigator.share && isMobileShareEnvironment()) {
+        sharePriceReport(event, {title, text, url: window.location.href, urlInText: true});
+        return;
+    }
+
+    event?.preventDefault();
+    event?.stopPropagation();
+    const popover = document.querySelector('[data-share-popover]');
+    const textArea = popover?.querySelector('[data-guide-share-text]');
+    if (!popover || !textArea) {
+        copyGuideShareText(text).catch(() => showToast('Could not copy guide text', 'error'));
+        return;
+    }
+    textArea.value = text;
+    const shareWithApps = popover.querySelector('[data-share-guide-apps]');
+    shareWithApps?.classList.toggle('hidden', !navigator.share);
+    openGuidePopover(popover);
+    setTimeout(() => { textArea.focus(); textArea.setSelectionRange(0, 0); }, 0);
+}
+
+async function copyGuideShareText(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+    } catch (_) {
+        const helper = document.createElement('textarea');
+        helper.value = text;
+        helper.setAttribute('readonly', '');
+        helper.style.position = 'fixed';
+        helper.style.opacity = '0';
+        document.body.appendChild(helper);
+        helper.select();
+        const copied = document.execCommand('copy');
+        helper.remove();
+        if (!copied) throw new Error('Clipboard unavailable');
+    }
+}
+
+document.addEventListener('click', async (event) => {
+    const copyButton = event.target.closest('[data-copy-guide-share]');
+    const appButton = event.target.closest('[data-share-guide-apps]');
+    if (!copyButton && !appButton) return;
+
+    const popover = event.target.closest('[data-share-popover]');
+    const textArea = popover?.querySelector('[data-guide-share-text]');
+    const text = textArea?.value || '';
+    if (!text) return;
+
+    if (copyButton) {
+        event.preventDefault();
+        try {
+            await copyGuideShareText(text);
+            const originalLabel = copyButton.textContent;
+            copyButton.textContent = 'Copied!';
+            showToast('Guide share text copied', 'success');
+            setTimeout(() => { copyButton.textContent = originalLabel; }, 1800);
+        } catch (err) {
+            console.error(err);
+            showToast('Could not copy guide text', 'error');
+        }
+    }
+
+    if (appButton) {
+        sharePriceReport(event, {
+            title: appButton.dataset.title,
+            text,
+            url: window.location.href,
+            urlInText: true,
+        });
+    }
+});
 
 function initGuideQuestions() {
     const slug = window.WIKONOMI_GUIDE_SLUG;
@@ -355,8 +464,8 @@ function initGuideQuestions() {
 
     function openQuestion(stepId = 'general') {
         if (!popover || !form) {
-            window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`;
-            return;
+            showGuideSignIn();
+                return;
         }
         form.reset();
         stepSelect.value = stepId || 'general';
@@ -396,7 +505,8 @@ function initGuideQuestions() {
                 body: JSON.stringify({body: question, step_id: stepSelect.value}),
             });
             const data = await response.json().catch(() => ({}));
-            if (response.status === 401 || response.status === 403) { window.location.href = `/login/?next=${encodeURIComponent(window.location.pathname)}`; return; }
+            if (response.status === 401 || response.status === 403) { showGuideSignIn();
+                return; }
             if (!response.ok) throw new Error(data.error || firstFormError(data.errors) || 'Could not post question');
             window.location.assign(data.target_url);
         } catch (err) {
@@ -493,7 +603,7 @@ function initGuideDeletion() {
 }
 
 function openGuidePopover(popover) { if (!popover) return; closeGuidePopovers(); popover.classList.remove('hidden'); popover.setAttribute('aria-hidden', 'false'); document.body.classList.add('overflow-hidden'); }
-function closeGuidePopovers() { document.querySelectorAll('[data-rating-popover], [data-fork-popover]').forEach((el) => { el.classList.add('hidden'); el.setAttribute('aria-hidden', 'true'); }); document.body.classList.remove('overflow-hidden'); }
+function closeGuidePopovers() { document.querySelectorAll('[data-rating-popover], [data-fork-popover], [data-share-popover]').forEach((el) => { el.classList.add('hidden'); el.setAttribute('aria-hidden', 'true'); }); document.body.classList.remove('overflow-hidden'); }
 
 function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
@@ -563,7 +673,7 @@ function initStepEditor() {
         const steps = Array.from(editor.querySelectorAll('[data-step-row]')).map((row, index) => ({
             id: row.dataset.stepId || null,
             title: (row.querySelector('[data-step-title]')?.value || '').trim(),
-            instruction: row.querySelector('[data-step-instruction]').value.trim(),
+            instruction: row.querySelector('[data-step-instruction]').value,
             position: index + 1,
         }));
         editor.querySelectorAll('[data-step-row]').forEach((row, index) => {
@@ -624,4 +734,38 @@ function renumberSteps(editor) {
         row.dataset.position = index + 1;
         if (badge && !badge.querySelector('svg')) badge.textContent = index + 1;
     });
+}
+
+
+function initGuideSignIn() {
+    const modal = document.querySelector('[data-guide-signin-modal]');
+    if (!modal) return;
+
+    const closeModal = () => {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('overflow-hidden');
+    };
+
+    modal.querySelectorAll('[data-guide-signin-close]').forEach((element) => {
+        element.addEventListener('click', closeModal);
+    });
+    document.querySelectorAll('[data-guide-signin-trigger]').forEach((element) => {
+        element.addEventListener('click', showGuideSignIn);
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+    });
+}
+
+function showGuideSignIn() {
+    const modal = document.querySelector('[data-guide-signin-modal]');
+    if (!modal) {
+        showToast('Please sign in with Google to continue', 'info');
+        return;
+    }
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('overflow-hidden');
+    setTimeout(() => modal.querySelector('[data-guide-google-signin]')?.focus(), 0);
 }

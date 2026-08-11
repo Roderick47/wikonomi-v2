@@ -219,6 +219,7 @@ def product_detail(request, pk):
         'user_lat': user_lat,
         'user_lng': user_lng,
         'is_watching': is_watching,
+        'catalog_images': product.catalog_images.all(),
         'product_photos': product_photos,
     }
     return render(request, 'product_detail.html', context)
@@ -228,7 +229,7 @@ def product_list(request):
     query = request.GET.get('q', '').strip()
     sort = request.GET.get('sort', 'popular')
 
-    products = Product.objects.prefetch_related('tags').annotate(
+    products = Product.objects.prefetch_related('tags', 'catalog_images').annotate(
         report_count=Count('price_reports', distinct=True),
         business_count=Count('price_reports__business', distinct=True),
         min_price=Min('price_reports__price'),

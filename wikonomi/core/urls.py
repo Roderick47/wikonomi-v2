@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, product_views
+from . import bulk_views, views, product_views
 
 urlpatterns = [
     path('', views.home, name='home'),
@@ -37,6 +37,56 @@ urlpatterns = [
     path('how-to-use/', views.how_to_use_view, name='how_to_use'),
     path('api/map-prices/', views.api_map_prices, name='api_map_prices'),
     path('bulk-upload/', views.bulk_upload, name='bulk_upload'),
+    path(
+        'bulk-upload/template.xlsx',
+        bulk_views.download_inventory_template,
+        name='download_inventory_template',
+    ),
+    path(
+        'bulk-upload/<uuid:session_id>/discard/',
+        bulk_views.discard_import,
+        name='bulk_upload_discard',
+    ),
+    path(
+        'bulk-upload/<uuid:session_id>/photos/',
+        bulk_views.photo_upload,
+        name='bulk_upload_photos',
+    ),
+    path(
+        'bulk-upload/<uuid:session_id>/review/',
+        bulk_views.import_review,
+        name='bulk_upload_review',
+    ),
+    path(
+        'bulk-upload/<uuid:session_id>/images/<int:image_id>/action/',
+        bulk_views.staged_image_action,
+        name='bulk_upload_image_action',
+    ),
+    path(
+        'bulk-upload/<uuid:session_id>/start/',
+        bulk_views.start_import,
+        name='bulk_upload_start',
+    ),
+    path(
+        'bulk-upload/<uuid:session_id>/progress/',
+        bulk_views.import_progress,
+        name='bulk_upload_progress',
+    ),
+    path(
+        'bulk-upload/<uuid:session_id>/process/',
+        bulk_views.process_batch,
+        name='bulk_upload_process',
+    ),
+    path(
+        'bulk-upload/<uuid:session_id>/complete/',
+        bulk_views.import_complete,
+        name='bulk_upload_complete',
+    ),
+    path(
+        'bulk-upload/<uuid:session_id>/report.csv',
+        bulk_views.import_report,
+        name='bulk_upload_report',
+    ),
     path('bulk-upload/success/', views.bulk_upload_success, name='bulk_upload_success'),
     path('my-prices/', views.my_prices, name='my_prices'),
     path('my-prices/business/<int:business_id>/refresh/', views.refresh_business_prices, name='refresh_business_prices'),

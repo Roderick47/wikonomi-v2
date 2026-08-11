@@ -5,6 +5,7 @@ from django.db import transaction
 from django.db.models import F, Prefetch, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.text import slugify
 from django.views.decorators.http import require_GET, require_POST
@@ -19,12 +20,14 @@ from .models import (
 
 
 
-def _unique_model_slug(model, name):
-    base = slugify(name) or 'item'
+def _unique_model_slug(model, name, fallback='item'):
+    max_length = model._meta.get_field('slug').max_length
+    base = (slugify(name) or fallback)[:max_length].rstrip('-') or fallback
     slug = base
     counter = 2
     while model.objects.filter(slug=slug).exists():
-        slug = f'{base}-{counter}'
+        suffix = f'-{counter}'
+        slug = f"{base[:max_length - len(suffix)].rstrip('-')}{suffix}"
         counter += 1
     return slug
 
@@ -67,11 +70,15 @@ def _photo_files_for_step(request, index):
     return request.FILES.getlist(f'step_photos_{index}')
 
 
+def _normalise_instruction(value):
+    return str(value or '').replace('\r\n', '\n').replace('\r', '\n')
+
+
 def _create_steps_from_payload(version, steps_payload, request=None):
     for index, item in enumerate(steps_payload, start=1):
         title = (item.get('title') or '').strip()[:120]
-        instruction = (item.get('instruction') or '').strip()
-        if not title and not instruction:
+        instruction = _normalise_instruction(item.get('instruction'))
+        if not title and not instruction.strip():
             continue
         step = Step.objects.create(
             version=version,
@@ -93,13 +100,7 @@ def _guide_form_context(form, **extra):
     return context
 
 def _unique_slug(title):
-    base = slugify(title) or 'guide'
-    slug = base
-    counter = 2
-    while Guide.objects.filter(slug=slug).exists():
-        slug = f'{base}-{counter}'
-        counter += 1
-    return slug
+    return _unique_model_slug(Guide, title, fallback='guide')
 
 
 def _json_body(request):
@@ -110,7 +111,10 @@ def _json_body(request):
 
 
 def _guide_queryset():
-    return Guide.objects.select_related('organization', 'category', 'forked_from', 'current_version')
+    return Guide.objects.select_related(
+        'organization', 'category', 'forked_from', 'created_by',
+        'current_version', 'current_version__edited_by',
+    )
 
 
 def _steps_for_version(version):
@@ -185,6 +189,10 @@ def guide_list(request):
 
 @login_required
 def guide_create(request):
+    source_business = None
+    business_id = request.GET.get('business')
+    if business_id and business_id.isdigit():
+        source_business = Business.objects.filter(pk=business_id).first()
     if request.method == 'POST':
         form = GuideForm(request.POST, request.FILES)
         if form.is_valid():
@@ -200,8 +208,15 @@ def guide_create(request):
             guide.save(update_fields=['current_version'])
             return redirect('guides:detail', slug=guide.slug)
     else:
-        form = GuideForm()
-    return render(request, 'guides/guide_create.html', _guide_form_context(form))
+        initial = {'organization_name': source_business.name} if source_business else None
+        form = GuideForm(initial=initial)
+    context = _guide_form_context(form)
+    context['source_business'] = source_business
+    context['guide_draft_key'] = (
+        f'wikonomi-guide-new-business-{source_business.pk}'
+        if source_business else 'wikonomi-guide-new'
+    )
+    return render(request, 'guides/guide_create.html', context)
 
 
 def guide_detail(request, slug):
@@ -225,6 +240,12 @@ def guide_detail(request, slug):
     )
     for question in questions:
         question.accepted = any(answer.is_accepted for answer in question.answers.all())
+
+    has_edits = guide.versions.exclude(pk=guide.current_version_id).exists()
+    share_image_url = request.build_absolute_uri(
+        guide.photo.url if guide.photo else static('img/wikonomi-og-default.jpg')
+    )
+    canonical_url = request.build_absolute_uri(request.path)
     return render(request, 'guides/detail.html', {
         'guide': guide,
         'steps': steps,
@@ -235,6 +256,10 @@ def guide_detail(request, slug):
         'answered_question_count': sum(1 for question in questions if question.accepted),
         'unanswered_question_count': sum(1 for question in questions if not question.accepted),
         'can_delete_guide': guide.can_delete(request.user),
+        'has_edits': has_edits,
+        'latest_editor': guide.current_version.edited_by if has_edits and guide.current_version else None,
+        'share_image_url': share_image_url,
+        'canonical_url': canonical_url,
     })
 
 
@@ -278,8 +303,8 @@ def guide_edit(request, slug):
             for index, item in enumerate(steps_payload):
                 old_id = item.get('id')
                 title = (item.get('title') or '').strip()[:120]
-                instruction = (item.get('instruction') or '').strip()
-                if not title and not instruction:
+                instruction = _normalise_instruction(item.get('instruction'))
+                if not title and not instruction.strip():
                     continue
                 step = Step.objects.create(
                     version=version,
