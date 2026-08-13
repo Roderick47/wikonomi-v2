@@ -275,6 +275,11 @@ else:
         }
     }
 
+# Keep the restored transport directory hidden from public users until launch.
+TRANSPORT_INDEX_PUBLIC_ENABLED = (
+    os.environ.get('TRANSPORT_INDEX_PUBLIC_ENABLED', 'False') == 'True'
+)
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
