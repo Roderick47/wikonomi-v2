@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-12 sm:py-16">
+  <div class="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="px-6 py-10 sm:px-10 sm:py-14 text-center bg-gradient-to-br from-purple-50 via-white to-blue-50">
+      <p class="text-sm font-semibold uppercase tracking-[0.18em] text-brand-purple">Welcome to Wikonomi</p>
+      <h1 class="mt-4 text-4xl sm:text-5xl font-extrabold text-gray-900">You’re here early.</h1>
+      <p class="mt-6 text-lg text-gray-600 max-w-2xl mx-auto">And that means you have a chance to help build something from the ground floor.</p>
+    </div>
+
+    <div class="px-6 py-10 sm:px-10 sm:py-12 text-gray-700 leading-8 space-y-6">
+      <p>Papua New Guinea is full of businesses, products, prices, knowledge, skills and opportunity.</p>
+      <p>But much of that information is still scattered — on shop shelves, in markets, in Facebook posts, in people’s phones, and in the knowledge we carry with us every day.</p>
+
+      <p class="text-xl font-semibold text-gray-900">Wikonomi exists to bring that knowledge together.</p>
+
+      <p>We’re a small PNG startup with a big mission: to help build a living digital database of Papua New Guinea’s local economy — built not just by companies or institutions, but by ordinary people sharing what they see and what they know.</p>
+
+      <div class="grid sm:grid-cols-3 gap-4 my-8">
+        <div class="rounded-2xl bg-gray-50 p-5"><div class="font-bold text-gray-900">Post a local price</div><p class="mt-2 text-sm leading-6">A price posted today could help someone find a better deal tomorrow.</p></div>
+        <div class="rounded-2xl bg-gray-50 p-5"><div class="font-bold text-gray-900">Add a business</div><p class="mt-2 text-sm leading-6">A business added to Wikonomi could help a new customer discover it.</p></div>
+        <div class="rounded-2xl bg-gray-50 p-5"><div class="font-bold text-gray-900">Share what you know</div><p class="mt-2 text-sm leading-6">A guide from your own experience could save another Papua New Guinean hours of confusion.</p></div>
+      </div>
+
+      <p>Small actions can travel further than we imagine.</p>
+      <p>And right now, <strong class="text-gray-900">you are joining while the map is still being drawn.</strong></p>
+      <p>Wikonomi is still young. We’re still building, learning and improving. That means you’re not just another user arriving after everything has already been built.</p>
+      <p class="text-2xl font-bold text-gray-900">You’re part of the ground floor.</p>
+      <p>You can help shape what this becomes.</p>
+
+      <div class="border-l-4 border-brand-purple pl-5 py-2 my-8">
+        <p class="font-semibold text-gray-900">Snap a price. Add a business. Share what you know. Write a guide. Tell someone about Wikonomi.</p>
+      </div>
+
+      <p>One contribution might seem small.</p>
+      <p>But thousands of people contributing one small piece of knowledge at a time can create something PNG has never had before:</p>
+      <p class="text-xl font-bold text-gray-900">A living map of our local economy, built by Papua New Guineans for Papua New Guinea.</p>
+      <p>Maybe one day Wikonomi will be something millions of people rely on.</p>
+      <p>If that day comes, you’ll be able to say:</p>
+      <blockquote class="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight py-4">“I was there when it was just beginning.<br>And I helped build it.”</blockquote>
+      <p>Thank you for joining us.</p>
+      <p class="text-xl font-bold text-gray-900">Welcome to Wikonomi.</p>
+
+      <div class="pt-6 flex flex-col sm:flex-row gap-3">
+        <a href="{% url 'welcome_continue' %}" class="flex-1 text-center rounded-xl bg-brand-purple px-6 py-3 font-semibold text-white hover:bg-brand-purple/90">{% if has_return_destination %}Continue where I left off →{% else %}Start exploring Wikonomi →{% endif %}</a>
+        {% if has_return_destination %}<a href="{% url 'welcome_explore' %}" class="flex-1 text-center rounded-xl border border-gray-300 px-6 py-3 font-semibold text-gray-700 hover:bg-gray-50">Explore Wikonomi</a>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
