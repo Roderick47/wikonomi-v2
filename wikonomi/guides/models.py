@@ -210,6 +210,11 @@ class GuideQuestion(models.Model):
 class GuideAnswer(models.Model):
     question = models.ForeignKey(GuideQuestion, on_delete=models.CASCADE, related_name='answers')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='guide_answers')
+    upvoters = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name='upvoted_guide_answers',
+    )
     body = models.TextField(max_length=2000)
     is_accepted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import views
+from .answer_votes import answer_vote
 
 app_name = 'guides'
 
@@ -13,6 +14,7 @@ urlpatterns = [
     path('<slug:slug>/rate/', views.guide_rate, name='rate'),
     path('<slug:slug>/questions/', views.question_create, name='question_create'),
     path('<slug:slug>/questions/<int:question_id>/answers/', views.answer_create, name='answer_create'),
+    path('<slug:slug>/questions/<int:question_id>/answers/<int:answer_id>/vote/', answer_vote, name='answer_vote'),
     path('<slug:slug>/questions/<int:question_id>/answers/<int:answer_id>/accept/', views.answer_accept, name='answer_accept'),
     path('<slug:slug>/mark-delete/', views.guide_mark_delete, name='mark_delete'),
     path('<slug:slug>/veto-delete/', views.guide_veto_delete, name='veto_delete'),
