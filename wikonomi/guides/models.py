@@ -215,13 +215,14 @@ class GuideAnswer(models.Model):
         blank=True,
         related_name='upvoted_guide_answers',
     )
+    upvote_count = models.PositiveIntegerField(default=0)
     body = models.TextField(max_length=2000)
     is_accepted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['-is_accepted', 'created_at']
+        ordering = ['-is_accepted', '-upvote_count', 'created_at']
 
     def __str__(self):
         return f'Answer to question {self.question_id}'

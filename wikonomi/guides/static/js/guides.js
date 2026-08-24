@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initGuideDraft();
     initGuideActions();
     initGuideQuestions();
+    initAnswerVotes();
     initGuideDeletion();
     initGuideSignIn();
 });
@@ -310,6 +311,84 @@ function sortTipCards(list) {
     [...list.querySelectorAll(':scope > [data-tip-id]')]
         .sort((a, b) => Number(b.querySelector('[data-tip-score]').textContent) - Number(a.querySelector('[data-tip-score]').textContent))
         .forEach((card) => list.appendChild(card));
+}
+
+function initAnswerVotes() {
+    const voteForms = [...document.querySelectorAll('form[action*="/answers/"][action$="/vote/"]')];
+    const answerLists = new Set(voteForms.map((form) => form.closest('.rounded-xl')?.parentElement).filter(Boolean));
+    answerLists.forEach(sortAnswerCards);
+
+    document.addEventListener('submit', async (event) => {
+        const form = event.target.closest('form[action*="/answers/"][action$="/vote/"]');
+        if (!form) return;
+        event.preventDefault();
+
+        const card = form.closest('.rounded-xl');
+        const list = card?.parentElement;
+        const button = form.querySelector('button[type="submit"]');
+        if (!card || !list || !button) return;
+
+        button.disabled = true;
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: new FormData(form),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (response.status === 401) {
+                showGuideSignIn();
+                return;
+            }
+            if (!response.ok) throw new Error(data.error || 'Could not register your vote');
+
+            const count = Number(data.upvote_count || 0);
+            const countLabel = answerUpvoteLabel(card);
+            if (countLabel) countLabel.textContent = `${count} upvote${count === 1 ? '' : 's'}`;
+            button.setAttribute('aria-pressed', data.upvoted ? 'true' : 'false');
+            button.classList.toggle('border-brand-purple', data.upvoted);
+            button.classList.toggle('bg-brand-purple/10', data.upvoted);
+            button.classList.toggle('text-brand-purple', data.upvoted);
+            button.classList.toggle('border-slate-300', !data.upvoted);
+            button.classList.toggle('bg-white', !data.upvoted);
+            button.classList.toggle('text-slate-500', !data.upvoted);
+
+            sortAnswerCards(list);
+        } catch (err) {
+            console.error(err);
+            showToast(err.message || 'Could not register your vote', 'error');
+        } finally {
+            button.disabled = false;
+        }
+    });
+}
+
+function answerUpvoteLabel(card) {
+    return [...card.querySelectorAll('span')].find((span) => /^\d+ upvotes?$/.test((span.textContent || '').trim()));
+}
+
+function answerVoteCount(card) {
+    const label = answerUpvoteLabel(card);
+    const match = (label?.textContent || '').match(/^\s*(\d+)/);
+    return match ? Number(match[1]) : 0;
+}
+
+function answerIsAccepted(card) {
+    return (card.textContent || '').includes('Accepted answer');
+}
+
+function sortAnswerCards(list) {
+    if (!list) return;
+    const cards = [...list.children].filter((child) => child.classList.contains('rounded-xl'));
+    cards.sort((a, b) => {
+        const acceptedDifference = Number(answerIsAccepted(b)) - Number(answerIsAccepted(a));
+        if (acceptedDifference) return acceptedDifference;
+        return answerVoteCount(b) - answerVoteCount(a);
+    });
+    cards.forEach((card) => list.appendChild(card));
 }
 
 function initGuideActions() {
