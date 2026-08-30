@@ -249,6 +249,7 @@ def guide_detail(request, slug):
     return render(request, 'guides/detail.html', {
         'guide': guide,
         'steps': steps,
+        'references': list(guide.current_version.references.all()) if guide.current_version else [],
         'user_rating': user_rating,
         'can_edit': request.user.is_authenticated,
         'businesses': Business.objects.order_by('name'),

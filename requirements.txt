@@ -16,3 +16,6 @@ django-resized
 whitenoise
 python-dotenv
 rapidfuzz
+mcp>=2.1,<3.0
+cryptography>=46,<47
+uvicorn>=0.31,<1.0

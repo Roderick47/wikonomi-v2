@@ -67,6 +67,12 @@ class Category(models.Model):
         return self.name
 
 class Product(models.Model):
+    CREATION_SOURCE_CHOICES = [
+        ('web', 'Website'),
+        ('bulk_import', 'Bulk import'),
+        ('mcp', 'MCP'),
+    ]
+
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(unique=True)
     description = models.TextField(blank=True)
@@ -75,6 +81,18 @@ class Product(models.Model):
     tags = TaggableManager()
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    created_via = models.CharField(max_length=20, choices=CREATION_SOURCE_CHOICES, default='web', db_index=True)
+    ai_assisted = models.BooleanField(default=False, db_index=True)
+    ai_provider = models.CharField(max_length=80, blank=True)
+    ai_model = models.CharField(max_length=120, blank=True)
+    ai_confidence = models.DecimalField(
+        max_digits=4,
+        decimal_places=3,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(1)],
+    )
+    ai_source_note = models.TextField(blank=True)
     comments = GenericRelation('comments.Comment', related_query_name='product')
 
     def __str__(self):
@@ -832,6 +850,8 @@ class BusinessNormalizationService:
         source_business.delete()
 
 class PriceReport(models.Model):
+    CREATION_SOURCE_CHOICES = Product.CREATION_SOURCE_CHOICES
+
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='price_reports')
     business = models.ForeignKey(Business, on_delete=models.SET_NULL, null=True, blank=True, related_name='price_reports')
     business_branch = models.ForeignKey('BusinessBranch', on_delete=models.SET_NULL, null=True, blank=True, related_name='price_reports')
@@ -857,6 +877,19 @@ class PriceReport(models.Model):
     observed_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True, db_index=True)
     notes = models.TextField(blank=True)
+    created_via = models.CharField(max_length=20, choices=CREATION_SOURCE_CHOICES, default='web', db_index=True)
+    ai_assisted = models.BooleanField(default=False, db_index=True)
+    ai_provider = models.CharField(max_length=80, blank=True)
+    ai_model = models.CharField(max_length=120, blank=True)
+    ai_confidence = models.DecimalField(
+        max_digits=4,
+        decimal_places=3,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(1)],
+    )
+    ai_source_note = models.TextField(blank=True)
+    mcp_idempotency_key = models.CharField(max_length=160, null=True, blank=True, unique=True)
 
     # H3 for fast "same vicinity" comparison
     h3_res9 = models.CharField(max_length=16, null=True, blank=True, db_index=True)
@@ -966,6 +999,16 @@ class PriceReportPhoto(models.Model):
     """Multiple photos for a price report (max 5)"""
     price_report = models.ForeignKey(PriceReport, on_delete=models.CASCADE, related_name='photos')
     image = ResizedImageField(upload_to='price_report_images/', size=[1000, 1000], quality=75, force_format='JPEG')
+    caption = models.CharField(max_length=240, blank=True)
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='uploaded_price_report_photos',
+    )
+    created_via = models.CharField(max_length=20, choices=Product.CREATION_SOURCE_CHOICES, default='web', db_index=True)
+    content_hash = models.CharField(max_length=64, blank=True, db_index=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     order = models.PositiveIntegerField(default=0)
 

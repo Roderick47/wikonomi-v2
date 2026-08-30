@@ -21,10 +21,10 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'category', 'created_by', 'created_at', 'alias_count')
+    list_display = ('name', 'category', 'created_by', 'ai_assisted', 'created_via', 'created_at', 'alias_count')
     prepopulated_fields = {'slug': ('name',)}
     search_fields = ('name', 'tags__name')
-    list_filter = ('category', 'created_at')
+    list_filter = ('category', 'ai_assisted', 'created_via', 'created_at')
     readonly_fields = ('created_at',)
     
     def alias_count(self, obj):
@@ -101,8 +101,8 @@ class BusinessBranchAdmin(admin.ModelAdmin):
 
 @admin.register(PriceReport)
 class PriceReportAdmin(admin.ModelAdmin):
-    list_display = ('product', 'price', 'currency', 'business', 'user', 'observed_at')
-    list_filter = ('currency', 'observed_at', 'product__category', 'business')
+    list_display = ('product', 'price', 'currency', 'business', 'user', 'ai_assisted', 'created_via', 'observed_at')
+    list_filter = ('currency', 'ai_assisted', 'created_via', 'observed_at', 'product__category', 'business')
     search_fields = ('product__name', 'user__username', 'notes', 'business__name')
     readonly_fields = ('observed_at', 'updated_at', 'h3_res9', 'h3_res8')
 

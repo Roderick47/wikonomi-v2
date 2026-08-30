@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'analytics',
     'guides',
     'transport_index',
+    'mcp_server',
     'taggit',
 ]
 
@@ -279,6 +280,39 @@ else:
 TRANSPORT_INDEX_PUBLIC_ENABLED = (
     os.environ.get('TRANSPORT_INDEX_PUBLIC_ENABLED', 'False') == 'True'
 )
+
+# Wikonomi MCP
+#
+# The public base URL is used as the OAuth issuer and to build the exact MCP
+# resource identifier. Keep it stable once clients have connected.
+WIKONOMI_MCP_PUBLIC_BASE_URL = os.environ.get(
+    'WIKONOMI_MCP_PUBLIC_BASE_URL',
+    'https://www.wikonomi.com',
+).rstrip('/')
+WIKONOMI_MCP_ACCESS_TOKEN_SECONDS = int(
+    os.environ.get('WIKONOMI_MCP_ACCESS_TOKEN_SECONDS', '3600')
+)
+WIKONOMI_MCP_REFRESH_TOKEN_SECONDS = int(
+    os.environ.get('WIKONOMI_MCP_REFRESH_TOKEN_SECONDS', str(30 * 24 * 60 * 60))
+)
+WIKONOMI_MCP_AUTH_CODE_SECONDS = int(
+    os.environ.get('WIKONOMI_MCP_AUTH_CODE_SECONDS', '300')
+)
+WIKONOMI_MCP_MAX_DYNAMIC_CLIENTS = int(
+    os.environ.get('WIKONOMI_MCP_MAX_DYNAMIC_CLIENTS', '100')
+)
+WIKONOMI_MCP_OAUTH_ENCRYPTION_KEY = os.environ.get(
+    'WIKONOMI_MCP_OAUTH_ENCRYPTION_KEY',
+    '',
+)
+WIKONOMI_MCP_ALLOWED_ORIGINS = [
+    value.strip()
+    for value in os.environ.get(
+        'WIKONOMI_MCP_ALLOWED_ORIGINS',
+        'https://chatgpt.com,https://platform.openai.com,https://claude.ai,https://wikonomi.com,https://www.wikonomi.com',
+    ).split(',')
+    if value.strip()
+]
 
 
 # Default primary key field type
