@@ -38,6 +38,7 @@ urlpatterns = [
     path('guides/', include('guides.urls')),
     path('api/comments/', include('comments.urls')),
     path('transport/', include('transport_index.urls')),
+    path('mcp/oauth/', include('mcp_server.urls')),
     path('cabs/', RedirectView.as_view(pattern_name='transport_index:index', permanent=True)),
 ]
 

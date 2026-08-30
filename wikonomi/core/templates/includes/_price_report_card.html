@@ -52,6 +52,11 @@
                             {{ report.price|intcomma }}
                             {% endif %}
                         </p>
+                        {% if report.ai_assisted %}
+                        <span class="mt-2 inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-bold text-violet-700" title="AI-assisted contribution submitted through Wikonomi MCP{% if report.ai_provider %} using {{ report.ai_provider }}{% endif %}{% if report.ai_model %} {{ report.ai_model }}{% endif %}">
+                            Added with AI
+                        </span>
+                        {% endif %}
                     </div>
                     <div class="flex shrink-0 items-start gap-0.5">
                         <button type="button" onclick="sharePriceReport(event, {title: '{{ report.product.name|escapejs }}', text: 'Checked {{ report.product.name|escapejs }} at {{ report.business.name|default:"Unknown"|escapejs }} for {{ report.currency|escapejs }} {{ report.price|intcomma|escapejs }} on Wikonomi.', url: window.location.origin + '{% url 'price_detail' report.pk %}'})" class="p-1.5 text-gray-400 hover:text-brand-purple rounded-full hover:bg-brand-purple/10" title="Share" aria-label="Share">

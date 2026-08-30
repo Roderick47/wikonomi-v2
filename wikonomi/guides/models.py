@@ -1,10 +1,16 @@
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django_resized import ResizedImageField
 
 
 class Guide(models.Model):
+    CREATION_SOURCE_CHOICES = [
+        ('web', 'Website'),
+        ('mcp', 'MCP'),
+    ]
+
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=255, unique=True)
     photo = ResizedImageField(
@@ -46,6 +52,19 @@ class Guide(models.Model):
         related_name='+',
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    created_via = models.CharField(max_length=20, choices=CREATION_SOURCE_CHOICES, default='web', db_index=True)
+    ai_assisted = models.BooleanField(default=False, db_index=True)
+    ai_provider = models.CharField(max_length=80, blank=True)
+    ai_model = models.CharField(max_length=120, blank=True)
+    ai_confidence = models.DecimalField(
+        max_digits=4,
+        decimal_places=3,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(1)],
+    )
+    ai_source_note = models.TextField(blank=True)
+    mcp_idempotency_key = models.CharField(max_length=160, null=True, blank=True, unique=True)
     marked_for_deletion = models.BooleanField(default=False)
     marked_for_deletion_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -96,12 +115,38 @@ class GuideVersion(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='published')
     edit_summary = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    created_via = models.CharField(max_length=20, choices=Guide.CREATION_SOURCE_CHOICES, default='web', db_index=True)
+    ai_assisted = models.BooleanField(default=False, db_index=True)
+    ai_provider = models.CharField(max_length=80, blank=True)
+    ai_model = models.CharField(max_length=120, blank=True)
+    ai_confidence = models.DecimalField(
+        max_digits=4,
+        decimal_places=3,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(1)],
+    )
+    ai_source_note = models.TextField(blank=True)
 
     class Meta:
         ordering = ['-created_at']
 
     def __str__(self):
         return f'{self.guide} ({self.created_at:%Y-%m-%d %H:%M})'
+
+
+class GuideReference(models.Model):
+    version = models.ForeignKey(GuideVersion, on_delete=models.CASCADE, related_name='references')
+    title = models.CharField(max_length=300)
+    url = models.URLField(max_length=2048)
+    publisher = models.CharField(max_length=180, blank=True)
+    accessed_at = models.DateField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return self.title
 
 
 class Step(models.Model):

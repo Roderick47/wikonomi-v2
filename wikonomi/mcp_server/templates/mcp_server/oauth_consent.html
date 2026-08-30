@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block page_title %}Authorize Wikonomi MCP{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <p class="text-xs font-bold uppercase tracking-wide text-brand-purple">Wikonomi MCP</p>
+    <h1 class="mt-2 text-2xl font-bold text-slate-900">Authorize AI access</h1>
+    <p class="mt-3 text-sm leading-6 text-slate-600">
+        <strong>{{ pending.client.client_name|default:"An MCP client" }}</strong> wants to use Wikonomi as
+        <strong>@{{ user.username }}</strong>. Your assigned MCP role is <strong>{{ role }}</strong>.
+    </p>
+
+    <div class="mt-5 rounded-xl bg-slate-50 p-4">
+        <h2 class="text-sm font-bold text-slate-800">Requested permissions</h2>
+        <ul class="mt-2 space-y-2 text-sm text-slate-600">
+            {% for scope in requested_scopes %}
+            <li class="flex items-center gap-2"><span class="text-emerald-600">✓</span><code>{{ scope }}</code></li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <p class="mt-5 text-xs leading-5 text-slate-500">
+        Wikonomi records every MCP write in its audit log. AI-assisted prices, products, and guides are labelled on the site.
+    </p>
+
+    <form method="post" class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        {% csrf_token %}
+        <input type="hidden" name="request" value="{{ pending.pk }}">
+        <button type="submit" name="action" value="deny" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">Deny</button>
+        <button type="submit" name="action" value="approve" class="rounded-lg bg-brand-purple px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-purple/90">Authorize Wikonomi</button>
+    </form>
+</div>
+{% endblock %}

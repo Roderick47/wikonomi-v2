@@ -3,5 +3,6 @@ cd wikonomi
 python manage.py migrate
 python manage.py generate_default_og_image
 python manage.py collectstatic --noinput
-# Start gunicorn immediately - bind to port 10000
-gunicorn wikonomi.wsgi:application --bind 0.0.0.0:10000 --timeout 120
+# Start the ASGI application so Django and the streamable HTTP MCP endpoint
+# share the same deployment and database connection settings.
+uvicorn wikonomi.asgi:application --host 0.0.0.0 --port "${PORT:-10000}" --workers 1 --timeout-keep-alive 75

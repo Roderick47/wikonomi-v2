@@ -1,6 +1,16 @@
 from django.contrib import admin
 
-from .models import Guide, GuideAnswer, GuideQuestion, GuideRating, GuideVersion, Step, StepTip, StepTipVote
+from .models import (
+    Guide,
+    GuideAnswer,
+    GuideQuestion,
+    GuideRating,
+    GuideReference,
+    GuideVersion,
+    Step,
+    StepTip,
+    StepTipVote,
+)
 
 
 class StepInline(admin.TabularInline):
@@ -8,18 +18,23 @@ class StepInline(admin.TabularInline):
     extra = 0
 
 
+class GuideReferenceInline(admin.TabularInline):
+    model = GuideReference
+    extra = 0
+
+
 @admin.register(GuideVersion)
 class GuideVersionAdmin(admin.ModelAdmin):
-    list_display = ('guide', 'status', 'edited_by', 'created_at')
-    list_filter = ('status', 'created_at')
+    list_display = ('guide', 'status', 'edited_by', 'ai_assisted', 'created_via', 'created_at')
+    list_filter = ('status', 'ai_assisted', 'created_via', 'created_at')
     search_fields = ('guide__title', 'edit_summary')
-    inlines = [StepInline]
+    inlines = [StepInline, GuideReferenceInline]
 
 
 @admin.register(Guide)
 class GuideAdmin(admin.ModelAdmin):
-    list_display = ('title', 'organization', 'category', 'created_by', 'created_at')
-    list_filter = ('category', 'created_at')
+    list_display = ('title', 'organization', 'category', 'created_by', 'ai_assisted', 'created_via', 'created_at')
+    list_filter = ('category', 'ai_assisted', 'created_via', 'created_at')
     prepopulated_fields = {'slug': ('title',)}
     search_fields = ('title', 'summary', 'organization__name')
 

@@ -1,1 +1,1 @@
-web: gunicorn wikonomi.wsgi:application --bind 0.0.0.0:$PORT
+web: uvicorn wikonomi.asgi:application --host 0.0.0.0 --port $PORT --workers 1 --timeout-keep-alive 75

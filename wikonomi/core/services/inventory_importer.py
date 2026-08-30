@@ -32,6 +32,7 @@ def _resolve_product(row, user):
             slug=_unique_slug(Product, row.product_name),
             description=row.description,
             created_by=user,
+            created_via='bulk_import',
         )
         created = True
     else:
@@ -93,6 +94,7 @@ def _import_row(row, session):
             latitude=latitude,
             longitude=longitude,
             notes=row.notes,
+            created_via='bulk_import',
         )
         row.product = product
         row.price_report = report
