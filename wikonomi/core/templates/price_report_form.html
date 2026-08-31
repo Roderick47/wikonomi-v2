@@ -404,12 +404,24 @@
         reader.onload = function(e) {
             const previewDiv = document.createElement('div');
             previewDiv.className = 'relative group';
-            previewDiv.innerHTML = `
-                <img src="${e.target.result}" class="w-full h-32 object-cover rounded-md border border-gray-200" alt="Photo preview">
-                <button type="button" onclick="removePhoto(${index})" class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            `;
+            // Assign the data URL through the DOM. Keeping an <img src="...">
+            // inside an inline script can make a browser's preload scanner request
+            // the unexpanded JavaScript placeholder as a relative URL.
+            const previewImage = document.createElement('img');
+            previewImage.src = e.target.result;
+            previewImage.className = 'w-full h-32 object-cover rounded-md border border-gray-200';
+            previewImage.alt = 'Photo preview';
+            previewDiv.appendChild(previewImage);
+
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity';
+            removeButton.setAttribute('aria-label', 'Remove photo');
+            removeButton.addEventListener('click', function() {
+                removePhoto(index);
+            });
+            removeButton.innerHTML = '<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+            previewDiv.appendChild(removeButton);
             photosPreviewContainer.appendChild(previewDiv);
         };
     }
