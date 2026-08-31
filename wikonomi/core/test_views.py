@@ -647,6 +647,23 @@ class APIEndpointsTest(TestCase):
         self.assertNotIn('latitude', response.context['form'].initial)
         self.assertNotIn('longitude', response.context['form'].initial)
 
+    def test_duplicate_form_does_not_expose_unexpanded_image_url_to_preloader(self):
+        """Photo previews must not generate requests for a literal JS placeholder."""
+        source = PriceReport.objects.create(
+            product=self.product,
+            business=self.business,
+            user=self.user,
+            price=Decimal('12.75'),
+            currency='PGK',
+        )
+
+        self.client.login(username='testuser', password='testpass')
+        response = self.client.get(reverse('duplicate_price_report', args=[source.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, '<img src="${e.target.result}"')
+        self.assertContains(response, 'previewImage.src = e.target.result')
+
     def test_duplicate_submit_links_new_report_to_source(self):
         """Saving duplicate creates a separate price report linked to the source report."""
         source = PriceReport.objects.create(
@@ -886,6 +903,14 @@ class PriceReportEditTest(TestCase):
         self.assertContains(response, 'data-wk-validate')
         self.assertContains(response, 'data-form-kind="price"')
         self.assertContains(response, 'data-max-files="5"')
+
+    def test_edit_form_does_not_expose_unexpanded_image_url_to_preloader(self):
+        url = reverse('edit_price_report', args=[self.price_report.id])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, '<img src="${e.target.result}"')
+        self.assertContains(response, 'previewImage.src = e.target.result')
 
     def test_edit_price_report_creates_history(self):
         """Test that editing price report creates history record"""
