@@ -4,7 +4,7 @@ from typing import Any, Literal
 
 from asgiref.sync import sync_to_async
 from mcp.types import ToolAnnotations
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from .models import MCPUserAccess
 from .permissions import PUBLISH_SCOPE, READ_SCOPE, WRITE_SCOPE
@@ -12,6 +12,8 @@ from . import services
 
 
 class AIMetadata(BaseModel):
+    """Optional internal provenance; never guess an unknown provider or model."""
+
     provider: str = Field(default='', max_length=80, description='AI provider, for example OpenAI or Anthropic.')
     model: str = Field(default='', max_length=120, description='Model name when the client knows it.')
     confidence: float | None = Field(default=None, ge=0, le=1, description='Confidence in extracted or generated data.')
@@ -23,6 +25,8 @@ class AIMetadata(BaseModel):
 
 
 class PriceObservation(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
     product_id: int | None = Field(default=None, ge=1)
     product_name: str | None = Field(default=None, max_length=255)
     product_category_id: int | None = Field(default=None, ge=1)
@@ -35,8 +39,6 @@ class PriceObservation(BaseModel):
     price: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
     currency: str = Field(default='PGK', min_length=3, max_length=3)
     observed_at: datetime | None = None
-    latitude: float | None = Field(default=None, ge=-90, le=90)
-    longitude: float | None = Field(default=None, ge=-180, le=180)
     notes: str = Field(default='', max_length=10000)
     idempotency_key: str | None = Field(
         default=None,
@@ -86,15 +88,22 @@ class GuideUpdateInput(BaseModel):
 
 READ_ONLY = ToolAnnotations(read_only_hint=True, destructive_hint=False, open_world_hint=False)
 PUBLIC_WRITE = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=True)
+PUBLIC_UPDATE = ToolAnnotations(read_only_hint=False, destructive_hint=True, open_world_hint=True)
 
 
 def _dump(model):
     return model.model_dump(mode='python', exclude_none=True) if model else None
 
 
+def _oauth_meta(scope):
+    scopes = [READ_SCOPE] if scope == READ_SCOPE else [READ_SCOPE, scope]
+    return {'securitySchemes': [{'type': 'oauth2', 'scopes': scopes}]}
+
+
 def register_tools(mcp):
     @mcp.tool(
         title='Get Wikonomi schema help',
+        meta=_oauth_meta(READ_SCOPE),
         description='Use this before a Wikonomi workflow when you need entity rules, permissions, or the safe price/guide sequence.',
         annotations=READ_ONLY,
         structured_output=True,
@@ -112,6 +121,7 @@ def register_tools(mcp):
 
     @mcp.tool(
         title='Search Wikonomi',
+        meta=_oauth_meta(READ_SCOPE),
         description='Use this to find products, businesses, branches, or guides before creating or updating records.',
         annotations=READ_ONLY,
         structured_output=True,
@@ -132,6 +142,7 @@ def register_tools(mcp):
 
     @mcp.tool(
         title='Get a Wikonomi product',
+        meta=_oauth_meta(READ_SCOPE),
         description='Use this after search_wikonomi to retrieve a product, aliases, statistics, and recent price observations.',
         annotations=READ_ONLY,
         structured_output=True,
@@ -147,7 +158,8 @@ def register_tools(mcp):
 
     @mcp.tool(
         title='Find or create a product',
-        description='Use this after searching when a price observation refers to a product that may not exist. It fuzzy-matches before creating.',
+        meta=_oauth_meta(WRITE_SCOPE),
+        description='Contributors only. Use after searching for an observed product. It fuzzy-matches before creating a public product record; confirm creation with the user.',
         annotations=PUBLIC_WRITE,
         structured_output=True,
     )
@@ -171,7 +183,7 @@ def register_tools(mcp):
             'find_or_create_product',
             arguments,
             scope=WRITE_SCOPE,
-            minimum_role=MCPUserAccess.Role.TRUSTED,
+            minimum_role=MCPUserAccess.Role.CONTRIBUTOR,
             operation=lambda actor: services.find_or_create_product(
                 actor=actor,
                 name=name,
@@ -185,7 +197,8 @@ def register_tools(mcp):
 
     @mcp.tool(
         title='Submit a price observation',
-        description='Use this to add one observed product price. It publishes immediately, records AI provenance, and returns a report ID for evidence upload.',
+        meta=_oauth_meta(WRITE_SCOPE),
+        description='Contributors only. After user confirmation, publish one actual observed price publicly under their account. Retains internal provenance and returns a report ID for evidence upload.',
         annotations=PUBLIC_WRITE,
         structured_output=True,
     )
@@ -195,7 +208,7 @@ def register_tools(mcp):
             'submit_price',
             arguments,
             scope=WRITE_SCOPE,
-            minimum_role=MCPUserAccess.Role.TRUSTED,
+            minimum_role=MCPUserAccess.Role.CONTRIBUTOR,
             operation=lambda actor: services.submit_price(
                 actor=actor,
                 data=_dump(observation),
@@ -205,7 +218,8 @@ def register_tools(mcp):
 
     @mcp.tool(
         title='Bulk submit price observations',
-        description='Use this for prices extracted from a shelf, receipt, or inventory image. Maximum 25 rows for trusted contributors and 100 for staff/owner.',
+        meta=_oauth_meta(WRITE_SCOPE),
+        description='After user confirmation, publish observed prices publicly under their account. Maximum 25 rows for contributors and 100 for staff/owner. Never invent missing prices.',
         annotations=PUBLIC_WRITE,
         structured_output=True,
     )
@@ -220,7 +234,7 @@ def register_tools(mcp):
             'bulk_submit_prices',
             arguments,
             scope=WRITE_SCOPE,
-            minimum_role=MCPUserAccess.Role.TRUSTED,
+            minimum_role=MCPUserAccess.Role.CONTRIBUTOR,
             operation=lambda actor: services.bulk_submit_prices(
                 actor=actor,
                 observations=rows,
@@ -231,7 +245,8 @@ def register_tools(mcp):
 
     @mcp.tool(
         title='Upload price evidence',
-        description='Use this after submit_price or bulk_submit_prices to attach one JPEG, PNG, or WebP image to up to 20 returned price-report IDs.',
+        meta=_oauth_meta(WRITE_SCOPE),
+        description='Contributors only. After price submission and user confirmation, publish one JPEG, PNG, or WebP as evidence for up to 20 report IDs. Remove personal details from receipts before upload.',
         annotations=PUBLIC_WRITE,
         structured_output=True,
     )
@@ -251,7 +266,7 @@ def register_tools(mcp):
             'upload_evidence',
             arguments,
             scope=WRITE_SCOPE,
-            minimum_role=MCPUserAccess.Role.TRUSTED,
+            minimum_role=MCPUserAccess.Role.CONTRIBUTOR,
             operation=lambda actor: services.upload_evidence(
                 actor=actor,
                 price_report_ids=price_report_ids,
@@ -263,7 +278,8 @@ def register_tools(mcp):
 
     @mcp.tool(
         title='Get a Wikonomi guide',
-        description='Use this after search_wikonomi and before editing a guide. Returns the current version, stable step IDs, and references.',
+        meta=_oauth_meta(READ_SCOPE),
+        description='Use this after search_wikonomi and before editing a guide. Returns the current published version, stable step IDs, and references. Drafts are not available.',
         annotations=READ_ONLY,
         structured_output=True,
     )
@@ -278,7 +294,8 @@ def register_tools(mcp):
 
     @mcp.tool(
         title='Create and publish a Wikonomi guide',
-        description='Use this for an owner/staff-approved practical guide. It creates a published version immediately and labels it AI-assisted.',
+        meta=_oauth_meta(PUBLISH_SCOPE),
+        description='Contributors only. After user confirmation, create a publicly visible practical guide under their account. Retains sources and internal AI provenance.',
         annotations=PUBLIC_WRITE,
         structured_output=True,
     )
@@ -288,14 +305,15 @@ def register_tools(mcp):
             'create_guide',
             arguments,
             scope=PUBLISH_SCOPE,
-            minimum_role=MCPUserAccess.Role.STAFF,
+            minimum_role=MCPUserAccess.Role.CONTRIBUTOR,
             operation=lambda actor: services.create_guide(actor=actor, data=_dump(guide), ai=_dump(ai)),
         )
 
     @mcp.tool(
         title='Update and publish a Wikonomi guide',
-        description='Use this after get_guide. It creates a new published version. Editing another user’s guide requires explicit high-impact confirmation.',
-        annotations=PUBLIC_WRITE,
+        meta=_oauth_meta(PUBLISH_SCOPE),
+        description='Contributors only. Use after get_guide and user confirmation. Replaces the publicly visible guide with a new version; previous versions remain in history. Editing another user’s guide requires explicit high-impact confirmation.',
+        annotations=PUBLIC_UPDATE,
         structured_output=True,
     )
     async def update_guide(
@@ -317,7 +335,7 @@ def register_tools(mcp):
             'update_guide',
             arguments,
             scope=PUBLISH_SCOPE,
-            minimum_role=MCPUserAccess.Role.STAFF,
+            minimum_role=MCPUserAccess.Role.CONTRIBUTOR,
             operation=lambda actor: services.update_guide(
                 actor=actor,
                 guide_id=guide_id,

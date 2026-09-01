@@ -86,6 +86,11 @@ def current_actor():
 
 def audited_call(tool_name, arguments, *, scope, minimum_role, operation):
     actor = current_actor()
+    # Read-only tools must not persist queries or create audit records. Keep the
+    # durable audit trail for write attempts, including refused writes.
+    if scope == READ_SCOPE:
+        require_actor(actor, scope=scope, minimum_role=minimum_role)
+        return operation(actor)
     try:
         require_actor(actor, scope=scope, minimum_role=minimum_role)
     except MCPPermissionDenied as exc:
@@ -165,17 +170,19 @@ def schema_help(topic='overview'):
         'prices': {
             'entity': 'A price report is one product price observed at one business or branch at a point in time.',
             'currency': 'Use ISO-style three-letter codes. PGK is the default.',
+            'location': 'Identify a business or branch by its record ID or name; do not request the user’s precise location.',
             'evidence': 'After creating reports, call upload_evidence with their report IDs and one JPEG, PNG, or WebP image.',
         },
         'guides': {
             'entity': 'A guide has a stable record, versioned steps, and versioned references.',
-            'publishing': 'MCP guide writes are published immediately for owner/staff roles and labelled AI-assisted.',
+            'publishing': 'MCP guide writes are published immediately for contributors after user confirmation; AI provenance is retained internally.',
             'updates': 'Updating another user’s guide requires confirm_high_impact=true and creates a new version.',
         },
         'permissions': {
-            'reader': 'Search and retrieve only.',
-            'trusted': 'Reader access plus products, prices, and price evidence.',
-            'staff': 'Trusted access plus immediately published guide creation and updates.',
+            'reader': 'Explicitly restricted accounts: search and retrieve public records only.',
+            'contributor': 'Default for active accounts: read public records, publish products/prices/evidence, and create/edit guides. No admin privileges.',
+            'trusted': 'Legacy contributor role: the same public contribution tools, including guides.',
+            'staff': 'Contributor access plus larger price batches and evidence moderation.',
             'owner': 'All exposed tools. Deletion, merging, ownership changes, and governance bypasses are deliberately not exposed.',
         },
     }
@@ -243,7 +250,9 @@ def search_wikonomi(query, entity_types=None, limit=10):
             | Q(summary__icontains=query)
             | Q(current_version__steps__title__icontains=query)
             | Q(current_version__steps__instruction__icontains=query)
-        ).select_related('organization', 'category', 'current_version').distinct()[:limit]
+        ).filter(current_version__status='published').select_related(
+            'organization', 'category', 'current_version'
+        ).distinct()[:limit]
         results.extend({
             'type': 'guide',
             'id': guide.pk,
@@ -251,7 +260,6 @@ def search_wikonomi(query, entity_types=None, limit=10):
             'summary': guide.summary,
             'organization': guide.organization.name if guide.organization else None,
             'category': guide.category.name if guide.category else None,
-            'ai_assisted': bool(guide.current_version and guide.current_version.ai_assisted),
             'url': _absolute_url(f'/guides/{guide.slug}/'),
         } for guide in guides)
 
@@ -281,7 +289,6 @@ def get_product(product_id):
         'category': product.category.name if product.category else None,
         'aliases': [alias.alias_name for alias in product.aliases.filter(is_active=True)],
         'tags': list(product.tags.names()),
-        'ai_assisted': product.ai_assisted,
         'statistics': {
             'count': stats['count'],
             'min_price': str(stats['min_price']) if stats['min_price'] is not None else None,
@@ -295,7 +302,6 @@ def get_product(product_id):
             'currency': report.currency,
             'business': report.get_business_display(),
             'observed_at': report.observed_at,
-            'ai_assisted': report.ai_assisted,
             'evidence_count': report.get_photo_count(),
             'url': _absolute_url(f'/price/{report.pk}/'),
         } for report in reports],
@@ -708,7 +714,6 @@ def _serialize_guide(guide):
         'created_by': guide.created_by.username if guide.created_by else None,
         'current_version_id': version.pk if version else None,
         'status': version.status if version else None,
-        'ai_assisted': bool(version and version.ai_assisted),
         'steps': [{
             'id': step.pk,
             'position': step.position,
@@ -729,7 +734,7 @@ def _serialize_guide(guide):
 def get_guide(guide_id):
     guide = Guide.objects.select_related(
         'organization', 'category', 'created_by', 'current_version', 'current_version__edited_by'
-    ).filter(pk=guide_id).first()
+    ).filter(pk=guide_id, current_version__status='published').first()
     if not guide:
         raise ValueError(f'Guide {guide_id} was not found.')
     return _serialize_guide(guide)
@@ -797,6 +802,8 @@ def update_guide(*, actor, guide_id, changes, confirm_high_impact=False, ai=None
     old_version = guide.current_version
     if not old_version:
         raise ValueError('The guide has no current version to update.')
+    if old_version.status != 'published':
+        raise MCPPermissionDenied('An unpublished guide cannot be published or overwritten through this tool.')
     old_steps = list(old_version.steps.order_by('position'))
     if 'steps' in changes and changes.get('steps') is not None:
         steps = _validate_steps(changes['steps'])

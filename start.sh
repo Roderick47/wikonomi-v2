@@ -1,4 +1,6 @@
 #!/bin/bash
+set -euo pipefail
+
 cd wikonomi
 python manage.py migrate
 python manage.py generate_default_og_image

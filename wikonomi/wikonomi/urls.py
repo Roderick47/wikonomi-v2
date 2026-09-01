@@ -21,8 +21,12 @@ from django.conf.urls.static import static
 from django.views.generic import RedirectView
 from users import views as user_views
 from transport_index.views import robots_txt
+from mcp_server.views import openai_apps_challenge
+from .health import health
 
 urlpatterns = [
+    path('healthz/', health, name='health'),
+    path('.well-known/openai-apps-challenge', openai_apps_challenge, name='openai_apps_challenge'),
     path('robots.txt', robots_txt, name='robots_txt'),
     path('admin/', admin.site.urls),
     path('robots.txt', robots_txt, name='robots_txt'),

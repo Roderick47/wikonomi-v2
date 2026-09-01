@@ -36,14 +36,6 @@
                     <span>Created by @{{ guide.created_by.username|default:'deleted-user' }}</span>
                 {% endif %}
             </p>
-            {% if guide.current_version.ai_assisted %}
-            <div class="mt-2 flex flex-wrap items-center gap-2">
-                <span class="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-bold text-violet-700" title="Published through Wikonomi MCP{% if guide.current_version.ai_model %} with {{ guide.current_version.ai_model }}{% endif %}">AI-assisted</span>
-                {% if guide.current_version.ai_provider %}<span class="text-xs text-gray-500">via {{ guide.current_version.ai_provider }}</span>{% endif %}
-                {% if guide.current_version.ai_confidence != None %}<span class="text-xs text-gray-500">Confidence {{ guide.current_version.ai_confidence|floatformat:2 }}</span>{% endif %}
-            </div>
-            {% if guide.current_version.ai_source_note %}<p class="mt-2 text-xs leading-5 text-gray-500">{{ guide.current_version.ai_source_note }}</p>{% endif %}
-            {% endif %}
         </div>
     </div>
     {% if guide.summary %}<div class="prose prose-sm max-w-none text-gray-700 mb-4">{{ guide.summary|guide_markdown }}</div>{% endif %}
