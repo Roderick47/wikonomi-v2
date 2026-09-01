@@ -50,6 +50,13 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    {{ wikonomi_map_config|json_script:"wikonomi-map-config" }}
+    {% if wikonomi_map_config.accessToken %}
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.29.0/mapbox-gl.css">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.29.0/mapbox-gl.js"></script>
+    {% endif %}
+    <link rel="stylesheet" href="{% static 'css/maps.css' %}">
+    <script src="{% static 'js/maps.js' %}"></script>
     <link rel="stylesheet" href="{% static 'css/onboarding.css' %}">
     {% block extra_head %}{% endblock %}
     <script src="{% static 'js/form-validation.js' %}" defer></script>
@@ -189,7 +196,7 @@
             const dropdown = document.getElementById('add-dropdown');
             if (!dropdown) return;
             const button = event.target.closest('button[onclick="toggleAddDropdown()"]');
-            
+
             if (!dropdown.contains(event.target) && !button) {
                 dropdown.classList.add('hidden');
             }

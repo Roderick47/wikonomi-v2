@@ -493,10 +493,11 @@
                         <div id="map" class="rounded-b-xl"></div>
                     </div>
                     <div class="px-4 py-2.5 border-t border-slate-100 flex flex-wrap gap-3 text-xs text-gray-500">
-                        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brand-green"></span> Cheapest</span>
+                        <span class="w-full">Colours compare the same product and currency among displayed reports.</span>
+                        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brand-green"></span> Lowest shown</span>
                         <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brand-blue"></span> Mid range</span>
                         <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> Highest</span>
-                        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brand-purple"></span> Other</span>
+                        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brand-purple"></span> No comparison</span>
                     </div>
                 </div>
             </div>
@@ -628,7 +629,7 @@ function createPriceMarkerIcon(label, tier, productName) {
     const safeLabel = escapeHtml(label);
     const safeProductName = escapeHtml(productName || 'Unknown product');
 
-    return L.divIcon({
+    return WkMaps.divIcon({
         className: 'wk-price-marker',
         html: `
             <div style="display:flex; flex-direction:column; align-items:center; width:88px;">
@@ -670,13 +671,10 @@ function initPriceMap() {
             mapInstance = null;
         }
 
-        mapInstance = L.map('map', { scrollWheelZoom: true }).setView([centerLat, centerLng], zoomLevel);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
-        }).addTo(mapInstance);
+        mapInstance = WkMaps.map('map', { scrollWheelZoom: true }).setView([centerLat, centerLng], zoomLevel);
 
-        mapClusterGroup = L.markerClusterGroup({
+
+        mapClusterGroup = WkMaps.markerClusterGroup({
             maxClusterRadius: 45,
             spiderfyOnMaxZoom: true,
             showCoverageOnHover: false,
@@ -688,7 +686,7 @@ function initPriceMap() {
         if (userLat && userLng) {
             const uLat = parseFloat(userLat);
             const uLng = parseFloat(userLng);
-            L.circleMarker([uLat, uLng], { radius: 8, color: '#6b7280', fillColor: '#9ca3af', fillOpacity: 0.9, weight: 2 })
+            WkMaps.circleMarker([uLat, uLng], { radius: 8, color: '#6b7280', fillColor: '#9ca3af', fillOpacity: 0.9, weight: 2 })
                 .addTo(mapInstance)
                 .bindPopup('<strong>Your location</strong>');
             bounds.push([uLat, uLng]);
@@ -700,29 +698,19 @@ function initPriceMap() {
             .then(data => {
                 if (!data.items || !data.items.length) return;
 
-                let minPrice = Infinity;
-                let maxPrice = -Infinity;
-                data.items.forEach(p => {
-                    if (p.rawPrice < minPrice) minPrice = p.rawPrice;
-                    if (p.rawPrice > maxPrice) maxPrice = p.rawPrice;
-                });
-
-                data.items.forEach(price => {
-                    let tier = 'other';
-                    if (price.rawPrice <= minPrice) tier = 'cheap';
-                    else if (price.rawPrice >= maxPrice) tier = 'expensive';
-                    else if (price.rawPrice < (minPrice + maxPrice) / 2) tier = 'mid';
-
-                    const marker = L.marker([price.lat, price.lng], {
+                const tiers = WkMaps.priceTiers(data.items);
+                data.items.forEach((price, index) => {
+                    const tier = tiers[index];
+                    const marker = WkMaps.marker([price.lat, price.lng], {
                         icon: createPriceMarkerIcon(shortPriceLabel(price.price), tier, price.product),
                     });
                     marker.bindPopup(`
                         <div class="p-1 min-w-[140px]">
-                            <p class="font-semibold text-sm text-gray-900">${price.product}</p>
-                            <p class="text-brand-green font-bold">${price.price}</p>
-                            ${price.business ? `<p class="text-xs text-gray-500 mt-1">${price.business}</p>` : ''}
-                            <p class="text-xs text-gray-400">${price.date}</p>
-                            <a href="${price.url}" class="text-brand-purple text-xs font-medium hover:underline mt-1 inline-block">View details →</a>
+                            <p class="font-semibold text-sm text-gray-900">${WkMaps.escapeHtml(price.product)}</p>
+                            <p class="text-brand-green font-bold">${WkMaps.escapeHtml(price.price)}</p>
+                            ${price.business ? `<p class="text-xs text-gray-500 mt-1">${WkMaps.escapeHtml(price.business)}</p>` : ''}
+                            <p class="text-xs text-gray-400">${WkMaps.escapeHtml(price.date)}</p>
+                            <a href="${WkMaps.escapeHtml(price.url)}" class="text-brand-purple text-xs font-medium hover:underline mt-1 inline-block">View details →</a>
                         </div>
                     `);
                     mapClusterGroup.addLayer(marker);
@@ -911,3 +899,4 @@ function handleSortChange(sortValue) {
 }
 </script>
 {% endblock %}
+

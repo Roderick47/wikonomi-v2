@@ -353,11 +353,8 @@
         });
 
         // Map
-        const map = L.map('map').setView([-9.4438, 147.1803], 13);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+        const map = WkMaps.map('map').setView([-9.4438, 147.1803], 13);
+
 
         let marker = null;
         const latInput = document.getElementById('id_latitude');
@@ -365,7 +362,7 @@
 
         map.on('click', function(e) {
             if (marker) { marker.setLatLng(e.latlng); }
-            else { marker = L.marker(e.latlng).addTo(map); }
+            else { marker = WkMaps.marker(e.latlng).addTo(map); }
             latInput.value = e.latlng.lat.toFixed(6);
             lngInput.value = e.latlng.lng.toFixed(6);
             document.getElementById('use_my_location').checked = false;
@@ -386,7 +383,7 @@
                             const lng = pos.coords.longitude;
                             const latlng = [lat, lng];
                             if (marker) { marker.setLatLng(latlng); }
-                            else { marker = L.marker(latlng).addTo(map); }
+                            else { marker = WkMaps.marker(latlng).addTo(map); }
                             map.setView(latlng, 15);
                             latInput.value = lat.toFixed(6);
                             lngInput.value = lng.toFixed(6);
@@ -470,3 +467,4 @@
 </script>
 {% endif %}
 {% endblock %}
+

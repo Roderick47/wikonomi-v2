@@ -275,11 +275,11 @@ function useProductLocation() {
 {% if reports_with_location %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const map = L.map('product-map').setView([0, 0], 2);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap contributors' }).addTo(map);
+    const map = WkMaps.map('product-map').setView([0, 0], 2);
+
     const bounds = [];
     {% for report in reports_with_location %}
-    L.marker([{{ report.latitude }}, {{ report.longitude }}]).addTo(map).bindPopup('<strong>{{ report.currency }} {{ report.price|intcomma }}</strong><br>{{ report.get_business_display|escapejs }}<br><a href="{% url "price_detail" report.pk %}">View report</a>');
+    WkMaps.marker([{{ report.latitude }}, {{ report.longitude }}]).addTo(map).bindPopup('<strong>{{ report.currency }} {{ report.price|intcomma }}</strong><br>{{ report.get_business_display|escapejs }}<br><a href="{% url "price_detail" report.pk %}">View report</a>');
     bounds.push([{{ report.latitude }}, {{ report.longitude }}]);
     {% endfor %}
     if (bounds.length) map.fitBounds(bounds, { padding: [40, 40] });
@@ -287,3 +287,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 {% endif %}
 {% endblock %}
+

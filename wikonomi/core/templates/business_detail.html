@@ -387,7 +387,7 @@
 </div>
 
 {% if reports_with_location %}
-<!-- Initialize Leaflet Map -->
+<!-- Initialize price map -->
 <script>
     function tierColor(tier) {
         return {
@@ -417,7 +417,7 @@
         const safeLabel = escapeHtml(label);
         const safeProductName = escapeHtml(productName || 'Unknown product');
 
-        return L.divIcon({
+        return WkMaps.divIcon({
             className: 'wk-price-marker',
             html: `
                 <div style="display:flex; flex-direction:column; align-items:center; width:88px;">
@@ -436,36 +436,25 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         try {
-            const map = L.map('map', { scrollWheelZoom: true }).setView([0, 0], 2);
+            const map = WkMaps.map('map', { scrollWheelZoom: true }).setView([0, 0], 2);
 
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-
-            const clusterGroup = L.markerClusterGroup({
+            const clusterGroup = WkMaps.markerClusterGroup({
                 maxClusterRadius: 45,
                 spiderfyOnMaxZoom: true,
                 showCoverageOnHover: false,
             });
             const bounds = [];
-            const reportPrices = [
-                {% for report in reports_with_location %}{{ report.price }}{% if not forloop.last %},{% endif %}{% endfor %}
+            const comparisonItems = [
+                {% for report in reports_with_location %}
+                {productId: {{ report.product_id }}, currency: '{{ report.currency|escapejs }}', rawPrice: Number('{{ report.price }}')},
+                {% endfor %}
             ];
-            const minPrice = Math.min(...reportPrices);
-            const maxPrice = Math.max(...reportPrices);
-
+            const tiers = WkMaps.priceTiers(comparisonItems);
             {% for report in reports_with_location %}
                 const lat{{ forloop.counter }} = {{ report.latitude }};
                 const lng{{ forloop.counter }} = {{ report.longitude }};
-                const rawPrice{{ forloop.counter }} = parseFloat('{{ report.price }}');
-                let tier{{ forloop.counter }} = 'other';
-                if (Number.isFinite(rawPrice{{ forloop.counter }}) && Number.isFinite(minPrice) && Number.isFinite(maxPrice) && minPrice !== maxPrice) {
-                    if (rawPrice{{ forloop.counter }} <= minPrice) tier{{ forloop.counter }} = 'cheap';
-                    else if (rawPrice{{ forloop.counter }} >= maxPrice) tier{{ forloop.counter }} = 'expensive';
-                    else if (rawPrice{{ forloop.counter }} < (minPrice + maxPrice) / 2) tier{{ forloop.counter }} = 'mid';
-                }
-                const marker{{ forloop.counter }} = L.marker([lat{{ forloop.counter }}, lng{{ forloop.counter }}], {
+                const tier{{ forloop.counter }} = tiers[{{ forloop.counter0 }}];
+                const marker{{ forloop.counter }} = WkMaps.marker([lat{{ forloop.counter }}, lng{{ forloop.counter }}], {
                     icon: createPriceMarkerIcon(shortPriceLabel('{{ report.currency }} {{ report.price|intcomma }}'), tier{{ forloop.counter }}, '{{ report.product.name|escapejs }}'),
                 });
                 marker{{ forloop.counter }}.bindPopup(`
@@ -622,3 +611,4 @@
 {% block extra_scripts %}
 <script src="{% static 'js/comments.js' %}"></script>
 {% endblock %}
+

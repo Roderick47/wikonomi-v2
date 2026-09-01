@@ -31,6 +31,10 @@ SECRET_KEY = os.environ.get('SECRET_KEY') or ('test-secret-key' if 'test' in sys
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
+# Browser-visible public token. Never use a secret (sk.) Mapbox token here.
+MAPBOX_PUBLIC_TOKEN = os.environ.get('MAPBOX_PUBLIC_TOKEN', '')
+MAPBOX_STYLE_URL = os.environ.get('MAPBOX_STYLE_URL', 'mapbox://styles/mapbox/streets-v12')
+
 # Restrict ALLOWED_HOSTS to specific domains for security
 # Use wildcard only in development for flexibility
 if DEBUG:
@@ -133,6 +137,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.notifications_count',
+                'core.context_processors.map_config',
             ],
         },
     },
