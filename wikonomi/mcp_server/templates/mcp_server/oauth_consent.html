@@ -15,13 +15,22 @@
         <h2 class="text-sm font-bold text-slate-800">Requested permissions</h2>
         <ul class="mt-2 space-y-2 text-sm text-slate-600">
             {% for scope in requested_scopes %}
-            <li class="flex items-center gap-2"><span class="text-emerald-600">✓</span><code>{{ scope }}</code></li>
+            <li>
+                <span class="text-emerald-600">✓</span>
+                {% if scope == 'wikonomi:read' %}Search and read public products, prices, businesses, and guides.
+                {% elif scope == 'wikonomi:write' %}Publish products, price observations, and evidence images on Wikonomi.
+                {% elif scope == 'wikonomi:publish' %}Create and update publicly visible guides.
+                {% endif %}
+                <code class="block text-xs text-slate-500">{{ scope }}</code>
+            </li>
             {% endfor %}
         </ul>
     </div>
 
     <p class="mt-5 text-xs leading-5 text-slate-500">
-        Wikonomi records every MCP write in its audit log. AI-assisted prices, products, and guides are labelled on the site.
+        Contributions you authorize are published on Wikonomi under your account. Wikonomi keeps internal AI provenance
+        and an audit log of write attempts for accountability and usage reporting; these details are not public badges.
+        Only the permissions listed above will be granted.
     </p>
 
     <form method="post" class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

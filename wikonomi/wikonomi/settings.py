@@ -289,6 +289,9 @@ WIKONOMI_MCP_PUBLIC_BASE_URL = os.environ.get(
     'WIKONOMI_MCP_PUBLIC_BASE_URL',
     'https://www.wikonomi.com',
 ).rstrip('/')
+# Set only to the exact public verification token issued by the submission
+# portal. Leave unset until an owner starts domain verification.
+WIKONOMI_OPENAI_APPS_CHALLENGE = os.environ.get('WIKONOMI_OPENAI_APPS_CHALLENGE', '')
 WIKONOMI_MCP_ACCESS_TOKEN_SECONDS = int(
     os.environ.get('WIKONOMI_MCP_ACCESS_TOKEN_SECONDS', '3600')
 )

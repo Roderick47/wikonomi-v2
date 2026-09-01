@@ -12,6 +12,7 @@ ALL_SCOPES = [READ_SCOPE, WRITE_SCOPE, PUBLISH_SCOPE]
 
 ROLE_RANK = {
     MCPUserAccess.Role.READER: 10,
+    MCPUserAccess.Role.CONTRIBUTOR: 20,
     MCPUserAccess.Role.TRUSTED: 20,
     MCPUserAccess.Role.STAFF: 30,
     MCPUserAccess.Role.OWNER: 40,
@@ -19,7 +20,8 @@ ROLE_RANK = {
 
 ROLE_SCOPES = {
     MCPUserAccess.Role.READER: [READ_SCOPE],
-    MCPUserAccess.Role.TRUSTED: [READ_SCOPE, WRITE_SCOPE],
+    MCPUserAccess.Role.CONTRIBUTOR: ALL_SCOPES,
+    MCPUserAccess.Role.TRUSTED: ALL_SCOPES,
     MCPUserAccess.Role.STAFF: ALL_SCOPES,
     MCPUserAccess.Role.OWNER: ALL_SCOPES,
 }
@@ -46,17 +48,22 @@ class MCPActor:
 def resolve_user_role(user):
     if not user or not user.is_authenticated or not user.is_active:
         return None
-    if user.is_superuser:
-        return MCPUserAccess.Role.OWNER
-
     try:
         access = user.mcp_access
     except MCPUserAccess.DoesNotExist:
         access = None
 
+    # An explicit suspension must take precedence over default access, including
+    # the superuser default. Tokens re-check this role on every use.
+    if access is not None and not access.is_active:
+        return None
+    if user.is_superuser:
+        return MCPUserAccess.Role.OWNER
     if access is not None:
-        return access.role if access.is_active else None
-    return None
+        return access.role
+    # Community contribution does not grant staff/admin privileges. An explicit
+    # reader access record can still limit an account to search and retrieval.
+    return MCPUserAccess.Role.CONTRIBUTOR
 
 
 def allowed_scopes_for_user(user):

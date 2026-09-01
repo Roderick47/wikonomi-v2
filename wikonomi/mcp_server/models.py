@@ -10,6 +10,7 @@ class MCPUserAccess(models.Model):
         OWNER = 'owner', 'Owner'
         STAFF = 'staff', 'Staff'
         TRUSTED = 'trusted', 'Trusted contributor'
+        CONTRIBUTOR = 'contributor', 'Contributor'
         READER = 'reader', 'Read only'
 
     user = models.OneToOneField(

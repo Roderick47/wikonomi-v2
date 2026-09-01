@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import HttpResponseForbidden, HttpResponseNotFound
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseNotFound
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
@@ -15,6 +15,18 @@ from .crypto import hash_secret
 from .models import MCPOAuthAuthorizationCode, MCPOAuthAuthorizationRequest
 from .oauth import resource_url
 from .permissions import READ_SCOPE, allowed_scopes_for_user, resolve_user_role
+
+
+@require_http_methods(['GET', 'HEAD'])
+def openai_apps_challenge(request):
+    """Publish only the domain-verification token supplied by the owner."""
+    token = settings.WIKONOMI_OPENAI_APPS_CHALLENGE
+    if not token or any(char.isspace() for char in token):
+        return HttpResponseNotFound('No plugin verification challenge is configured.')
+    response = HttpResponse(token, content_type='text/plain; charset=utf-8')
+    response['Cache-Control'] = 'no-store'
+    response['X-Content-Type-Options'] = 'nosniff'
+    return response
 
 
 @login_required
