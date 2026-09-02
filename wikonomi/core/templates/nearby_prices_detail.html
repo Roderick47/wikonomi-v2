@@ -143,37 +143,24 @@
 
 {% cache 300 nearby_map_script reference_report.id %}
 {% if reports_with_location or reference_report.latitude and reference_report.longitude %}
-<!-- Initialize Leaflet Map -->
+<!-- Initialize price map -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         try {
             // Initialize map
-            const map = L.map('map').setView([0, 0], 2);
-            
-            // Add tile layer
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
+            const map = WkMaps.map('map').setView([0, 0], 2);
 
             // Add markers for reference report and nearby prices
             const markers = [];
             const bounds = [];
-            
+
             // Reference report marker (blue)
             {% if reference_report.latitude and reference_report.longitude %}
                 const refLat = {{ reference_report.latitude }};
                 const refLng = {{ reference_report.longitude }};
                 
-                const refMarker = L.marker([refLat, refLng], {
-                    icon: L.icon({
-                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41],
-                        popupAnchor: [1, -34],
-                        shadowSize: [41, 41]
-                    })
+                const refMarker = WkMaps.marker([refLat, refLng], {
+                    color: '#4DB8FF'
                 }).addTo(map)
                     .bindPopup('<div class="p-2"><h4 class="font-semibold text-brand-purple">Your Reference Price</h4><p class="text-brand-green font-medium">{{ reference_report.currency }} {{ reference_report.price|intcomma }}</p><p class="text-xs text-gray-500">{{ reference_report.observed_at|date:"M d, Y" }}</p><p class="text-xs text-gray-500">By {{ reference_report.user.username|escapejs }}</p><a href="{% url "price_detail" reference_report.pk %}" class="text-brand-purple text-xs hover:underline">View details →</a></div>');
                 
@@ -194,15 +181,8 @@
                     var iconColor{{ forloop.counter }} = 'grey';
                 {% endif %}
                 
-                const marker{{ forloop.counter }} = L.marker([lat{{ forloop.counter }}, lng{{ forloop.counter }}], {
-                    icon: L.icon({
-                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-' + iconColor{{ forloop.counter }} + '.png',
-                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41],
-                        popupAnchor: [1, -34],
-                        shadowSize: [41, 41]
-                    })
+                const marker{{ forloop.counter }} = WkMaps.marker([lat{{ forloop.counter }}, lng{{ forloop.counter }}], {
+                    color: iconColor{{ forloop.counter }}
                 }).addTo(map)
                     .bindPopup('<div class="p-2"><h4 class="font-semibold">{{ price.product.name|escapejs }}</h4><p class="font-medium">{{ price.currency }} {{ price.price|intcomma }}</p>{% if price.business %}<p class="text-xs text-gray-500">{{ price.business.name|escapejs }}</p>{% endif %}<p class="text-xs text-gray-500">{{ price.observed_at|date:"M d, Y" }}</p><p class="text-xs text-gray-500">By {{ price.user.username|escapejs }}</p><a href="{% url "price_detail" price.pk %}" class="text-brand-purple text-xs hover:underline">View details →</a></div>');
                 
@@ -223,3 +203,4 @@
 {% endif %}
 {% endcache %}
 {% endblock %}
+

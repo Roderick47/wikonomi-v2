@@ -236,14 +236,14 @@
     {% endif %}
 </div>
 
-<!-- Initialize Leaflet -->
+<!-- Initialize location map -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize map centered on existing location or Port Moresby
         let initialLat = -9.4438;
         let initialLng = 147.1803;
         let initialZoom = 13;
-        
+
         // If there's already a location, center on it
         {% if report.latitude and report.longitude %}
         initialLat = {{ report.latitude }};
@@ -253,15 +253,12 @@
         
         let marker = null;
         let latInput, lngInput;
-        
+
         try {
-            const map = L.map('map').setView([initialLat, initialLng], initialZoom);
+            const map = WkMaps.map('map').setView([initialLat, initialLng], initialZoom);
+
+            // Basemap is configured centrally through WkMaps.
             
-            // Add OpenStreetMap tiles
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
             
             latInput = document.getElementById('{{ form.latitude.id_for_label }}');
             lngInput = document.getElementById('{{ form.longitude.id_for_label }}');
@@ -270,7 +267,7 @@
             if (latInput.value && lngInput.value) {
                 const lat = parseFloat(latInput.value);
                 const lng = parseFloat(lngInput.value);
-                marker = L.marker([lat, lng]).addTo(map);
+                marker = WkMaps.marker([lat, lng]).addTo(map);
                 map.setView([lat, lng], 15);
             }
 
@@ -282,7 +279,7 @@
                 if (marker) {
                     marker.setLatLng(e.latlng);
                 } else {
-                    marker = L.marker(e.latlng).addTo(map);
+                    marker = WkMaps.marker(e.latlng).addTo(map);
                 }
                 
                 // Update hidden inputs
@@ -292,7 +289,7 @@
                 // Uncheck "use my location" if user manually clicks map
                 document.getElementById('use_my_location').checked = false;
             });
-            
+
             // Handle geolocation
             const locationCheckbox = document.getElementById('use_my_location');
             const locationStatus = document.getElementById('location_status');
@@ -311,7 +308,7 @@
                                 if (marker) {
                                     marker.setLatLng([lat, lng]);
                                 } else {
-                                    marker = L.marker([lat, lng]).addTo(map);
+                                    marker = WkMaps.marker([lat, lng]).addTo(map);
                                 }
                                 
                                 map.setView([lat, lng], 15);
@@ -512,3 +509,4 @@
 </script>
 {% include 'includes/category_select_scripts.html' %}
 {% endblock %}
+
