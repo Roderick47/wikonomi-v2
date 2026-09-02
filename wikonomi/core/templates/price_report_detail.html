@@ -549,9 +549,12 @@
     document.addEventListener('DOMContentLoaded', function() {
         const lat = {{ report.latitude }};
         const lng = {{ report.longitude }};
-        const map = WkMaps.map('map').setView([lat, lng], 15);
-
-        WkMaps.marker([lat, lng]).addTo(map)
+        const map = L.map('map').setView([lat, lng], 15);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        L.marker([lat, lng]).addTo(map)
             .bindPopup("<b>{{ report.business.name|default:'Location'|escapejs }}</b><br>{{ report.product.name|escapejs }}");
     });
 </script>
@@ -954,4 +957,3 @@
 <link rel="stylesheet" href="{% static 'css/comments.css' %}">
 <script src="{% static 'js/comments.js' %}"></script>
 {% endblock %}
-

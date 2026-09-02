@@ -200,18 +200,21 @@
     </div>
 </div>
 
-<!-- Initialize location map -->
+<!-- Initialize Leaflet -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize map centered on Port Moresby
-        const map = WkMaps.map('map').setView([-9.4438, 147.1803], 13);
-
-        // Basemap is configured centrally through WkMaps.
+        const map = L.map('map').setView([-9.4438, 147.1803], 13);
         
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
 
         let marker = null;
         const businessDefaultLocations = {{ business_default_locations_json|default:'{}'|safe }};
-
+        
         const latInput = document.getElementById('{{ form.latitude.id_for_label }}');
         const lngInput = document.getElementById('{{ form.longitude.id_for_label }}');
         const businessInput = document.getElementById('business_search');
@@ -222,7 +225,7 @@
             if (marker) {
                 marker.setLatLng(latlng);
             } else {
-                marker = WkMaps.marker(latlng).addTo(map);
+                marker = L.marker(latlng).addTo(map);
             }
             map.setView(latlng, zoom);
             latInput.value = Number(lat).toFixed(6);
@@ -260,7 +263,7 @@
         if (latInput.value && lngInput.value) {
             const lat = parseFloat(latInput.value);
             const lng = parseFloat(lngInput.value);
-            marker = WkMaps.marker([lat, lng]).addTo(map);
+            marker = L.marker([lat, lng]).addTo(map);
             map.setView([lat, lng], 15);
         }
 
@@ -268,9 +271,9 @@
         map.on('click', function(e) {
             const lat = e.latlng.lat;
             const lng = e.latlng.lng;
-
+            
             setMapLocation(lat, lng);
-
+            
             // Uncheck "use my location" if user manually clicks map
             document.getElementById('use_my_location').checked = false;
         });
@@ -512,4 +515,3 @@
 {% include 'includes/image_upload_script.html' %}
 {% include 'includes/category_select_scripts.html' %}
 {% endblock %}
-

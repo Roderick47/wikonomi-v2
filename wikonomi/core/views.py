@@ -562,8 +562,6 @@ def api_map_prices(request):
             'lat': float(p.latitude),
             'lng': float(p.longitude),
             'product': p.product.name,
-            'productId': p.product_id,
-            'currency': p.currency,
             'price': f"{p.currency} {p.price:,.2f}",
             'rawPrice': float(p.price),
             'business': p.business.name if p.business else '',
@@ -2098,4 +2096,3 @@ def download_csv_template(request):
     writer.writerow(['Sugar 1kg', '8.00', 'PGK', 'Brown sugar', 'staple'])
     
     return response
-

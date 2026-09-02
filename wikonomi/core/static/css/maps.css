@@ -1,7 +1,0 @@
-.mapboxgl-map { font: inherit; }
-.wk-map-pin { cursor: pointer; }
-.wk-map-pin:focus-visible { outline: 3px solid #4B2798; outline-offset: 3px; }
-.wk-map-notice { position: absolute; top: 10px; left: 10px; right: 50px; z-index: 2; padding: 10px; border-radius: 8px; background: #fff; color: #374151; font-size: 12px; box-shadow: 0 2px 8px #0002; }
-.wk-map-price-list { max-height: 260px; overflow-y: auto; }
-.mapboxgl-popup-content { border-radius: 10px; overflow-wrap: anywhere; }
-.mapboxgl-popup-close-button { width: 28px; height: 28px; font-size: 20px; }
