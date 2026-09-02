@@ -14,7 +14,10 @@
             this.groups = [];
             this.markers = [];
             this.removed = false;
-            this.native = !!(config.accessToken && global.mapboxgl && global.mapboxgl.supported());
+            this.fallbackReason = !config.accessToken ? 'not-configured'
+                : !global.mapboxgl ? 'sdk-unavailable'
+                : !global.mapboxgl.supported() ? 'webgl-unsupported' : '';
+            this.native = !this.fallbackReason;
             if (this.native) {
                 try {
                     this.engine = new global.mapboxgl.Map({
@@ -31,6 +34,7 @@
                 } catch (error) {
                     document.getElementById(container).replaceChildren();
                     this.native = false;
+                    this.fallbackReason = 'initialization-failed';
                 }
             }
             if (!this.native) {
@@ -39,6 +43,10 @@
                     maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                 }).addTo(this.engine);
             }
+            // Expose provider diagnostics without tokens or user data for support.
+            const element = document.getElementById(container);
+            element.setAttribute('data-map-provider', this.native ? 'mapbox' : 'leaflet');
+            element.setAttribute('data-map-fallback-reason', this.fallbackReason);
             // Handles mobile overlays and desktop panel changes without another map load.
             if (global.ResizeObserver) {
                 this.observer = new global.ResizeObserver(() => this.invalidateSize());
