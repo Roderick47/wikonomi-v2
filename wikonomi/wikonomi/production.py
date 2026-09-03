@@ -14,15 +14,17 @@ DEBUG = False
 ALLOWED_HOSTS = ['wikonomi.com', 'www.wikonomi.com', '.onrender.com']
 
 # Database - Use PostgreSQL on Render
+# Keep ASGI persistent connections disabled here too in case this settings
+# module is used directly in a future deployment.
 if 'DATABASE_URL' in os.environ:
     import dj_database_url
-    DATABASES = {
-        'default': dj_database_url.parse(
-            os.environ['DATABASE_URL'],
-            conn_max_age=600,
-            ssl_require=True,
-        )
-    }
+    database_config = dj_database_url.parse(
+        os.environ['DATABASE_URL'],
+        conn_max_age=0,
+        ssl_require=True,
+    )
+    database_config.setdefault('OPTIONS', {})['options'] = DB_SESSION_OPTIONS
+    DATABASES = {'default': database_config}
 
 # Static files configuration
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
@@ -38,8 +40,8 @@ MEDIA_URL = '/media/'
 # If using a different deployment setup where Django handles HTTPS directly, set to True
 SECURE_SSL_REDIRECT = False  # Render handles SSL at the proxy level
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SESSION_COOKIE_SECURE = True   # Enable secure cookies for production
-CSRF_COOKIE_SECURE = True      # Enable secure cookies for production
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 TRUST_PROXY_HEADERS = True
 
 # Google OAuth2 settings
