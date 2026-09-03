@@ -143,17 +143,24 @@ WSGI_APPLICATION = 'wikonomi.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+#
+# Wikonomi runs under ASGI in production. Django recommends disabling
+# persistent DB connections in ASGI mode, so every request returns its
+# PostgreSQL connection instead of allowing idle backends to accumulate.
+# The idle_session_timeout is a belt-and-suspenders guardrail in case a
+# connection is ever left open unexpectedly.
+DB_SESSION_OPTIONS = '-c idle_session_timeout=300000 -c idle_in_transaction_session_timeout=60000'
 
 if os.environ.get('DATABASE_URL'):
     import dj_database_url
 
-    DATABASES = {
-        'default': dj_database_url.parse(
-            os.environ['DATABASE_URL'],
-            conn_max_age=600,
-            ssl_require=not DEBUG,
-        )
-    }
+    database_config = dj_database_url.parse(
+        os.environ['DATABASE_URL'],
+        conn_max_age=0,
+        ssl_require=not DEBUG,
+    )
+    database_config.setdefault('OPTIONS', {})['options'] = DB_SESSION_OPTIONS
+    DATABASES = {'default': database_config}
 else:
     DATABASES = {
         'default': {
@@ -163,7 +170,10 @@ else:
             'PASSWORD': os.environ.get('DB_PASSWORD', ''),
             'HOST': os.environ.get('DB_HOST', 'dpg-d6hucudm5p6s73bqr7m0-a.singapore-postgres.render.com'),
             'PORT': os.environ.get('DB_PORT', '5432'),
-            'CONN_MAX_AGE': 600,
+            'CONN_MAX_AGE': 0,
+            'OPTIONS': {
+                'options': DB_SESSION_OPTIONS,
+            },
         }
     }
 
@@ -200,7 +210,6 @@ USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
@@ -221,7 +230,7 @@ USE_R2_STORAGE = bool(
 
 if USE_R2_STORAGE:
     STORAGES = {
-        "default": {  # this is for your images/media files
+        "default": {
             "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
             "OPTIONS": {
                 "access_key": os.environ.get('AWS_ACCESS_KEY_ID'),
@@ -235,13 +244,12 @@ if USE_R2_STORAGE:
                 "custom_domain": "media.wikonomi.com",
             },
         },
-        "staticfiles": {  # leave this for your CSS/JS
+        "staticfiles": {
             "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
         },
     }
     MEDIA_URL = 'https://media.wikonomi.com/'
 else:
-    # Fallback to local storage if R2 not configured
     STORAGES = {
         "default": {
             "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -276,6 +284,17 @@ else:
         }
     }
 
+# Passive page-view analytics are deliberately disabled by default in
+# production. Render access logs provide traffic visibility without writing a
+# database row for every request. Set SITE_VISIT_ANALYTICS_ENABLED=True only
+# when temporary in-app page-view sampling is specifically needed.
+SITE_VISIT_ANALYTICS_ENABLED = (
+    os.environ.get('SITE_VISIT_ANALYTICS_ENABLED', 'True' if DEBUG else 'False') == 'True'
+)
+SITE_VISIT_MIN_INTERVAL_SECONDS = int(
+    os.environ.get('SITE_VISIT_MIN_INTERVAL_SECONDS', '60')
+)
+
 # Keep the restored transport directory hidden from public users until launch.
 TRANSPORT_INDEX_PUBLIC_ENABLED = (
     os.environ.get('TRANSPORT_INDEX_PUBLIC_ENABLED', 'False') == 'True'
@@ -289,8 +308,6 @@ WIKONOMI_MCP_PUBLIC_BASE_URL = os.environ.get(
     'WIKONOMI_MCP_PUBLIC_BASE_URL',
     'https://www.wikonomi.com',
 ).rstrip('/')
-# Set only to the exact public verification token issued by the submission
-# portal. Leave unset until an owner starts domain verification.
 WIKONOMI_OPENAI_APPS_CHALLENGE = os.environ.get('WIKONOMI_OPENAI_APPS_CHALLENGE', '')
 WIKONOMI_MCP_ACCESS_TOKEN_SECONDS = int(
     os.environ.get('WIKONOMI_MCP_ACCESS_TOKEN_SECONDS', '3600')
@@ -319,8 +336,6 @@ WIKONOMI_MCP_ALLOWED_ORIGINS = [
 
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Email configuration
@@ -333,5 +348,5 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@wikonomi.com')
 
 # Account verification settings
-ACCOUNT_VERIFICATION_REQUIRED = True  # Re-enabled for debugging
-ACCOUNT_VERIFICATION_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
+ACCOUNT_VERIFICATION_REQUIRED = True
+ACCOUNT_VERIFICATION_TOKEN_EXPIRE_MINUTES = 60 * 24
