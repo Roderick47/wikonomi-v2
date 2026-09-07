@@ -16,7 +16,11 @@ class ProductPageViewsTest(TestCase):
             created_by=self.user,
         )
         self.business = Business.objects.create(name='Test Mart', slug='test-mart')
-        self.cheapest_report = PriceReport.objects.create(
+        self.other_business = Business.objects.create(name='Other Mart', slug='other-mart')
+
+        # Historical low at Test Mart. This must remain visible in history but
+        # must not make Test Mart look cheaper than its newer K50 observation.
+        self.historical_report = PriceReport.objects.create(
             product=self.product,
             business=self.business,
             user=self.user,
@@ -25,9 +29,18 @@ class ProductPageViewsTest(TestCase):
             latitude=-9.4438,
             longitude=147.1803,
         )
-        self.expensive_report = PriceReport.objects.create(
+        self.cheapest_report = PriceReport.objects.create(
             product=self.product,
             business=self.business,
+            user=self.user,
+            price=Decimal('50.00'),
+            currency='PGK',
+            latitude=-9.4438,
+            longitude=147.1803,
+        )
+        self.expensive_report = PriceReport.objects.create(
+            product=self.product,
+            business=self.other_business,
             user=self.user,
             price=Decimal('55.00'),
             currency='PGK',
@@ -44,16 +57,49 @@ class ProductPageViewsTest(TestCase):
         self.assertEqual(response.context['search_query'], 'rice')
         self.assertEqual(len(response.context['products_page'].object_list), 1)
 
-    def test_product_detail_aggregates_reports(self):
+    def test_product_detail_uses_latest_price_per_store_for_current_comparison(self):
         response = self.client.get(reverse('product_detail', args=[self.product.pk]))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Aggregated price reports')
-        self.assertEqual(response.context['total_reports'], 2)
+        self.assertEqual(response.context['total_reports'], 3)
+        self.assertEqual(response.context['current_report_count'], 2)
+        self.assertEqual(response.context['comparison_store_count'], 2)
         self.assertEqual(response.context['cheapest_report'], self.cheapest_report)
         self.assertEqual(response.context['most_expensive_report'], self.expensive_report)
+        self.assertNotIn(
+            self.historical_report.pk,
+            [report.pk for report in response.context['comparison_reports']],
+        )
         self.assertEqual(response.context['currency_stats'][0]['currency'], 'PGK')
         self.assertEqual(response.context['currency_stats'][0]['report_count'], 2)
+        self.assertEqual(response.context['comparison_savings_amount'], Decimal('5.00'))
+
+    def test_product_detail_keeps_historical_reports_in_history_feed(self):
+        response = self.client.get(reverse('product_detail', args=[self.product.pk]))
+
+        history_ids = [report.pk for report in response.context['reports_page'].object_list]
+        self.assertIn(self.historical_report.pk, history_ids)
+        self.assertIn(self.cheapest_report.pk, history_ids)
+        self.assertIn(self.expensive_report.pk, history_ids)
+
+    def test_product_detail_one_store_does_not_claim_multi_store_comparison(self):
+        PriceReport.objects.filter(pk=self.expensive_report.pk).delete()
+
+        response = self.client.get(reverse('product_detail', args=[self.product.pk]))
+
+        self.assertEqual(response.context['comparison_store_count'], 1)
+        self.assertFalse(response.context['comparison_has_multiple_stores'])
+        self.assertIsNone(response.context['comparison_savings_amount'])
+        self.assertEqual(response.context['cheapest_report'], self.cheapest_report)
+        self.assertEqual(response.context['most_expensive_report'], self.cheapest_report)
+
+    def test_product_detail_decorates_current_prices_with_freshness(self):
+        response = self.client.get(reverse('product_detail', args=[self.product.pk]))
+
+        comparison_reports = response.context['comparison_reports']
+        self.assertTrue(comparison_reports)
+        self.assertTrue(all(hasattr(report, 'freshness_key') for report in comparison_reports))
+        self.assertTrue(all(report.freshness_key == 'fresh' for report in comparison_reports))
 
     def test_product_detail_accepts_location_sort(self):
         response = self.client.get(
@@ -92,8 +138,9 @@ class ProductPageViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Browse businesses on Wikonomi')
         self.assertContains(response, 'Test Mart')
+        self.assertContains(response, 'Other Mart')
         self.assertEqual(response.context['search_query'], 'mart')
-        self.assertEqual(len(response.context['businesses_page'].object_list), 1)
+        self.assertEqual(len(response.context['businesses_page'].object_list), 2)
 
     def test_business_list_empty_search_has_add_business_cta(self):
         response = self.client.get(reverse('business_list'), {'q': 'Missing Store'})
