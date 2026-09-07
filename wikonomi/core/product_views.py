@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models import Avg, Count, Max, Min, Q
 from django.shortcuts import get_object_or_404, render
@@ -5,6 +7,9 @@ from django.utils import timezone
 
 from .models import Business, Product, ProductAlias, PriceLike, PriceReport, PriceReportPhoto, ProductWatchlist
 from .utils import annotate_with_distance
+
+
+COMPARISON_STALE_AFTER_DAYS = 90
 
 
 def _product_family_ids(product):
@@ -57,11 +62,10 @@ def _store_key(report):
 
 def _latest_store_price_ids(reports):
     """
-    Return one current report per store/location and currency.
+    Return one latest valid report per store/location and currency.
 
     Historical observations remain in the product history, but only the latest
-    valid observation from a store is allowed to influence current comparison
-    cards, ranges, averages, savings, and nearby rankings.
+    valid observation from a store can enter the latest-known comparison set.
     """
     candidates = reports.filter(
         marked_for_deletion=False,
@@ -99,7 +103,7 @@ def _freshness_metadata(observed_at, now=None):
         key, label = 'fresh', 'Fresh'
     elif age_days <= 30:
         key, label = 'recent', 'Recent'
-    elif age_days <= 90:
+    elif age_days <= COMPARISON_STALE_AFTER_DAYS:
         key, label = 'old', 'Old'
     else:
         key, label = 'stale', 'Stale'
@@ -121,6 +125,7 @@ def _decorate_comparison_reports(reports, cheapest_report=None, distance_by_id=N
         report.price_gap_percent = None
         if (
             cheapest_report
+            and freshness['key'] != 'stale'
             and report.currency == cheapest_report.currency
             and report.price > cheapest_report.price
             and cheapest_report.price > 0
@@ -206,6 +211,7 @@ def product_detail(request, pk):
     ).order_by('-observed_at')
 
     current_report_ids = _latest_store_price_ids(analysis_reports)
+    current_reports_plain = analysis_reports.filter(id__in=current_report_ids)
     current_reports = base_reports.filter(id__in=current_report_ids)
     current_reports_list = list(current_reports)
 
@@ -218,6 +224,13 @@ def product_detail(request, pk):
         comparison_currency = max(currency_counts, key=currency_counts.get)
     else:
         comparison_currency = 'PGK'
+
+    comparison_cutoff = timezone.now() - timedelta(days=COMPARISON_STALE_AFTER_DAYS)
+    comparable_reports_plain = current_reports_plain.filter(
+        currency=comparison_currency,
+        observed_at__gte=comparison_cutoff,
+    )
+    comparable_report_ids = list(comparable_reports_plain.values_list('id', flat=True))
 
     user_lat, user_lng = _parse_location(request)
     sort = request.GET.get('sort', 'recent')
@@ -233,9 +246,10 @@ def product_detail(request, pk):
 
     nearby_reports = PriceReport.objects.none()
     distance_by_id = {}
+    comparable_reports = current_reports.filter(id__in=comparable_report_ids)
     if user_lat is not None and user_lng is not None:
         nearby_reports = annotate_with_distance(
-            current_reports.filter(latitude__isnull=False, longitude__isnull=False),
+            comparable_reports.filter(latitude__isnull=False, longitude__isnull=False),
             user_lat,
             user_lng,
             radius_hexes=4,
@@ -272,7 +286,7 @@ def product_detail(request, pk):
 
     reports_page.object_list = _with_user_card_state(request, reports_page.object_list)
 
-    currency_stats = list(current_reports.values('currency').annotate(
+    currency_stats = list(current_reports_plain.values('currency').annotate(
         report_count=Count('id'),
         min_price=Min('price'),
         max_price=Max('price'),
@@ -280,12 +294,17 @@ def product_detail(request, pk):
         latest_observed=Max('observed_at'),
     ).order_by('-report_count', 'currency'))
 
-    comparison_qs = current_reports.filter(currency=comparison_currency).order_by('price', '-observed_at')
-    comparison_reports = list(comparison_qs)
-    cheapest_report = comparison_reports[0] if comparison_reports else None
-    most_expensive_report = comparison_reports[-1] if comparison_reports else None
+    latest_known_comparison_qs = current_reports.filter(
+        currency=comparison_currency,
+    ).order_by('price', '-observed_at')
+    decision_comparison_qs = latest_known_comparison_qs.filter(
+        id__in=comparable_report_ids,
+    )
+    decision_reports = list(decision_comparison_qs)
+    cheapest_report = decision_reports[0] if decision_reports else None
+    most_expensive_report = decision_reports[-1] if decision_reports else None
     comparison_reports = _decorate_comparison_reports(
-        comparison_reports,
+        latest_known_comparison_qs,
         cheapest_report=cheapest_report,
         distance_by_id=distance_by_id,
     )
@@ -296,6 +315,13 @@ def product_detail(request, pk):
         if _store_key(report) is not None
     }
     comparison_store_count = len(comparison_store_keys)
+
+    comparable_store_keys = {
+        _store_key(report)
+        for report in decision_reports
+        if _store_key(report) is not None
+    }
+    comparable_store_count = len(comparable_store_keys)
 
     comparison_savings_amount = None
     comparison_savings_percent = None
@@ -314,16 +340,15 @@ def product_detail(request, pk):
 
     if user_lat is not None and user_lng is not None:
         nearest_reports = _with_user_card_state(request, nearby_reports[:5])
-        nearby_currency_reports = nearby_reports.filter(currency=comparison_currency)
-        nearby_cheapest_report = nearby_currency_reports.order_by('price', 'distance_km').first()
-        nearby_most_expensive_report = nearby_currency_reports.order_by('-price', 'distance_km').first()
+        nearby_cheapest_report = nearby_reports.order_by('price', 'distance_km').first()
+        nearby_most_expensive_report = nearby_reports.order_by('-price', 'distance_km').first()
 
     if nearby_cheapest_report is None:
         nearby_cheapest_report = cheapest_report
     if nearby_most_expensive_report is None:
         nearby_most_expensive_report = most_expensive_report
 
-    reports_with_location = current_reports.filter(
+    reports_with_location = comparable_reports.filter(
         latitude__isnull=False,
         longitude__isnull=False,
     ).select_related('business')[:100]
@@ -346,13 +371,16 @@ def product_detail(request, pk):
         'currency_stats': currency_stats,
         'total_reports': analysis_reports.count(),
         'current_report_count': len(current_report_ids),
+        'comparable_report_count': len(comparable_report_ids),
         'business_count': comparison_store_count,
         'comparison_store_count': comparison_store_count,
-        'location_count': current_reports.filter(latitude__isnull=False, longitude__isnull=False).count(),
+        'comparable_store_count': comparable_store_count,
+        'comparison_stale_after_days': COMPARISON_STALE_AFTER_DAYS,
+        'location_count': comparable_reports.filter(latitude__isnull=False, longitude__isnull=False).count(),
         'latest_report': base_reports.first(),
         'comparison_currency': comparison_currency,
         'comparison_reports': comparison_reports,
-        'comparison_has_multiple_stores': len(comparison_reports) > 1,
+        'comparison_has_multiple_stores': comparable_store_count > 1,
         'comparison_savings_amount': comparison_savings_amount,
         'comparison_savings_percent': comparison_savings_percent,
         'cheapest_report': cheapest_report,
