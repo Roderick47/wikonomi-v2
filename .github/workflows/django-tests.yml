@@ -1,0 +1,40 @@
+name: Django tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DJANGO_SETTINGS_MODULE: wikonomi.local
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check Django configuration
+        working-directory: wikonomi
+        run: python manage.py check
+
+      - name: Check for missing migrations
+        working-directory: wikonomi
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Run product comparison regression tests
+        working-directory: wikonomi
+        run: python manage.py test core.test_product_pages
