@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load humanize custom_filters %}
+
+{% block page_title %}Best Value for {{ product.name }} | Wikonomi{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap gap-3">
+            <a href="{% url 'product_detail' product.pk %}" class="inline-flex items-center text-sm font-semibold text-brand-purple hover:text-brand-purple/80">← Back to current prices</a>
+            <a href="{% url 'product_price_analysis' product.pk %}" class="inline-flex items-center text-sm font-semibold text-brand-blue hover:text-brand-blue/80">Price history</a>
+        </div>
+        <form method="get" class="flex items-center gap-2">
+            <label for="currency" class="text-sm font-semibold text-gray-700">Currency</label>
+            <input id="currency" name="currency" maxlength="3" value="{{ currency }}" class="w-20 rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase" aria-label="Currency">
+            <button class="rounded-lg bg-brand-purple px-3 py-2 text-sm font-semibold text-white">Apply</button>
+        </form>
+    </div>
+
+    <section class="rounded-3xl border border-brand-green/20 bg-gradient-to-br from-brand-green/10 via-white to-brand-purple/10 p-6 shadow-sm sm:p-8">
+        <p class="text-xs font-bold uppercase tracking-wide text-brand-green">Unit value comparison</p>
+        <h1 class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">What gives you the most {{ product.name }} for your money?</h1>
+        <p class="mt-3 max-w-4xl text-gray-600">This page compares compatible package sizes using a common unit price. It does not replace the normal exact-product store comparison, and different brands are shown as alternatives rather than assumed to be identical.</p>
+    </section>
+
+    {% if comparison.available %}
+    <section class="mt-6 grid gap-4 md:grid-cols-3">
+        <div class="rounded-2xl border border-brand-green/20 bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wide text-brand-green">Best unit value</p>
+            <p class="mt-2 text-3xl font-extrabold text-gray-900">{{ currency }} {{ comparison.best_value.unit_price|floatformat:2|intcomma }} / {{ comparison.best_value.unit_price_label }}</p>
+            <p class="mt-2 text-sm font-semibold text-gray-800">{{ comparison.best_value.product.name }}</p>
+            <p class="text-sm text-gray-500">{{ comparison.best_value.package_label }} · {{ comparison.best_value.report.get_business_display }}</p>
+        </div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Best exact-product unit value</p>
+            {% if comparison.best_exact_product %}
+            <p class="mt-2 text-3xl font-extrabold text-gray-900">{{ currency }} {{ comparison.best_exact_product.unit_price|floatformat:2|intcomma }} / {{ comparison.best_exact_product.unit_price_label }}</p>
+            <p class="mt-2 text-sm text-gray-500">{{ comparison.best_exact_product.report.get_business_display }}</p>
+            {% else %}
+            <p class="mt-2 text-sm font-semibold text-gray-700">No fresh measurable exact-product price.</p>
+            {% endif %}
+        </div>
+        <div class="rounded-2xl border border-brand-purple/20 bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wide text-brand-purple">Potential unit saving</p>
+            {% if comparison.alternative_savings_amount %}
+            <p class="mt-2 text-3xl font-extrabold text-gray-900">{{ currency }} {{ comparison.alternative_savings_amount|floatformat:2|intcomma }} / {{ comparison.best_value.unit_price_label }}</p>
+            <p class="mt-2 text-sm text-gray-500">{{ comparison.alternative_savings_percent|floatformat:1 }}% lower unit price than the best exact-product option.</p>
+            {% else %}
+            <p class="mt-2 text-sm font-semibold text-gray-700">The exact product is already the best known unit value, or there is no cheaper compatible alternative.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div class="border-b border-gray-200 p-5">
+            <h2 class="text-xl font-extrabold text-gray-900">Best-value ranking</h2>
+            <p class="mt-1 text-sm text-gray-600">Only prices observed within {{ comparison.stale_after_days }} days are ranked. Package measurements are normalized to one shopper-friendly unit.</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50 text-left text-xs font-bold uppercase tracking-wide text-gray-500">
+                    <tr>
+                        <th class="px-4 py-3">#</th>
+                        <th class="px-4 py-3">Product</th>
+                        <th class="px-4 py-3">Package</th>
+                        <th class="px-4 py-3">Store</th>
+                        <th class="px-4 py-3">Shelf price</th>
+                        <th class="px-4 py-3">Unit price</th>
+                        <th class="px-4 py-3">Relationship</th>
+                        <th class="px-4 py-3">Observed</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for row in comparison.rows %}
+                    <tr class="{% if row.rank == 1 %}bg-brand-green/5{% endif %}">
+                        <td class="px-4 py-4 font-extrabold text-gray-700">{{ row.rank }}</td>
+                        <td class="px-4 py-4">
+                            <a href="{% url 'product_detail' row.product.pk %}" class="font-bold text-gray-900 hover:text-brand-purple">{{ row.product.name }}</a>
+                        </td>
+                        <td class="px-4 py-4 text-gray-700">{{ row.package_label }}</td>
+                        <td class="px-4 py-4 text-gray-700">{{ row.report.get_business_display }}</td>
+                        <td class="px-4 py-4 font-semibold text-gray-900">{{ row.report.currency }} {{ row.report.price|floatformat:2|intcomma }}</td>
+                        <td class="px-4 py-4 font-extrabold text-brand-green">{{ row.report.currency }} {{ row.unit_price|floatformat:2|intcomma }} / {{ row.unit_price_label }}</td>
+                        <td class="px-4 py-4">
+                            {% if row.relationship_key == 'exact' %}
+                            <span class="rounded-full bg-brand-purple/10 px-2.5 py-1 text-xs font-bold text-brand-purple">{{ row.relationship }}</span>
+                            {% elif row.relationship_key == 'same_brand' %}
+                            <span class="rounded-full bg-brand-blue/10 px-2.5 py-1 text-xs font-bold text-brand-blue">{{ row.relationship }}</span>
+                            {% else %}
+                            <span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800">{{ row.relationship }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-4 text-gray-500">{{ row.report.observed_at|rounded_timesince }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+        <p class="font-bold">Value is not the same as quality.</p>
+        <p class="mt-1">Unit price tells you how much product you get per Kina. It does not account for taste, quality, formulation, brand preference, transport cost, stock availability, or whether two brands are truly interchangeable for your use.</p>
+    </section>
+    {% else %}
+    <section class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-6">
+        <h2 class="text-xl font-extrabold text-amber-900">Unit-price comparison is not available yet</h2>
+        {% if comparison.reason == 'package_size_unknown' %}
+        <p class="mt-2 text-amber-800">Wikonomi does not yet have a reliable package quantity and unit for this product. Add or review its structured product identity before comparing value by kg, litre, metre, or item.</p>
+        {% else %}
+        <p class="mt-2 text-amber-800">No fresh measurable {{ currency }} prices are available within {{ comparison.stale_after_days }} days.</p>
+        {% endif %}
+        <a href="{% url 'add_price' %}?product_name={{ product.name|urlencode }}" class="mt-4 inline-flex rounded-full bg-brand-purple px-4 py-2 text-sm font-semibold text-white">Report a current price</a>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

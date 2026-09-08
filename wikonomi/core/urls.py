@@ -1,5 +1,5 @@
 from django.urls import path
-from . import bulk_views, views, product_views
+from . import bulk_views, views, product_views, value_views
 
 urlpatterns = [
     path('', views.home, name='home'),
@@ -7,6 +7,7 @@ urlpatterns = [
     path('businesses/', product_views.business_list, name='business_list'),
     path('product/<int:pk>/', product_views.product_detail, name='product_detail'),
     path('product/<int:pk>/analysis/', product_views.product_price_analysis, name='product_price_analysis'),
+    path('product/<int:pk>/value/', value_views.product_value_analysis, name='product_value_analysis'),
     path('add-price/', views.price_report_create, name='add_price'),
     path('add-business/', views.business_create, name='add_business'),
     path('price/<int:pk>/', views.price_report_detail, name='price_detail'),
@@ -24,6 +25,7 @@ urlpatterns = [
     path('notifications/', views.notifications_view, name='notifications'),
     path('notifications/<int:pk>/mute/', views.mute_notification, name='mute_notification'),
     path('shopping-list/', views.shopping_lists_view, name='shopping_list'),
+    path('shopping-list/compare/', value_views.shopping_list_compare, name='shopping_list_compare'),
     path('shopping-list/add/', views.add_to_shopping_list, name='add_to_shopping_list'),
     path('shopping-list/toggle/<int:item_id>/', views.toggle_shopping_item, name='toggle_shopping_item'),
     path('shopping-list/delete/<int:item_id>/', views.delete_shopping_item, name='delete_shopping_item'),
