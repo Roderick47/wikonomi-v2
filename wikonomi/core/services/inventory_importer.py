@@ -2,6 +2,8 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.text import slugify
 
+from catalog.models import ProductIdentity
+from catalog.services import create_or_match_product
 from core.models import (
     BulkImportImage,
     BulkImportRow,
@@ -9,7 +11,6 @@ from core.models import (
     BusinessInventoryItem,
     Category,
     PriceReport,
-    Product,
 )
 from core.services.image_processor import create_product_image
 
@@ -25,18 +26,16 @@ def _unique_slug(model, value):
 
 
 def _resolve_product(row, user):
-    product = Product.objects.filter(name__iexact=row.product_name).first()
-    if product is None:
-        product = Product.objects.create(
-            name=row.product_name,
-            slug=_unique_slug(Product, row.product_name),
-            description=row.description,
-            created_by=user,
-            created_via='bulk_import',
-        )
-        created = True
-    else:
-        created = False
+    product, created, _match = create_or_match_product(
+        row.product_name,
+        created_by=user,
+        description=row.description,
+        brand=row.brand,
+        barcode=row.barcode,
+        unit=row.unit,
+        source=ProductIdentity.Source.BULK_IMPORT,
+        created_via='bulk_import',
+    )
 
     changed_fields = []
     if row.description and not product.description:
