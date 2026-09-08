@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% load humanize custom_filters %}
+
+{% block page_title %}Compare {{ active_list.name|default:'Shopping List' }} by Store | Wikonomi{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <a href="{% url 'shopping_list' %}" class="inline-flex items-center text-sm font-semibold text-brand-purple hover:text-brand-purple/80">← Back to shopping list</a>
+        <form method="get" class="flex items-center gap-2">
+            <label for="currency" class="text-sm font-semibold text-gray-700">Currency</label>
+            <input id="currency" name="currency" maxlength="3" value="{{ currency }}" class="w-20 rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase">
+            <button class="rounded-lg bg-brand-purple px-3 py-2 text-sm font-semibold text-white">Apply</button>
+        </form>
+    </div>
+
+    <section class="rounded-3xl border border-brand-blue/20 bg-gradient-to-br from-brand-blue/10 via-white to-brand-green/10 p-6 shadow-sm sm:p-8">
+        <p class="text-xs font-bold uppercase tracking-wide text-brand-blue">Basket comparison</p>
+        <h1 class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">Where should you buy {{ active_list.name|default:'your shopping list' }}?</h1>
+        <p class="mt-3 max-w-4xl text-gray-600">Wikonomi compares the exact products in your unchecked shopping list using one latest non-stale price per store or branch. It does not silently swap products for alternatives.</p>
+    </section>
+
+    <section class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-2xl border bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Priced products</p>
+            <p class="mt-2 text-3xl font-extrabold text-gray-900">{{ comparison.product_item_count }}</p>
+        </div>
+        <div class="rounded-2xl border bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Stores with full basket</p>
+            <p class="mt-2 text-3xl font-extrabold text-gray-900">{{ comparison.full_basket_store_count }}</p>
+        </div>
+        <div class="rounded-2xl border bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Best split-store total</p>
+            {% if comparison.split_complete %}
+            <p class="mt-2 text-3xl font-extrabold text-brand-green">{{ currency }} {{ comparison.split_total|floatformat:2|intcomma }}</p>
+            {% else %}
+            <p class="mt-2 text-lg font-bold text-amber-800">Incomplete price coverage</p>
+            {% endif %}
+        </div>
+        <div class="rounded-2xl border bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Cheapest one-store basket</p>
+            {% if comparison.cheapest_full_store %}
+            <p class="mt-2 text-3xl font-extrabold text-gray-900">{{ currency }} {{ comparison.cheapest_full_store.total|floatformat:2|intcomma }}</p>
+            <p class="mt-1 text-sm text-gray-500">{{ comparison.cheapest_full_store.store_name }}</p>
+            {% else %}
+            <p class="mt-2 text-lg font-bold text-amber-800">No store has every item</p>
+            {% endif %}
+        </div>
+    </section>
+
+    {% if comparison.cheapest_full_store %}
+    <section class="mt-6 rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 shadow-sm sm:p-6">
+        <p class="text-xs font-bold uppercase tracking-wide text-brand-green">Cheapest complete basket at one store</p>
+        <div class="mt-2 flex flex-wrap items-end justify-between gap-4">
+            <div>
+                <h2 class="text-2xl font-extrabold text-gray-900">{{ comparison.cheapest_full_store.store_name }}</h2>
+                <p class="mt-1 text-3xl font-extrabold text-brand-green">{{ currency }} {{ comparison.cheapest_full_store.total|floatformat:2|intcomma }}</p>
+            </div>
+            {% if comparison.full_store_savings_amount %}
+            <div class="rounded-xl bg-white px-4 py-3 text-right shadow-sm">
+                <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Possible split-store saving</p>
+                <p class="text-xl font-extrabold text-gray-900">{{ currency }} {{ comparison.full_store_savings_amount|floatformat:2|intcomma }}</p>
+                <p class="text-xs text-gray-500">{{ comparison.full_store_savings_percent|floatformat:1 }}% before travel/time costs</p>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+    {% elif comparison.best_coverage_store %}
+    <section class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <p class="font-bold text-amber-900">No single store currently covers the full basket.</p>
+        <p class="mt-1 text-sm text-amber-800">Best coverage is {{ comparison.best_coverage_store.coverage_count }}/{{ comparison.best_coverage_store.coverage_total }} items at {{ comparison.best_coverage_store.store_name }}. Prices older than {{ comparison.stale_after_days }} days are excluded.</p>
+    </section>
+    {% endif %}
+
+    {% if comparison.missing_products %}
+    <section class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <h2 class="font-bold text-amber-900">Products with no current {{ currency }} price</h2>
+        <div class="mt-2 flex flex-wrap gap-2">
+            {% for product in comparison.missing_products %}
+            <a href="{% url 'product_detail' product.pk %}" class="rounded-full bg-white px-3 py-1 text-sm font-semibold text-amber-900 ring-1 ring-amber-200">{{ product.name }}</a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if comparison.custom_items %}
+    <section class="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <h2 class="font-bold text-gray-900">Custom items are not priced automatically</h2>
+        <p class="mt-1 text-sm text-gray-600">Link these entries to Wikonomi products before including them in a store comparison.</p>
+        <div class="mt-2 flex flex-wrap gap-2">
+            {% for item in comparison.custom_items %}<span class="rounded-full bg-white px-3 py-1 text-sm text-gray-700 ring-1 ring-gray-200">{{ item.item_name }}</span>{% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if comparison.split_lines %}
+    <section class="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div class="border-b border-gray-200 p-5">
+            <h2 class="text-xl font-extrabold text-gray-900">Cheapest item-by-item plan</h2>
+            <p class="mt-1 text-sm text-gray-600">This is the theoretical lowest current basket price if you buy each exact product at its cheapest known store. It does not include transport, fuel, delivery, or time cost.</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50 text-left text-xs font-bold uppercase tracking-wide text-gray-500">
+                    <tr><th class="px-4 py-3">Product</th><th class="px-4 py-3">Qty</th><th class="px-4 py-3">Store</th><th class="px-4 py-3">Each</th><th class="px-4 py-3">Line total</th><th class="px-4 py-3">Observed</th></tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for line in comparison.split_lines %}
+                    <tr>
+                        <td class="px-4 py-4"><a href="{% url 'product_detail' line.product.pk %}" class="font-bold text-gray-900 hover:text-brand-purple">{{ line.product.name }}</a></td>
+                        <td class="px-4 py-4 text-gray-700">{{ line.quantity }}</td>
+                        <td class="px-4 py-4 text-gray-700">{{ line.report.get_business_display }}</td>
+                        <td class="px-4 py-4 font-semibold text-gray-900">{{ currency }} {{ line.unit_price|floatformat:2|intcomma }}</td>
+                        <td class="px-4 py-4 font-extrabold text-brand-green">{{ currency }} {{ line.line_total|floatformat:2|intcomma }}</td>
+                        <td class="px-4 py-4 text-gray-500">{{ line.report.observed_at|rounded_timesince }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if comparison.split_complete %}<tfoot><tr class="bg-brand-green/5"><td colspan="4" class="px-4 py-4 text-right font-bold text-gray-700">Split-store total</td><td class="px-4 py-4 text-xl font-extrabold text-brand-green">{{ currency }} {{ comparison.split_total|floatformat:2|intcomma }}</td><td></td></tr></tfoot>{% endif %}
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+    {% if comparison.store_rows %}
+    <section class="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div class="border-b border-gray-200 p-5">
+            <h2 class="text-xl font-extrabold text-gray-900">Store coverage</h2>
+            <p class="mt-1 text-sm text-gray-600">Partial totals should not be compared directly with full-basket totals; coverage is shown explicitly.</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50 text-left text-xs font-bold uppercase tracking-wide text-gray-500"><tr><th class="px-4 py-3">Store</th><th class="px-4 py-3">Coverage</th><th class="px-4 py-3">Known subtotal</th><th class="px-4 py-3">Status</th></tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for store in comparison.store_rows %}
+                    <tr>
+                        <td class="px-4 py-4 font-bold text-gray-900">{{ store.store_name }}</td>
+                        <td class="px-4 py-4 text-gray-700">{{ store.coverage_count }}/{{ store.coverage_total }} ({{ store.coverage_percent|floatformat:0 }}%)</td>
+                        <td class="px-4 py-4 font-semibold text-gray-900">{{ currency }} {{ store.total|floatformat:2|intcomma }}</td>
+                        <td class="px-4 py-4">{% if store.is_full_basket %}<span class="rounded-full bg-brand-green/10 px-2.5 py-1 text-xs font-bold text-brand-green">Full basket</span>{% else %}<span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-600">Partial</span>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% elif comparison.product_item_count %}
+    <section class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">No fresh store prices are available for the unchecked products in this basket.</section>
+    {% else %}
+    <section class="mt-6 rounded-2xl border border-gray-200 bg-white p-6 text-gray-700">There are no unchecked Wikonomi products to compare. Add products to your shopping list first.</section>
+    {% endif %}
+
+    <section class="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600">
+        Basket prices use current observations no older than {{ comparison.stale_after_days }} days. Actual checkout totals can differ because of stock, promotions, taxes, pack changes, or price changes after observation.
+    </section>
+</div>
+{% endblock %}
