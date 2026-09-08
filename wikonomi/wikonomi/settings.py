@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'core',
+    'catalog',
     'categories',
     'comments',
     'users',
@@ -179,7 +180,7 @@ else:
 
 
 # Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
+# https://docs.djangoproject.com/en/5.2/topics/auth/passwords/
 
 AUTH_PASSWORD_VALIDATORS = [
     {
