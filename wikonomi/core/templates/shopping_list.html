@@ -2,8 +2,14 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
-    <div class="mb-6 flex justify-between items-end">
-        <h2 class="text-2xl font-bold text-gray-900">{{ active_list.name|default:"My Shopping List" }}</h2>
+    <div class="mb-6 flex flex-wrap justify-between items-end gap-3">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">{{ active_list.name|default:"My Shopping List" }}</h2>
+            <p class="mt-1 text-sm text-gray-500">Build your list here, then compare the exact unchecked products across stores.</p>
+        </div>
+        <a href="{% url 'shopping_list_compare' %}" class="inline-flex items-center rounded-full bg-brand-green px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-brand-green/90">
+            Compare basket by store
+        </a>
     </div>
 
     <!-- Add Item Form -->
@@ -72,6 +78,7 @@
                     <span class="font-medium text-gray-500">Estimated Total (unchecked items)</span>
                     <span class="font-bold text-gray-900">{{ currency }} {{ estimated_total|floatformat:2 }}</span>
                 </div>
+                <p class="mt-1 text-xs text-gray-500">This legacy estimate uses each product's latest reported price. Use “Compare basket by store” for fresh, same-store and split-store totals.</p>
             </div>
         {% else %}
             <div class="p-8 text-center text-gray-500">
