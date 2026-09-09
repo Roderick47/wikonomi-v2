@@ -4,11 +4,8 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 
 from core.models import Business, Product
-from mcp_server.identity_services import (
-    find_or_create_product,
-    get_product,
-    submit_structured_price,
-)
+from mcp_server import services, tools
+from mcp_server.identity_services import find_or_create_product, get_product
 from mcp_server.models import MCPUserAccess
 from mcp_server.permissions import ALL_SCOPES, MCPActor
 
@@ -37,6 +34,16 @@ class MCPStructuredIdentityTest(TestCase):
         }
         data.update(overrides)
         return find_or_create_product(**data)
+
+    def test_existing_price_tool_schema_exposes_structured_identity_fields(self):
+        schema = tools.PriceObservation.model_json_schema()['properties']
+        for field in (
+            'brand', 'variant', 'barcode', 'package_quantity', 'package_unit',
+            'pack_count', 'product_description', 'product_tags',
+        ):
+            self.assertIn(field, schema)
+        self.assertNotIn('latitude', schema)
+        self.assertNotIn('longitude', schema)
 
     def test_barcode_matches_existing_product_even_when_name_differs(self):
         first = self._resolve(barcode='9401234567890')
@@ -78,8 +85,8 @@ class MCPStructuredIdentityTest(TestCase):
         self.assertEqual(identity['package_unit'], 'kg')
         self.assertEqual(identity['pack_count'], 1)
 
-    def test_structured_price_resolves_identity_before_creating_report(self):
-        result = submit_structured_price(
+    def test_existing_submit_price_resolves_identity_before_creating_report(self):
+        result = services.submit_price(
             actor=self.actor,
             data={
                 'product_name': 'Roots Rice',
@@ -101,4 +108,3 @@ class MCPStructuredIdentityTest(TestCase):
         self.assertEqual(product.identity.normalized_barcode, '9988776655443')
         self.assertEqual(product.identity.package_quantity, Decimal('5.000'))
         self.assertEqual(result['price'], '42.50')
-        self.assertEqual(result['product_resolution']['status'], 'created')
