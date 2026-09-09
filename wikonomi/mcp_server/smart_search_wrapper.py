@@ -1,5 +1,5 @@
 from .current_price_services import search_wikonomi as basic_search_wikonomi
-from .smart_search_services import search_products
+from .smart_search_policy import search_products
 
 
 def search_wikonomi(query, entity_types=None, limit=10):
