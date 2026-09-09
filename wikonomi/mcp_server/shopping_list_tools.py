@@ -79,9 +79,10 @@ def register_shopping_list_tools(mcp):
         title='Add an exact product to my Wikonomi shopping list',
         meta=_oauth_meta(WRITE_SCOPE),
         description=(
-            'Private account write. After the user confirms the exact product and target list, ensure that product exists '
-            'as an unchecked shopping-list item. If it is already present, no duplicate is created; use update_shopping_list_item '
-            'to set quantity. If the user has no list, this write creates My Shopping List.'
+            'Private account write. After the user confirms the exact product, quantity to add, and target list, add that '
+            'quantity to the saved product. Existing product rows are incremented rather than duplicated, matching the '
+            'website behavior; a checked existing row is made active again. Use a stable idempotency_key when retrying. '
+            'If the user has no list, this write creates My Shopping List.'
         ),
         annotations=PRIVATE_WRITE,
         structured_output=True,
@@ -90,11 +91,17 @@ def register_shopping_list_tools(mcp):
         product_id: int = Field(ge=1),
         shopping_list_id: int | None = Field(default=None, ge=1),
         quantity: int = Field(default=1, ge=1, le=10000),
+        idempotency_key: str | None = Field(
+            default=None,
+            max_length=120,
+            description='Stable caller-generated key. Reuse it when retrying the same add request.',
+        ),
     ) -> dict[str, Any]:
         arguments = {
             'product_id': product_id,
             'shopping_list_id': shopping_list_id,
             'quantity': quantity,
+            'idempotency_key': idempotency_key,
         }
         return await sync_to_async(services.audited_call, thread_sensitive=True)(
             'add_shopping_list_item',
