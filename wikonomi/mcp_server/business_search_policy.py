@@ -101,13 +101,17 @@ def search_businesses(query, *, limit=10):
         normalized_name = normalize_text(business.name)
         exact_name = normalized_name == normalized
         name_prefix = normalized_name.startswith(normalized)
-        business_name_token_hits = sum(1 for token in tokens if token in normalized_name.split())
-        direct_branch_match = bool(direct_branch_matches)
+        identity_text = normalize_text(' '.join(
+            [business.name]
+            + [f'{branch.name} {branch.address or ""}' for branch in direct_branch_matches]
+        ))
+        identity_words = set(identity_text.split())
+        identity_token_hits = sum(1 for token in tokens if token in identity_words)
         has_current_product_match = bool(matching_current_product_ids)
         has_inventory_match = bool(inventory_matches)
         sort_key = (
-            0 if exact_name else 1 if name_prefix else 2 if business_name_token_hits else 3 if direct_branch_match else 4 if has_current_product_match else 5 if has_inventory_match else 6,
-            -business_name_token_hits,
+            0 if exact_name else 1 if name_prefix else 2 if identity_token_hits else 3 if has_current_product_match else 4 if has_inventory_match else 5,
+            -identity_token_hits,
             0 if has_current_product_match else 1,
             -len(matching_current_product_ids),
             0 if coverage['current_product_count'] else 1,
@@ -158,6 +162,7 @@ def search_businesses(query, *, limit=10):
                 _branch_profile(branch, include_coverage=False) for branch in branch_matches
             ],
             'interpreted_query_tokens': tokens,
+            'identity_token_hits': identity_token_hits,
             'url': _absolute_url(f'/business/{business.pk}/'),
             'next_tool_hint': 'Use get_business for current products and coverage, or get_branch with a matching branch ID for exact branch prices.',
         }))
