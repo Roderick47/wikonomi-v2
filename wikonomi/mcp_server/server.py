@@ -5,6 +5,7 @@ from mcp.server import MCPServer
 from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, RevocationOptions
 from mcp.server.transport_security import TransportSecuritySettings
 
+from .comparison_tools import register_comparison_tools
 from .oauth import DjangoOAuthProvider, public_base_url, resource_url
 from .oauth_http import install_revocation_route
 from .permissions import ALL_SCOPES, READ_SCOPE
@@ -14,6 +15,8 @@ from .tools import register_tools
 SERVER_INSTRUCTIONS = (
     'Wikonomi contains community-contributed PNG products, observed local prices, businesses, and practical guides. '
     'Prices are observations, not guaranteed current offers. Search before creating records. '
+    'Use compare_current_prices for exact current store comparisons, compare_product_value for compatible unit-value '
+    'ranking, and compare_basket for a stateless exact-product basket comparison. '
     'When barcode, brand, variant, or package identity is available, include those optional fields in submit_price or '
     'bulk_submit_prices so Wikonomi can resolve the product safely. '
     'Active accounts have contributor access to prices and guides unless explicitly restricted. '
@@ -31,7 +34,7 @@ mcp = MCPServer(
     title='Wikonomi',
     description='Authenticated tools for PNG products, prices, businesses, and practical guides.',
     website_url=public_base_url(),
-    version='0.3.0',
+    version='0.4.0',
     instructions=SERVER_INSTRUCTIONS,
     auth_server_provider=oauth_provider,
     auth=AuthSettings(
@@ -50,6 +53,7 @@ mcp = MCPServer(
 )
 
 register_tools(mcp)
+register_comparison_tools(mcp)
 
 parsed = urlparse(public_base_url())
 allowed_hosts = [parsed.netloc, f'{parsed.hostname}:*', 'localhost:*', '127.0.0.1:*', 'testserver']
