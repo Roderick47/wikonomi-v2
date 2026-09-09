@@ -9,7 +9,8 @@ from unittest.mock import patch
 
 from core.models import Business, BusinessBranch, BusinessInventoryItem, PriceReport, Product
 
-from .business_intelligence_services import get_branch, get_business, search_businesses
+from .business_intelligence_services import get_branch, get_business
+from .business_search_policy import search_businesses
 from .models import MCPUserAccess
 from .permissions import ALL_SCOPES, build_actor
 from .server import mcp
@@ -41,16 +42,20 @@ class MCPBusinessIntelligenceTests(TestCase):
         self.oil = Product.objects.create(name='Test Oil 1L', slug='test-oil-1l')
         self.actor = build_actor(user=self.user, token_scopes=ALL_SCOPES, client_id='business-intel-test')
 
-    def add_price(self, product, branch, price, *, days=1, currency='PGK'):
-        return PriceReport.objects.create(
+    def add_price(self, product, branch, price, *, days=1, currency='PGK', business=None):
+        business = business or branch.canonical_business
+        report = PriceReport.objects.create(
             product=product,
-            business=self.business,
+            business=business,
             business_branch=branch,
             price=Decimal(str(price)),
             currency=currency,
-            observed_at=timezone.now() - timedelta(days=days),
             user=self.user,
         )
+        observed_at = timezone.now() - timedelta(days=days)
+        PriceReport.objects.filter(pk=report.pk).update(observed_at=observed_at)
+        report.refresh_from_db()
+        return report
 
     def test_branch_returns_latest_price_per_product_and_excludes_stale_by_default(self):
         self.add_price(self.rice, self.vision, '5.00', days=20)
@@ -116,6 +121,42 @@ class MCPBusinessIntelligenceTests(TestCase):
         self.assertEqual(results[0]['id'], self.business.pk)
         self.assertEqual(results[0]['matching_branches'][0]['id'], self.vision.pk)
         self.assertEqual(results[0]['price_coverage']['current_product_count'], 1)
+
+    def test_business_search_can_discover_business_and_branch_from_current_product_data(self):
+        self.add_price(self.rice, self.vision, '8.00', days=1)
+        results = search_businesses('Rice')
+
+        self.assertEqual(results[0]['id'], self.business.pk)
+        self.assertEqual(results[0]['matching_current_product_count'], 1)
+        self.assertEqual(results[0]['matching_current_products'][0]['product_id'], self.rice.pk)
+        self.assertEqual(results[0]['matching_branches'][0]['id'], self.vision.pk)
+
+    def test_stale_product_data_is_searchable_but_not_labelled_current(self):
+        stale_business = Business.objects.create(name='Old Price Mart', slug='old-price-mart')
+        stale_branch = BusinessBranch.objects.create(
+            canonical_business=stale_business,
+            name='Old Branch',
+            slug='old-branch',
+        )
+        self.add_price(self.rice, stale_branch, '5.00', days=150, business=stale_business)
+
+        result = search_businesses('Rice')[0]
+        self.assertEqual(result['id'], stale_business.pk)
+        self.assertEqual(result['matching_current_product_count'], 0)
+        self.assertEqual(result['price_coverage']['stale_only_product_count'], 1)
+
+    def test_business_inventory_can_make_business_discoverable_without_claiming_current_price(self):
+        BusinessInventoryItem.objects.create(
+            business=self.business,
+            product=self.oil,
+            sku='OIL-CATALOG',
+            brand='Catalog Brand',
+            barcode='9400000000999',
+        )
+        result = search_businesses('Catalog Brand')[0]
+        self.assertEqual(result['id'], self.business.pk)
+        self.assertEqual(result['matching_current_product_count'], 0)
+        self.assertEqual(result['matching_inventory_products'][0]['scope'], 'business_wide')
 
     def test_business_product_query_narrows_current_products(self):
         self.add_price(self.rice, self.vision, '8.00', days=1)
