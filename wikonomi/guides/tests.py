@@ -75,6 +75,28 @@ class GuideBackendTests(TestCase):
         self.assertContains(response, 'Edited by @helpful-editor')
         self.assertContains(response, f'href="{history_url}"', count=2)
 
+    def test_history_and_version_pages_are_noindex_and_canonical(self):
+        history_response = self.client.get(
+            reverse('guides:history', args=[self.guide.slug])
+        )
+        version_response = self.client.get(
+            reverse('guides:version_detail', args=[self.guide.slug, self.version.pk])
+        )
+        canonical_url = f'http://testserver{reverse("guides:detail", args=[self.guide.slug])}'
+
+        for response in (history_response, version_response):
+            self.assertEqual(response['X-Robots-Tag'], 'noindex, nofollow')
+            self.assertContains(response, '<meta name="robots" content="noindex, nofollow">')
+            self.assertContains(response, f'<link rel="canonical" href="{canonical_url}">')
+
+    def test_sitemap_includes_current_guide_but_excludes_history(self):
+        response = self.client.get(reverse('sitemap'))
+        body = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(reverse('guides:detail', args=[self.guide.slug]), body)
+        self.assertNotIn(reverse('guides:history', args=[self.guide.slug]), body)
+
     def test_detail_social_image_uses_guide_photo_or_branded_fallback(self):
         response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
         self.assertEqual(

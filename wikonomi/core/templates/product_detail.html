@@ -6,6 +6,7 @@
 {% block og_tags %}
 {% with base_url="https://www.wikonomi.com" default_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
 <link rel="canonical" href="{{ base_url }}{% url 'product_detail' product.pk %}">
+<meta name="description" content="Compare current {{ product.name }} prices across stores in Papua New Guinea. See recent reports, price freshness, and price history on Wikonomi.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Wikonomi">
 <meta property="og:url" content="{{ base_url }}{% url 'product_detail' product.pk %}">

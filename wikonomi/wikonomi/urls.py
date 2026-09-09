@@ -21,6 +21,8 @@ from django.conf.urls.static import static
 from django.views.generic import RedirectView
 from users import views as user_views
 from transport_index.views import robots_txt
+from django.contrib.sitemaps.views import sitemap
+from .sitemaps import sitemaps
 from mcp_server.views import openai_apps_challenge
 from .health import health
 
@@ -28,8 +30,8 @@ urlpatterns = [
     path('healthz/', health, name='health'),
     path('.well-known/openai-apps-challenge', openai_apps_challenge, name='openai_apps_challenge'),
     path('robots.txt', robots_txt, name='robots_txt'),
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
     path('admin/', admin.site.urls),
-    path('robots.txt', robots_txt, name='robots_txt'),
     # Override specific allauth URLs to redirect to custom templates
     path('accounts/login/', user_views.allauth_login_redirect, name='allauth_login_redirect'),
     path('accounts/signup/', user_views.allauth_signup_redirect, name='allauth_signup_redirect'),
