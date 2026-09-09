@@ -5,6 +5,7 @@ from mcp.server import MCPServer
 from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, RevocationOptions
 from mcp.server.transport_security import TransportSecuritySettings
 
+from .identity_tools import register_identity_tools
 from .oauth import DjangoOAuthProvider, public_base_url, resource_url
 from .oauth_http import install_revocation_route
 from .permissions import ALL_SCOPES, READ_SCOPE
@@ -14,6 +15,7 @@ from .tools import register_tools
 SERVER_INSTRUCTIONS = (
     'Wikonomi contains community-contributed PNG products, observed local prices, businesses, and practical guides. '
     'Prices are observations, not guaranteed current offers. Search before creating records. '
+    'When barcode, brand, variant, or package identity is available, prefer the structured product and price tools. '
     'Active accounts have contributor access to prices and guides unless explicitly restricted. '
     'MCP writes publish publicly under the signed-in account and retain internal AI provenance. '
     'Before a write, ask the user to confirm the content and that it will be public. Never invent observed prices. '
@@ -29,7 +31,7 @@ mcp = MCPServer(
     title='Wikonomi',
     description='Authenticated tools for PNG products, prices, businesses, and practical guides.',
     website_url=public_base_url(),
-    version='0.2.0',
+    version='0.3.0',
     instructions=SERVER_INSTRUCTIONS,
     auth_server_provider=oauth_provider,
     auth=AuthSettings(
@@ -48,6 +50,7 @@ mcp = MCPServer(
 )
 
 register_tools(mcp)
+register_identity_tools(mcp)
 
 parsed = urlparse(public_base_url())
 allowed_hosts = [parsed.netloc, f'{parsed.hostname}:*', 'localhost:*', '127.0.0.1:*', 'testserver']
