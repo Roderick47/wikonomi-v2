@@ -22,6 +22,7 @@ class MCPToolSchemaTests(TestCase):
         self.assertEqual(names, {
             'get_schema_help',
             'search_wikonomi',
+            'search_products',
             'get_product',
             'compare_current_prices',
             'compare_product_value',
@@ -42,6 +43,7 @@ class MCPToolSchemaTests(TestCase):
         read_names = {
             'get_schema_help',
             'search_wikonomi',
+            'search_products',
             'get_product',
             'get_guide',
             'compare_current_prices',
