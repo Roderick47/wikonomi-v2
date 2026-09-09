@@ -29,6 +29,12 @@ class MCPToolSchemaTests(TestCase):
             'compare_current_prices',
             'compare_product_value',
             'compare_basket',
+            'list_shopping_lists',
+            'get_shopping_list',
+            'add_shopping_list_item',
+            'update_shopping_list_item',
+            'remove_shopping_list_item',
+            'compare_shopping_list',
             'find_or_create_product',
             'submit_price',
             'bulk_submit_prices',
@@ -40,7 +46,7 @@ class MCPToolSchemaTests(TestCase):
         self.assertNotIn('delete_product', names)
         self.assertNotIn('merge_product', names)
 
-    def test_annotations_identify_read_tools_public_writes_and_guide_overwrites(self):
+    def test_annotations_distinguish_reads_private_writes_and_public_contributions(self):
         tools = {tool.name: tool for tool in async_to_sync(mcp.list_tools)()}
         read_names = {
             'get_schema_help',
@@ -53,13 +59,27 @@ class MCPToolSchemaTests(TestCase):
             'compare_current_prices',
             'compare_product_value',
             'compare_basket',
+            'list_shopping_lists',
+            'get_shopping_list',
+            'compare_shopping_list',
         }
+        private_write_names = {
+            'add_shopping_list_item',
+            'update_shopping_list_item',
+            'remove_shopping_list_item',
+        }
+        destructive_names = {'update_guide', 'remove_shopping_list_item'}
+
         for name, tool in tools.items():
             with self.subTest(tool=name):
                 self.assertEqual(tool.annotations.read_only_hint, name in read_names)
-                self.assertEqual(tool.annotations.open_world_hint, name not in read_names)
-                self.assertEqual(tool.annotations.destructive_hint, name == 'update_guide')
+                self.assertEqual(
+                    tool.annotations.open_world_hint,
+                    name not in read_names and name not in private_write_names,
+                )
+                self.assertEqual(tool.annotations.destructive_hint, name in destructive_names)
                 self.assertNotIn('labels it AI-assisted', tool.description)
+
                 expected_scopes = [READ_SCOPE]
                 if name in {'create_guide', 'update_guide'}:
                     expected_scopes.append(PUBLISH_SCOPE)
