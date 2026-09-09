@@ -8,7 +8,7 @@ from pydantic import Field
 from . import services
 from .models import MCPUserAccess
 from .permissions import READ_SCOPE
-from .smart_search_services import search_products
+from .smart_search_policy import search_products
 
 
 READ_ONLY = ToolAnnotations(read_only_hint=True, destructive_hint=False, open_world_hint=False)
