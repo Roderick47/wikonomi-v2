@@ -14,6 +14,8 @@ from .tools import register_tools
 SERVER_INSTRUCTIONS = (
     'Wikonomi contains community-contributed PNG products, observed local prices, businesses, and practical guides. '
     'Prices are observations, not guaranteed current offers. Search before creating records. '
+    'When barcode, brand, variant, or package identity is available, include those optional fields in submit_price or '
+    'bulk_submit_prices so Wikonomi can resolve the product safely. '
     'Active accounts have contributor access to prices and guides unless explicitly restricted. '
     'MCP writes publish publicly under the signed-in account and retain internal AI provenance. '
     'Before a write, ask the user to confirm the content and that it will be public. Never invent observed prices. '
@@ -29,7 +31,7 @@ mcp = MCPServer(
     title='Wikonomi',
     description='Authenticated tools for PNG products, prices, businesses, and practical guides.',
     website_url=public_base_url(),
-    version='0.2.0',
+    version='0.3.0',
     instructions=SERVER_INSTRUCTIONS,
     auth_server_provider=oauth_provider,
     auth=AuthSettings(
