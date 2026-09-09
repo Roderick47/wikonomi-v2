@@ -8,7 +8,7 @@ from pydantic import Field
 from . import services
 from .models import MCPUserAccess
 from .permissions import READ_SCOPE
-from .smart_search_policy import search_products
+from .smart_search_policy import search_products as search_products_service
 
 
 READ_ONLY = ToolAnnotations(read_only_hint=True, destructive_hint=False, open_world_hint=False)
@@ -60,5 +60,5 @@ def register_smart_search_tools(mcp):
             arguments,
             scope=READ_SCOPE,
             minimum_role=MCPUserAccess.Role.READER,
-            operation=lambda _actor: search_products(**arguments),
+            operation=lambda _actor: search_products_service(**arguments),
         )
