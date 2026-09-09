@@ -5,6 +5,7 @@
 
 {% block og_tags %}
 <link rel="canonical" href="{{ canonical_url }}">
+<meta name="description" content="{{ guide.summary|default:'A practical local guide shared by the Wikonomi community.'|striptags|truncatechars:160 }}">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Wikonomi">
 <meta property="og:url" content="{{ canonical_url }}">

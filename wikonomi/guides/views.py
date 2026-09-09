@@ -388,13 +388,26 @@ def guide_rate(request, slug):
 
 def guide_history(request, slug):
     guide = get_object_or_404(_guide_queryset(), slug=slug)
-    return render(request, 'guides/guide_history.html', {'guide': guide, 'versions': guide.versions.select_related('edited_by')})
+    response = render(request, 'guides/guide_history.html', {
+        'guide': guide,
+        'versions': guide.versions.select_related('edited_by'),
+        'canonical_url': request.build_absolute_uri(reverse('guides:detail', args=[guide.slug])),
+    })
+    response['X-Robots-Tag'] = 'noindex, nofollow'
+    return response
 
 
 def guide_version_detail(request, slug, version_id):
     guide = get_object_or_404(_guide_queryset(), slug=slug)
     version = get_object_or_404(guide.versions.select_related('edited_by'), id=version_id)
-    return render(request, 'guides/guide_version_detail.html', {'guide': guide, 'version': version, 'steps': _steps_for_version(version)})
+    response = render(request, 'guides/guide_version_detail.html', {
+        'guide': guide,
+        'version': version,
+        'steps': _steps_for_version(version),
+        'canonical_url': request.build_absolute_uri(reverse('guides:detail', args=[guide.slug])),
+    })
+    response['X-Robots-Tag'] = 'noindex, nofollow'
+    return response
 
 
 @require_POST
