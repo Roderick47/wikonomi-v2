@@ -6,6 +6,7 @@ from catalog.value import VALUE_STALE_AFTER_DAYS, build_basket_comparison
 from core.models import Product, ShoppingList, ShoppingListItem
 
 from .current_price_services import _absolute_url
+from .models import MCPAuditLog
 
 
 def _money(value):
@@ -81,6 +82,30 @@ def _serialize_list_summary(shopping_list, items=None):
     }
 
 
+def _idempotent_add_replay(actor, idempotency_key, expected_arguments):
+    key = (idempotency_key or '').strip()
+    if not key:
+        return None
+
+    previous = MCPAuditLog.objects.filter(
+        tool_name='add_shopping_list_item',
+        user=actor.user,
+        status=MCPAuditLog.Status.SUCCEEDED,
+        arguments__idempotency_key=key,
+    ).order_by('-completed_at', '-id').first()
+    if not previous:
+        return None
+
+    for field in ('product_id', 'shopping_list_id', 'quantity'):
+        if previous.arguments.get(field) != expected_arguments.get(field):
+            raise ValueError('This idempotency_key was already used for a different shopping-list add request.')
+
+    replay = dict(previous.response_summary or {})
+    replay['idempotent_replay'] = True
+    replay['idempotency_key'] = key
+    return replay
+
+
 def list_shopping_lists(actor):
     lists = list(_owned_lists(actor).prefetch_related('items').order_by('-updated_at', '-id'))
     return {
@@ -116,13 +141,29 @@ def get_shopping_list(actor, shopping_list_id=None, *, include_checked=True, lim
     }
 
 
-def add_shopping_list_item(actor, product_id, *, shopping_list_id=None, quantity=1):
+def add_shopping_list_item(
+    actor,
+    product_id,
+    *,
+    shopping_list_id=None,
+    quantity=1,
+    idempotency_key=None,
+):
     product_id = int(product_id)
     quantity = int(quantity)
     if product_id <= 0:
         raise ValueError('product_id must be greater than zero.')
     if quantity <= 0:
         raise ValueError('quantity must be greater than zero.')
+
+    key = (idempotency_key or '').strip()[:120] or None
+    replay = _idempotent_add_replay(actor, key, {
+        'product_id': product_id,
+        'shopping_list_id': shopping_list_id,
+        'quantity': quantity,
+    })
+    if replay:
+        return replay
 
     product = Product.objects.filter(pk=product_id).first()
     if not product:
@@ -137,18 +178,28 @@ def add_shopping_list_item(actor, product_id, *, shopping_list_id=None, quantity
         )
         existing = shopping_list.items.select_for_update().select_related('product').filter(
             product_id=product_id,
-            is_checked=False,
         ).order_by('-created_at', '-id').first()
+
         if existing:
+            previous_quantity = existing.quantity
+            existing.quantity += quantity
+            fields = ['quantity']
+            if existing.is_checked:
+                existing.is_checked = False
+                fields.append('is_checked')
+            existing.save(update_fields=fields)
+            _touch(shopping_list)
             return {
-                'action': 'already_present',
+                'action': 'quantity_increased',
                 'list_created': list_created,
                 'shopping_list': _serialize_list_summary(shopping_list),
                 'item': _serialize_item(existing),
-                'requested_quantity': quantity,
+                'previous_quantity': previous_quantity,
+                'added_quantity': quantity,
+                'idempotency_key': key,
                 'note': (
-                    'The product was already present as an unchecked item, so no duplicate was created. '
-                    'Use update_shopping_list_item to set the desired absolute quantity.'
+                    'This matches Wikonomi website add behavior: an existing product quantity is increased rather than '
+                    'creating a duplicate row. A previously checked item is made active again.'
                 ),
             }
 
@@ -165,6 +216,8 @@ def add_shopping_list_item(actor, product_id, *, shopping_list_id=None, quantity
             'list_created': list_created,
             'shopping_list': _serialize_list_summary(shopping_list),
             'item': _serialize_item(item),
+            'added_quantity': quantity,
+            'idempotency_key': key,
             'note': 'An exact Wikonomi product was added. No substitute product was inferred.',
         }
 
@@ -278,7 +331,7 @@ def compare_shopping_list(actor, shopping_list_id=None, *, currency='PGK'):
         stale_after_days=VALUE_STALE_AFTER_DAYS,
     )
 
-    unresolved = [item for item in comparison['custom_items']]
+    unresolved = list(comparison['custom_items'])
     checked = [item for item in items if item.is_checked]
     return {
         'shopping_list': _serialize_list_summary(shopping_list, items),
