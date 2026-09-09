@@ -1,6 +1,7 @@
+from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
-from django.db import transaction
+from pydantic import BaseModel, ConfigDict, Field
 
 from catalog.models import ProductIdentity
 from catalog.services import (
@@ -12,6 +13,41 @@ from catalog.services import (
 from core.models import Category, Product
 
 from .current_price_services import get_product as get_current_product
+
+
+class StructuredPriceObservation(BaseModel):
+    """Backward-compatible price schema with optional structured product identity."""
+
+    model_config = ConfigDict(extra='forbid')
+
+    product_id: int | None = Field(default=None, ge=1)
+    product_name: str | None = Field(default=None, max_length=255)
+    product_category_id: int | None = Field(default=None, ge=1)
+    product_description: str = Field(default='', max_length=10000)
+    product_tags: list[str] | None = Field(default=None, max_length=30)
+    create_product_if_missing: bool = True
+
+    brand: str = Field(default='', max_length=120)
+    variant: str = Field(default='', max_length=160)
+    barcode: str = Field(default='', max_length=64)
+    package_quantity: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=3)
+    package_unit: str = Field(default='', max_length=16, description='Examples: g, kg, ml, l, each, m, cm.')
+    pack_count: int | None = Field(default=None, ge=1, le=10000)
+
+    business_id: int | None = Field(default=None, ge=1)
+    business_branch_id: int | None = Field(default=None, ge=1)
+    business_name: str | None = Field(default=None, max_length=255)
+    branch_name: str | None = Field(default=None, max_length=255)
+    subcategory_id: int | None = Field(default=None, ge=1)
+    price: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    currency: str = Field(default='PGK', min_length=3, max_length=3)
+    observed_at: datetime | None = None
+    notes: str = Field(default='', max_length=10000)
+    idempotency_key: str | None = Field(
+        default=None,
+        max_length=120,
+        description='Stable caller-generated key. Reuse it when retrying the same observation.',
+    )
 
 
 def _decimal_or_none(value, field_name):
@@ -179,8 +215,6 @@ def find_or_create_product(
         package_unit=package_unit,
         pack_count=pack_count,
     )
-    # Re-run identity maintenance so any explicit package fields participate in
-    # the stored identity signature.
     ensure_product_identity(
         product,
         brand=brand,
@@ -209,12 +243,20 @@ def find_or_create_product(
     }
 
 
-def submit_structured_price(*, actor, data, ai=None):
-    from . import services
+def resolve_product_for_price(actor, data, ai):
+    if data.get('product_id'):
+        product = Product.objects.filter(pk=data['product_id']).first()
+        if not product:
+            raise ValueError(f"Product {data['product_id']} was not found.")
+        return product, False
 
-    resolved = find_or_create_product(
+    name = (data.get('product_name') or '').strip()
+    if not name:
+        raise ValueError('Provide product_id or product_name.')
+
+    result = find_or_create_product(
         actor=actor,
-        name=data.get('product_name') or '',
+        name=name,
         category_id=data.get('product_category_id'),
         description=data.get('product_description', ''),
         tags=data.get('product_tags'),
@@ -227,66 +269,18 @@ def submit_structured_price(*, actor, data, ai=None):
         package_unit=data.get('package_unit', ''),
         pack_count=data.get('pack_count'),
     )
-    product_payload = resolved.get('product')
-    if not product_payload:
-        raise ValueError('No product matched the supplied structured identity and creation was disabled.')
-
-    price_data = dict(data)
-    price_data['product_id'] = product_payload['id']
-    for key in (
-        'product_name', 'product_category_id', 'product_description', 'product_tags',
-        'brand', 'variant', 'barcode', 'package_quantity', 'package_unit', 'pack_count',
-        'create_product_if_missing',
-    ):
-        price_data.pop(key, None)
-    result = services.submit_price(actor=actor, data=price_data, ai=ai)
-    result['product_resolution'] = {
-        'status': resolved['status'],
-        'match_basis': resolved.get('match_basis'),
-        'similarity': resolved.get('similarity'),
-        'structured_identity': product_payload.get('structured_identity'),
-    }
-    return result
-
-
-def bulk_submit_structured_prices(*, actor, observations, ai=None, atomic=False):
-    from .models import MCPUserAccess
-
-    limit = 100 if actor.at_least(MCPUserAccess.Role.STAFF) else 25
-    if not observations:
-        raise ValueError('At least one price observation is required.')
-    if len(observations) > limit:
-        raise ValueError(f'The {actor.role} role can submit at most {limit} prices per call.')
-
-    results = []
-
-    def process():
-        for index, observation in enumerate(observations):
-            try:
-                result = submit_structured_price(actor=actor, data=observation, ai=ai)
-                results.append({'index': index, 'ok': True, **result})
-            except Exception as exc:
-                if atomic:
-                    raise ValueError(f'Price row {index} failed: {exc}') from exc
-                results.append({'index': index, 'ok': False, 'error': str(exc)})
-
-    if atomic:
-        with transaction.atomic():
-            process()
-    else:
-        process()
-    return {
-        'submitted': len(observations),
-        'succeeded': sum(1 for item in results if item['ok']),
-        'failed': sum(1 for item in results if not item['ok']),
-        'results': results,
-    }
+    if not result.get('product'):
+        raise ValueError(f'No product matched {name!r} and creation was disabled.')
+    return Product.objects.get(pk=result['product']['id']), result['created']
 
 
 def install_identity_service_upgrades():
-    from . import services
+    from . import services, tools
 
-    # Existing MCP tools keep their names but now use the catalog identity
-    # resolver even when older clients only provide a product name.
+    # Existing tool names remain unchanged. Older clients benefit from the safer
+    # catalog resolver, while newer clients discover the richer optional fields
+    # on submit_price and bulk_submit_prices through the replaced schema class.
     services.find_or_create_product = find_or_create_product
     services.get_product = get_product
+    services._resolve_product_for_price = resolve_product_for_price
+    tools.PriceObservation = StructuredPriceObservation
