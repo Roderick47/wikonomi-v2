@@ -1,5 +1,6 @@
 from django.db.models import Q
 
+from catalog.services import normalize_text
 from core.models import Business
 
 from .business_intelligence_services import (
@@ -11,52 +12,79 @@ from .business_intelligence_services import (
 from .current_price_services import _absolute_url
 
 
+BUSINESS_QUERY_STOPWORDS = {
+    'a', 'an', 'and', 'are', 'at', 'business', 'businesses', 'branch', 'branches',
+    'current', 'currently', 'data', 'do', 'does', 'find', 'for', 'has', 'have',
+    'in', 'is', 'me', 'of', 'price', 'prices', 'recent', 'show', 'store', 'stores',
+    'supermarket', 'supermarkets', 'the', 'what', 'which', 'with',
+}
+
+
+def _query_tokens(query):
+    tokens = [token for token in normalize_text(query).split() if len(token) >= 2]
+    meaningful = [token for token in tokens if token not in BUSINESS_QUERY_STOPWORDS]
+    return meaningful or tokens
+
+
+def _or_lookup(tokens, lookups):
+    query_filter = Q()
+    for token in tokens:
+        for lookup in lookups:
+            query_filter |= Q(**{lookup: token})
+    return query_filter
+
+
 def search_businesses(query, *, limit=10):
     """Search businesses by identity, branch, current price data, or imported catalog data."""
     query = (query or '').strip()
     if not query:
         raise ValueError('Search query is required.')
     limit = max(1, min(int(limit), 50))
+    tokens = _query_tokens(query)
 
-    businesses = Business.objects.filter(
-        Q(name__icontains=query)
-        | Q(details__icontains=query)
-        | Q(aliases__alias_name__icontains=query)
-        | Q(branches__name__icontains=query)
-        | Q(branches__address__icontains=query)
-        | Q(price_reports__product__name__icontains=query)
-        | Q(price_reports__product__aliases__alias_name__icontains=query)
-        | Q(branches__price_reports__product__name__icontains=query)
-        | Q(branches__price_reports__product__aliases__alias_name__icontains=query)
-        | Q(inventory_items__product__name__icontains=query)
-        | Q(inventory_items__brand__icontains=query)
-        | Q(inventory_items__barcode__icontains=query)
-    ).select_related('business_subcategory').distinct()[: max(limit * 4, 30)]
+    candidate_filter = _or_lookup(tokens, [
+        'name__icontains',
+        'details__icontains',
+        'aliases__alias_name__icontains',
+        'branches__name__icontains',
+        'branches__address__icontains',
+        'price_reports__product__name__icontains',
+        'price_reports__product__aliases__alias_name__icontains',
+        'branches__price_reports__product__name__icontains',
+        'branches__price_reports__product__aliases__alias_name__icontains',
+        'inventory_items__product__name__icontains',
+        'inventory_items__brand__icontains',
+        'inventory_items__barcode__icontains',
+    ])
+    businesses = Business.objects.filter(candidate_filter).select_related('business_subcategory').distinct()[: max(limit * 4, 30)]
 
-    normalized = query.casefold()
+    normalized = normalize_text(query)
     ranked = []
     for business in businesses:
         all_reports = _business_reports(business)
-        matching_reports = all_reports.filter(
-            Q(product__name__icontains=query)
-            | Q(product__aliases__alias_name__icontains=query)
-            | Q(product__tags__name__icontains=query)
-        ).distinct()
+        product_filter = _or_lookup(tokens, [
+            'product__name__icontains',
+            'product__aliases__alias_name__icontains',
+            'product__tags__name__icontains',
+        ])
+        matching_reports = all_reports.filter(product_filter).distinct()
         matching_current_rows = _current_rows(matching_reports, currency='PGK', include_stale=False)
         matching_current_product_ids = {row['product_id'] for row in matching_current_rows}
 
+        inventory_filter = _or_lookup(tokens, [
+            'product__name__icontains',
+            'brand__icontains',
+            'barcode__icontains',
+        ])
         inventory_matches = list(
-            business.inventory_items.filter(
-                Q(product__name__icontains=query)
-                | Q(brand__icontains=query)
-                | Q(barcode__icontains=query)
-            ).select_related('product').order_by('product__name')[:5]
+            business.inventory_items.filter(inventory_filter)
+            .select_related('product')
+            .order_by('product__name')[:5]
         )
 
+        branch_filter = _or_lookup(tokens, ['name__icontains', 'address__icontains'])
         direct_branch_matches = list(
-            business.branches.filter(
-                Q(name__icontains=query) | Q(address__icontains=query)
-            ).order_by('-is_main_branch', 'name')[:5]
+            business.branches.filter(branch_filter).order_by('-is_main_branch', 'name')[:5]
         )
         data_branch_ids = {
             row['branch_id'] for row in matching_current_rows if row['branch_id'] is not None
@@ -70,13 +98,16 @@ def search_businesses(query, *, limit=10):
         branch_matches = list(branch_by_id.values())[:5]
 
         coverage = _coverage(all_reports)
-        exact_name = business.name.casefold() == normalized
-        name_prefix = business.name.casefold().startswith(normalized)
+        normalized_name = normalize_text(business.name)
+        exact_name = normalized_name == normalized
+        name_prefix = normalized_name.startswith(normalized)
+        business_name_token_hits = sum(1 for token in tokens if token in normalized_name.split())
         direct_branch_match = bool(direct_branch_matches)
         has_current_product_match = bool(matching_current_product_ids)
         has_inventory_match = bool(inventory_matches)
         sort_key = (
-            0 if exact_name else 1 if name_prefix else 2 if direct_branch_match else 3 if has_current_product_match else 4 if has_inventory_match else 5,
+            0 if exact_name else 1 if name_prefix else 2 if business_name_token_hits else 3 if direct_branch_match else 4 if has_current_product_match else 5 if has_inventory_match else 6,
+            -business_name_token_hits,
             0 if has_current_product_match else 1,
             -len(matching_current_product_ids),
             0 if coverage['current_product_count'] else 1,
@@ -126,6 +157,7 @@ def search_businesses(query, *, limit=10):
             'matching_branches': [
                 _branch_profile(branch, include_coverage=False) for branch in branch_matches
             ],
+            'interpreted_query_tokens': tokens,
             'url': _absolute_url(f'/business/{business.pk}/'),
             'next_tool_hint': 'Use get_business for current products and coverage, or get_branch with a matching branch ID for exact branch prices.',
         }))
