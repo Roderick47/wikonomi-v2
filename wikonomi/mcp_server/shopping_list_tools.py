@@ -97,11 +97,12 @@ def register_shopping_list_tools(mcp):
             description='Stable caller-generated key. Reuse it when retrying the same add request.',
         ),
     ) -> dict[str, Any]:
+        normalized_key = (idempotency_key or '').strip() or None
         arguments = {
             'product_id': product_id,
             'shopping_list_id': shopping_list_id,
             'quantity': quantity,
-            'idempotency_key': idempotency_key,
+            'idempotency_key': normalized_key,
         }
         return await sync_to_async(services.audited_call, thread_sensitive=True)(
             'add_shopping_list_item',
