@@ -178,7 +178,7 @@ def add_shopping_list_item(
         )
         existing = shopping_list.items.select_for_update().select_related('product').filter(
             product_id=product_id,
-        ).order_by('-created_at', '-id').first()
+        ).order_by('is_checked', '-created_at', '-id').first()
 
         if existing:
             previous_quantity = existing.quantity
