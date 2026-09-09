@@ -9,12 +9,15 @@ from .comparison_tools import register_comparison_tools
 from .oauth import DjangoOAuthProvider, public_base_url, resource_url
 from .oauth_http import install_revocation_route
 from .permissions import ALL_SCOPES, READ_SCOPE
+from .smart_search_tools import register_smart_search_tools
 from .tools import register_tools
 
 
 SERVER_INSTRUCTIONS = (
     'Wikonomi contains community-contributed PNG products, observed local prices, businesses, and practical guides. '
     'Prices are observations, not guaranteed current offers. Search before creating records. '
+    'Use search_products when barcode, brand, package size, current-price availability, or exact-vs-alternative '
+    'discovery matters. Generic search_wikonomi also understands ordinary shopping language and uses smarter product ranking. '
     'Use compare_current_prices for exact current store comparisons, compare_product_value for compatible unit-value '
     'ranking, and compare_basket for a stateless exact-product basket comparison. '
     'When barcode, brand, variant, or package identity is available, include those optional fields in submit_price or '
@@ -34,12 +37,10 @@ mcp = MCPServer(
     title='Wikonomi',
     description='Authenticated tools for PNG products, prices, businesses, and practical guides.',
     website_url=public_base_url(),
-    version='0.4.0',
+    version='0.5.0',
     instructions=SERVER_INSTRUCTIONS,
     auth_server_provider=oauth_provider,
     auth=AuthSettings(
-        # Pass strings so AuthSettings preserves an issuer with no path exactly;
-        # pre-constructing AnyHttpUrl would add a trailing slash.
         issuer_url=public_base_url(),
         resource_server_url=resource_url(),
         required_scopes=[READ_SCOPE],
@@ -54,6 +55,7 @@ mcp = MCPServer(
 
 register_tools(mcp)
 register_comparison_tools(mcp)
+register_smart_search_tools(mcp)
 
 parsed = urlparse(public_base_url())
 allowed_hosts = [parsed.netloc, f'{parsed.hostname}:*', 'localhost:*', '127.0.0.1:*', 'testserver']
