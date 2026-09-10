@@ -1,3 +1,4 @@
+from datetime import timedelta
 from decimal import Decimal
 
 from django.urls import reverse
@@ -72,7 +73,7 @@ def build_price_share_context(report, *, base_url=''):
         .order_by('price', '-observed_at', '-id')
     )
 
-    cutoff = timezone.now() - timezone.timedelta(days=COMPARISON_STALE_AFTER_DAYS)
+    cutoff = timezone.now() - timedelta(days=COMPARISON_STALE_AFTER_DAYS)
     comparable = [row for row in current_reports if row.observed_at and row.observed_at >= cutoff]
     comparable.sort(key=lambda row: (row.price, -row.observed_at.timestamp(), -row.id))
 
@@ -105,7 +106,6 @@ def build_price_share_context(report, *, base_url=''):
     report_money = _money(currency, report.price)
     store_name = _store_name(report)
 
-    status_line = ''
     if report.marked_for_deletion:
         status_line = 'This report is marked for deletion and is excluded from current price comparisons.'
     elif not is_latest_store_observation:
