@@ -1,4 +1,7 @@
-{% load static %}
+{% load static price_share %}
+{% if shortcut_rating_target == 'price-report' %}
+{% price_share_context_by_id shortcut_object_id request as shortcut_enriched_share %}
+{% endif %}
 <style>
     .wk-shortcut-dock { bottom: 6.5rem; }
     .wk-shortcut-panel, .wk-rating-tray { transform-origin: bottom right; }
@@ -106,7 +109,12 @@
         if (action === 'rating') setRating(!ratingTray.classList.contains('is-open'));
         if (action === 'comment') openCommentModal();
         if (action === 'mark-delete') openDeleteModal();
-        if (action === 'share') sharePriceReport(event, { title: '{{ shortcut_share_title|escapejs }}', text: '{{ shortcut_share_text|escapejs }}', url: '{{ shortcut_share_url|escapejs }}' });
+        if (action === 'share') sharePriceReport(event, {
+            title: '{% if shortcut_enriched_share %}{{ shortcut_enriched_share.title|escapejs }}{% else %}{{ shortcut_share_title|escapejs }}{% endif %}',
+            text: '{% if shortcut_enriched_share %}{{ shortcut_enriched_share.text|escapejs }}{% else %}{{ shortcut_share_text|escapejs }}{% endif %}',
+            url: '{% if shortcut_enriched_share %}{{ shortcut_enriched_share.share_url|escapejs }}{% else %}{{ shortcut_share_url|escapejs }}{% endif %}',
+            urlInText: {% if shortcut_enriched_share %}true{% else %}false{% endif %}
+        });
         if (action === 'inline-edit') {
             if (window.wkEnterPriceEditMode) window.wkEnterPriceEditMode();
             else window.location.href = '{{ shortcut_edit_url }}';

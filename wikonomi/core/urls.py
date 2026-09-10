@@ -1,5 +1,5 @@
 from django.urls import path
-from . import bulk_views, views, product_views, value_views
+from . import bulk_views, share_views, views, product_views, value_views
 
 urlpatterns = [
     path('', views.home, name='home'),
@@ -11,6 +11,8 @@ urlpatterns = [
     path('add-price/', views.price_report_create, name='add_price'),
     path('add-business/', views.business_create, name='add_business'),
     path('price/<int:pk>/', views.price_report_detail, name='price_detail'),
+    path('price/<int:pk>/share/', share_views.price_share_page, name='price_share'),
+    path('price/<int:pk>/share-data/', share_views.price_share_data, name='price_share_data'),
     path('price/<int:pk>/edit/', views.edit_price_report, name='edit_price_report'),
     path('price/<int:pk>/duplicate/', views.price_report_duplicate, name='duplicate_price_report'),
     path('price/<int:pk>/duplicate-vote/', views.vote_duplicate_report, name='vote_duplicate_report'),
