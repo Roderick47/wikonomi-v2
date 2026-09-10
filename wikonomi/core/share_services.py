@@ -178,7 +178,8 @@ def build_price_share_context(report, *, base_url=''):
         status_line,
         comparison_line,
         f"Observed {_observed_label(report.observed_at)}.",
-        'Compare current prices on Wikonomi.',
+        f"View this price: {report_url}",
+        f"Compare current prices: {compare_url}",
     ]
     text = '\n'.join(line for line in text_lines if line)
     preview_description = _truncate(
