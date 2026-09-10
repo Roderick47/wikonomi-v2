@@ -6,6 +6,7 @@
 {% block og_tags %}
 {% with base_url="https://www.wikonomi.com" default_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
 <link rel="canonical" href="{{ share.report_url }}">
+<meta name="robots" content="noindex,follow">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Wikonomi">
 <meta property="og:url" content="{{ share.share_url }}">
@@ -94,7 +95,7 @@
                     <div class="rounded-xl bg-white px-4 py-3 ring-1 ring-slate-100">
                         <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">Difference from best</p>
                         <p class="mt-1 text-xl font-extrabold text-gray-900">{{ share.gap_from_best_label }}</p>
-                        <p class="mt-1 text-xs text-gray-500">{{ share.gap_percent|floatformat:1 }}% of this price</p>
+                        <p class="mt-1 text-xs text-gray-500">{{ share.gap_percent|floatformat:1 }}% above the best current price</p>
                     </div>
                     {% endif %}
                 </div>
