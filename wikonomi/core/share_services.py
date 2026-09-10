@@ -102,9 +102,11 @@ def build_price_share_context(report, *, base_url=''):
     )
 
     report_url = _absolute(base_url, reverse('price_detail', args=[report.pk]))
+    share_url = _absolute(base_url, reverse('price_share', args=[report.pk]))
     compare_url = _absolute(base_url, reverse('product_detail', args=[product.pk]))
     report_money = _money(currency, report.price)
     store_name = _store_name(report)
+    observed_label = _observed_label(report.observed_at)
 
     if report.marked_for_deletion:
         status_line = 'This report is marked for deletion and is excluded from current price comparisons.'
@@ -177,21 +179,26 @@ def build_price_share_context(report, *, base_url=''):
         f"{product.name} — {report_money} at {store_name}",
         status_line,
         comparison_line,
-        f"Observed {_observed_label(report.observed_at)}.",
-        f"View this price: {report_url}",
-        f"Compare current prices: {compare_url}",
+        f"Observed {observed_label}.",
+        f"Open on Wikonomi: {share_url}",
     ]
     text = '\n'.join(line for line in text_lines if line)
     preview_description = _truncate(
-        f"{report_money} at {store_name}. {comparison_line} Observed {_observed_label(report.observed_at)}."
+        f"{report_money} at {store_name}. {comparison_line} Observed {observed_label}."
     )
 
     return {
         'title': title,
         'text': text,
+        'status_line': status_line,
+        'comparison_line': comparison_line,
         'preview_description': preview_description,
         'report_url': report_url,
+        'share_url': share_url,
         'compare_url': compare_url,
+        'observed_label': observed_label,
+        'report_money': report_money,
+        'store_name': store_name,
         'currency': currency,
         'store_count': store_count,
         'freshness_key': freshness['key'],
@@ -200,11 +207,15 @@ def build_price_share_context(report, *, base_url=''):
         'is_latest_store_observation': is_latest_store_observation,
         'is_current_comparable': is_current_comparable,
         'best_current_price': str(cheapest.price) if cheapest else None,
+        'best_current_price_label': _money(currency, cheapest.price) if cheapest else None,
         'best_current_store': _store_name(cheapest) if cheapest else None,
         'highest_current_price': str(highest.price) if highest else None,
+        'highest_current_price_label': _money(currency, highest.price) if highest else None,
         'savings_amount': str(savings_amount) if savings_amount is not None else None,
+        'savings_amount_label': _money(currency, savings_amount) if savings_amount is not None else None,
         'savings_percent': str(savings_percent) if savings_percent is not None else None,
         'gap_from_best': str(gap_from_best) if gap_from_best is not None else None,
+        'gap_from_best_label': _money(currency, gap_from_best) if gap_from_best is not None else None,
         'gap_percent': str(gap_percent) if gap_percent is not None else None,
         'stale_after_days': COMPARISON_STALE_AFTER_DAYS,
     }
