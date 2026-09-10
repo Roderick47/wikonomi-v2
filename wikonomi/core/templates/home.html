@@ -30,27 +30,29 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
 <style>
-    #map {
-        height: 100%;
-        min-height: 320px;
-        z-index: 1;
-    }
-    #map-panel.map-panel--open {
-        display: flex !important;
-    }
+    main { padding-top: 1rem !important; }
+    .wk-home-hero { padding-top: .5rem; padding-bottom: 1rem; }
+    .wk-home-layout { padding: 0; }
+    #home-split { display: flex; flex-direction: column; gap: 1.5rem; }
+    #map-panel { display: block; order: -1; min-width: 0; scroll-margin-top: 9rem; }
+    #map-panel.map-panel--collapsed { display: none !important; }
+    #map-shell { height: clamp(320px, 52svh, 560px); }
+    #map { height: 100%; min-height: 0; z-index: 1; }
+    #feed-column { min-width: 0; scroll-margin-top: 9rem; }
+    .wk-map-header { display: flex; justify-content: space-between; align-items: center; gap: .75rem; padding: .75rem 1rem; }
+    .wk-map-status { font-size: .75rem; color: #64748b; }
+    .wk-map-help { padding: .6rem 1rem; font-size: .75rem; color: #64748b; border-top: 1px solid #e2e8f0; }
     @media (min-width: 1024px) {
-        #map-panel {
-            display: block !important;
-        }
-        #map-panel.map-panel--collapsed {
-            display: none !important;
-        }
-        #map-shell {
-            height: calc(100vh - var(--navbar-height, 4rem) - 2rem);
-            min-height: 420px;
-        }
+        #home-split { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); align-items: start; }
+        #feed-column { grid-column: 1; grid-row: 1; }
+        #map-panel { grid-column: 2; grid-row: 1; position: sticky; top: calc(var(--navbar-height, 4rem) + 5rem); }
+        #home-split.map-hidden { grid-template-columns: 1fr; }
+        #map-shell { height: calc(100svh - var(--navbar-height, 4rem) - 7rem); min-height: 420px; }
+        #price-feed { grid-template-columns: 1fr; }
+        #home-split.map-hidden #price-feed { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
-
+    .wk-map-cluster { background: #4B2798; color: white; border: 2px solid white; border-radius: 12px; text-align: center; padding: 5px; box-shadow: 0 2px 8px #0003; font-size: 11px; line-height: 1.2; }
+    .wk-map-cluster strong { display: block; font-size: 13px; }
     .wk-price-marker {
         background: transparent;
         border: none;
@@ -84,50 +86,6 @@
         font-weight: 700;
     }
 
-    @keyframes textShimmer {
-        0% { background-position: 130% 0; opacity: 0; }
-        2% { opacity: 1; }
-        20% { background-position: -30% 0; opacity: 1; }
-        23% { opacity: 0; }
-        24% { background-position: 130% 0; opacity: 0; }
-        27% { opacity: 1; }
-        45% { background-position: -30% 0; opacity: 1; }
-        48%, 100% { background-position: -30% 0; opacity: 0; }
-    }
-    .shimmer-text {
-        position: relative;
-        display: inline-block;
-        background: linear-gradient(to right, #66D17E, #4DB8FF, #4B2798);
-        color: transparent;
-        -webkit-background-clip: text;
-        background-clip: text;
-    }
-    .shimmer-text::after {
-        content: attr(data-text);
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(90deg, #4B2798 0%, #4B2798 38%, #66D17E 45%, #4DB8FF 52%, #4B2798 59%, #4B2798 100%);
-        background-size: 300% 100%;
-        background-position: 130% 0;
-        color: transparent;
-        -webkit-background-clip: text;
-        background-clip: text;
-        pointer-events: none;
-        will-change: background-position, opacity;
-        animation: textShimmer 10s linear infinite;
-    }
-
-    .wk-home-shortcuts {
-        display: flex;
-        align-items: center;
-        gap: .5rem;
-        margin-top: .75rem;
-        padding: .125rem .125rem .35rem;
-        overflow-x: auto;
-        scrollbar-width: none;
-        -webkit-overflow-scrolling: touch;
-    }
-    .wk-home-shortcuts::-webkit-scrollbar { display: none; }
     .wk-home-shortcut {
         display: inline-flex;
         flex: 0 0 auto;
@@ -257,21 +215,8 @@
     }
     .wk-mobile-nav__toggle svg { width: 1.1rem; height: 1.1rem; }
 
-    @media (min-width: 640px) {
-        .wk-home-shortcuts {
-            justify-content: center;
-            flex-wrap: wrap;
-            overflow: visible;
-        }
-    }
     @media (min-width: 1024px) {
         .wk-mobile-nav { display: none !important; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-        .shimmer-text::after {
-            animation: none;
-            opacity: 0;
-        }
     }
 </style>
 {% endblock %}
@@ -280,21 +225,21 @@
 {% static 'img/default-profile.svg' as default_profile_picture_url %}
 
 <!-- Hero Search Hub -->
-<section class="relative -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-10 sm:py-12 bg-gradient-to-br from-brand-purple/8 via-white to-brand-green/10 border-b border-slate-200">
+<section class="relative wk-home-hero">
     <div class="max-w-3xl mx-auto text-center">
         <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">
-            <span class="shimmer-text" data-text="wikonomi">wikonomi</span>
+            Find better prices. See where to shop.
         </h1>
         <p class="mt-2 text-base sm:text-lg text-gray-600">
-            Share &amp; compare local prices across PNG. <a href="{% url 'about' %}" class="text-brand-purple hover:text-brand-purple/80 font-medium">Learn more</a>
+            Explore reported prices across PNG. Search a product to compare your options.
         </p>
 
-        <form method="GET" action="{% url 'home' %}" id="search-form" class="mt-8 text-left">
+        <form method="GET" action="{% url 'home' %}" id="search-form" class="mt-4 text-left">
             <div class="relative">
                 <svg class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
-                <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search prices, businesses, or guides…"
+                <input type="text" name="q" value="{{ request.GET.q }}" aria-label="Search products and prices" placeholder="What are you shopping for?"
                     class="block w-full rounded-xl border border-slate-200 bg-white py-4 pl-12 pr-28 text-base sm:text-lg shadow-sm focus:ring-2 focus:ring-brand-purple/30 focus:border-brand-blue">
                 <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-purple hover:bg-brand-purple/90 transition-colors">
                     Search
@@ -313,13 +258,9 @@
                 <input type="hidden" name="lat" id="user-lat" value="{{ request.GET.lat }}">
                 <input type="hidden" name="lng" id="user-lng" value="{{ request.GET.lng }}">
 
-                <button type="button" id="map-toggle-btn-desktop" onclick="toggleMapView()"
-                    class="hidden lg:inline-flex items-center px-3 py-2 border border-slate-200 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 shadow-sm">
-                    <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                    Hide map
-                </button>
+                <button type="button" id="map-toggle-btn-desktop" onclick="toggleMapView()" aria-controls="map-panel" aria-expanded="true" class="wk-home-shortcut">List only</button>
+                <a href="#feed-column" class="wk-home-shortcut">See prices ↓</a>
+                <a href="{% url 'add_price' %}" class="wk-home-shortcut wk-home-shortcut--primary">+ Add price</a>
 
                 <span id="location-status" class="text-xs text-gray-500 hidden items-center">
                     <svg class="inline h-3.5 w-3.5 mr-1 text-brand-green" fill="currentColor" viewBox="0 0 20 20">
@@ -329,13 +270,7 @@
                 </span>
             </div>
 
-            <nav class="wk-home-shortcuts" aria-label="Wikonomi shortcuts">
-                <a href="{% url 'product_list' %}" class="wk-home-shortcut">Prices</a>
-                <a href="{% url 'business_list' %}" class="wk-home-shortcut">Businesses</a>
-                <a href="{% url 'guides:list' %}" class="wk-home-shortcut">Guides</a>
-                <a href="{% url 'transport_index:cab_list' %}" class="wk-home-shortcut">Transport</a>
-                <a href="{% url 'add_price' %}" class="wk-home-shortcut wk-home-shortcut--primary">+ Add price</a>
-            </nav>
+
         </form>
     </div>
 </section>
@@ -343,7 +278,7 @@
 <div id="sticky-search" class="hidden fixed left-0 right-0 w-full z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm" style="top: var(--navbar-height, 4rem);">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <form method="GET" action="{% url 'home' %}" class="flex items-center gap-2 sm:gap-3">
-            <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search prices…"
+            <input type="text" name="q" value="{{ request.GET.q }}" aria-label="Search products and prices" placeholder="Search prices…"
                 class="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-brand-purple/30 focus:border-brand-blue">
             <input type="hidden" name="sort" value="{{ current_sort }}">
             <input type="hidden" name="lat" value="{{ request.GET.lat }}">
@@ -357,7 +292,7 @@
 </div>
 
 <!-- Split layout: feed + map -->
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="wk-home-layout">
     <div id="home-split" class="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
         <div id="feed-column" class="lg:col-span-7 min-w-0">
             {% if fuel_summary and not request.GET.q %}
@@ -385,26 +320,11 @@
             </div>
             {% endif %}
 
-            {% if guides %}
-            <section class="mb-10">
-                <div class="mb-4 flex items-center justify-between">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-900">{% if request.GET.q %}Guides{% else %}New guides{% endif %}</h2>
-                        <p class="mt-1 text-sm text-slate-500">Practical, community-written instructions</p>
-                    </div>
-                    <a href="{% url 'guides:list' %}{% if request.GET.q %}?q={{ request.GET.q|urlencode }}{% endif %}" class="text-sm font-bold text-brand-purple hover:underline">View all →</a>
-                </div>
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    {% for guide in guides %}{% include "guides/_guide_card.html" with guide=guide %}{% endfor %}
-                </div>
-            </section>
-            {% endif %}
-
-            <header class="mb-8 pt-2">
+            <header class="mb-4 pt-2">
                 <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">
                     {% if request.GET.q %}Results for &ldquo;{{ request.GET.q }}&rdquo;{% else %}Recent price reports{% endif %}
                 </h2>
-                <p class="mt-1 text-sm text-gray-500">Community-submitted prices near you</p>
+                <p class="mt-1 text-sm text-gray-500">Reported by the community · Check the report date before shopping</p>
 
                 {% if request.GET.q %}
                 <div class="mt-4 rounded-2xl border border-brand-purple/15 bg-white p-4 shadow-sm">
@@ -468,6 +388,21 @@
                 {% endfor %}
             </div>
 
+            {% if guides %}
+            <section class="mt-8 mb-10">
+                <div class="mb-4 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">{% if request.GET.q %}Guides{% else %}New guides{% endif %}</h2>
+                        <p class="mt-1 text-sm text-slate-500">Practical, community-written instructions</p>
+                    </div>
+                    <a href="{% url 'guides:list' %}{% if request.GET.q %}?q={{ request.GET.q|urlencode }}{% endif %}" class="text-sm font-bold text-brand-purple hover:underline">View all →</a>
+                </div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {% for guide in guides %}{% include "guides/_guide_card.html" with guide=guide %}{% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
             <div id="loading-indicator" class="text-center py-8 hidden">
                 <div class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-brand-purple bg-brand-purple/10">
                     <svg class="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0112 20c4.578 0 8.571-3.007 9.963-7.178l.002.004a9.861 9.861 0 01-4.5 1.931l-.002-.004z"></path></svg>
@@ -476,31 +411,22 @@
             </div>
         </div>
 
-        <!-- Map column (desktop sticky / mobile overlay) -->
-        <div id="map-panel" class="hidden lg:block fixed inset-0 z-50 flex-col bg-white lg:static lg:z-auto lg:col-span-5 lg:sticky lg:top-[calc(var(--navbar-height,4rem)+1rem)]">
-            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 lg:hidden shrink-0">
-                <h3 class="font-semibold text-gray-900">Price map</h3>
-                <button type="button" onclick="closeMobileMap()" class="p-2 rounded-lg text-gray-500 hover:bg-gray-100" aria-label="Close map">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-            <div id="map-shell" class="flex-1 lg:flex-none p-4 lg:p-0 min-h-0">
+        <!-- Map is visible from the first visit, including on phones. -->
+        <section id="map-panel" aria-label="Price map">
+            <div id="map-shell">
                 <div class="bg-white rounded-xl border border-slate-200 shadow-sm h-full flex flex-col overflow-hidden">
-                    <div class="hidden lg:flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                        <h3 class="text-sm font-semibold text-gray-900">Price locations</h3>
+                    <div class="wk-map-header">
+                        <div><h2 class="text-sm font-bold text-gray-900">Explore price locations</h2>
+                        <p id="map-status" class="wk-map-status" role="status">Loading reported prices…</p></div>
+                        <button type="button" class="wk-home-shortcut" onclick="handleSortChange('nearest')">Near me</button>
                     </div>
-                    <div class="flex-1 min-h-[280px] lg:min-h-0">
+                    <div class="flex-1 min-h-0">
                         <div id="map" class="rounded-b-xl"></div>
                     </div>
-                    <div class="px-4 py-2.5 border-t border-slate-100 flex flex-wrap gap-3 text-xs text-gray-500">
-                        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brand-green"></span> Cheapest</span>
-                        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brand-blue"></span> Mid range</span>
-                        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> Highest</span>
-                        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brand-purple"></span> Other</span>
-                    </div>
+                    <div class="wk-map-help">Tap a cluster to explore prices. Tap a price for the shop and report date. <a href="{% url 'product_list' %}" class="text-brand-purple font-semibold">Compare products →</a></div>
                 </div>
             </div>
-        </div>
+        </section>
     </div>
 </div>
 
@@ -549,51 +475,21 @@ function isDesktop() {
 }
 
 function openMobileMap() {
-    const panel = document.getElementById('map-panel');
-    if (!panel) return;
-    panel.classList.add('map-panel--open');
-    panel.classList.remove('hidden');
-    document.body.classList.add('overflow-hidden');
-    ensureMapReady(() => mapInstance && mapInstance.invalidateSize());
+    setMapVisible(true);
+    document.getElementById('map-panel').scrollIntoView({block: 'start'});
 }
 
-function closeMobileMap() {
-    const panel = document.getElementById('map-panel');
-    if (!panel) return;
-    panel.classList.remove('map-panel--open');
-    if (!isDesktop()) {
-        panel.classList.add('hidden');
-        document.body.classList.remove('overflow-hidden');
-    }
+function setMapVisible(visible) {
+    mapVisibleDesktop = visible;
+    document.getElementById('map-panel').classList.toggle('map-panel--collapsed', !visible);
+    document.getElementById('home-split').classList.toggle('map-hidden', !visible);
+    const button = document.getElementById('map-toggle-btn-desktop');
+    button.textContent = visible ? 'List only' : 'Show map';
+    button.setAttribute('aria-expanded', String(visible));
+    if (visible) ensureMapReady(() => mapInstance && mapInstance.invalidateSize());
 }
 
-function toggleMapView() {
-    if (!isDesktop()) {
-        const panel = document.getElementById('map-panel');
-        if (panel && panel.classList.contains('map-panel--open')) closeMobileMap();
-        else openMobileMap();
-        return;
-    }
-
-    const panel = document.getElementById('map-panel');
-    const feed = document.getElementById('feed-column');
-    const btn = document.getElementById('map-toggle-btn-desktop');
-    if (!panel || !feed || !btn) return;
-
-    mapVisibleDesktop = !mapVisibleDesktop;
-    if (mapVisibleDesktop) {
-        panel.classList.remove('map-panel--collapsed');
-        feed.classList.remove('lg:col-span-12');
-        feed.classList.add('lg:col-span-7');
-        btn.innerHTML = '<svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Hide map';
-        ensureMapReady(() => mapInstance && mapInstance.invalidateSize());
-    } else {
-        panel.classList.add('map-panel--collapsed');
-        feed.classList.remove('lg:col-span-7');
-        feed.classList.add('lg:col-span-12');
-        btn.innerHTML = '<svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg> Show map';
-    }
-}
+function toggleMapView() { setMapVisible(!mapVisibleDesktop); }
 
 function ensureMapReady(callback) {
     if (!mapInitialized) {
@@ -670,14 +566,18 @@ function initPriceMap() {
             mapInstance = null;
         }
 
-        mapInstance = L.map('map', { scrollWheelZoom: true }).setView([centerLat, centerLng], zoomLevel);
+        mapInstance = L.map('map', { scrollWheelZoom: false }).setView([centerLat, centerLng], zoomLevel);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap'
         }).addTo(mapInstance);
 
         mapClusterGroup = L.markerClusterGroup({
-            maxClusterRadius: 45,
+            maxClusterRadius: 55,
+            iconCreateFunction: function(cluster) {
+                return L.divIcon({className: 'wk-map-cluster', iconSize: [76, 42],
+                    html: `<strong>${cluster.getChildCount()}</strong> price reports`});
+            },
             spiderfyOnMaxZoom: true,
             showCoverageOnHover: false,
             spiderfyDistanceMultiplier: 3.2,
@@ -696,35 +596,37 @@ function initPriceMap() {
 
         const urlArgs = new URLSearchParams({ q: searchQuery, sort: currentSort, lat: userLat, lng: userLng }).toString();
         fetch(`/api/map-prices/?${urlArgs}`)
-            .then(res => res.json())
+            .then(res => { if (!res.ok) throw new Error('Map request failed'); return res.json(); })
             .then(data => {
+                const status = document.getElementById('map-status');
+                status.textContent = data.items && data.items.length
+                    ? `${data.items.length === 150 ? 'Showing up to 150' : data.items.length} mapped reports · Search to narrow results`
+                    : 'No mapped prices for this search. Try another product or browse the list.';
                 if (!data.items || !data.items.length) return;
 
-                let minPrice = Infinity;
-                let maxPrice = -Infinity;
-                data.items.forEach(p => {
-                    if (p.rawPrice < minPrice) minPrice = p.rawPrice;
-                    if (p.rawPrice > maxPrice) maxPrice = p.rawPrice;
-                });
-
                 data.items.forEach(price => {
-                    let tier = 'other';
-                    if (price.rawPrice <= minPrice) tier = 'cheap';
-                    else if (price.rawPrice >= maxPrice) tier = 'expensive';
-                    else if (price.rawPrice < (minPrice + maxPrice) / 2) tier = 'mid';
-
+                    const tier = 'other'; // Unrelated products are not a valid cheapest-price comparison.
                     const marker = L.marker([price.lat, price.lng], {
                         icon: createPriceMarkerIcon(shortPriceLabel(price.price), tier, price.product),
                     });
-                    marker.bindPopup(`
-                        <div class="p-1 min-w-[140px]">
-                            <p class="font-semibold text-sm text-gray-900">${price.product}</p>
-                            <p class="text-brand-green font-bold">${price.price}</p>
-                            ${price.business ? `<p class="text-xs text-gray-500 mt-1">${price.business}</p>` : ''}
-                            <p class="text-xs text-gray-400">${price.date}</p>
-                            <a href="${price.url}" class="text-brand-purple text-xs font-medium hover:underline mt-1 inline-block">View details →</a>
-                        </div>
-                    `);
+                    const popup = document.createElement('div');
+                    for (const [value, className] of [
+                        [price.product, 'font-semibold text-sm text-gray-900'],
+                        [price.price, 'text-brand-purple font-bold'],
+                        [price.business, 'text-xs text-gray-600 mt-1'],
+                        [`Reported ${price.date}`, 'text-xs text-gray-500'],
+                    ]) {
+                        const line = document.createElement('p');
+                        line.className = className;
+                        line.textContent = value;
+                        popup.appendChild(line);
+                    }
+                    const details = document.createElement('a');
+                    if (/^\/price\/\d+\/$/.test(price.url)) details.href = price.url;
+                    details.className = 'text-brand-purple text-sm font-semibold';
+                    details.textContent = 'View price details →';
+                    popup.appendChild(details);
+                    marker.bindPopup(popup);
                     mapClusterGroup.addLayer(marker);
                     bounds.push([price.lat, price.lng]);
                 });
@@ -732,9 +634,9 @@ function initPriceMap() {
                 mapInstance.addLayer(mapClusterGroup);
                 if (bounds.length) mapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
             })
-            .catch(err => console.error('Map load failed:', err));
+            .catch(err => { document.getElementById('map-status').textContent = 'Prices could not load on the map. Browse the price list or reload to try again.'; console.error('Map load failed:', err); });
     } catch (error) {
-        console.error('Map init error:', error);
+        document.getElementById('map-status').textContent = 'Map unavailable. You can still search and browse the price list.'; console.error('Map init error:', error);
     }
 }
 
@@ -805,21 +707,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('location-status').classList.add('inline-flex');
     }
 
-    if (isDesktop()) ensureMapReady();
-
+    ensureMapReady();
     window.addEventListener('resize', function() {
-        const mapPanel = document.getElementById('map-panel');
-        if (isDesktop()) {
-            document.body.classList.remove('overflow-hidden');
-            if (mapPanel) {
-                mapPanel.classList.remove('map-panel--open');
-                mapPanel.classList.remove('hidden');
-            }
-            setMobileMenuOpen(false);
-            if (mapInstance) setTimeout(() => mapInstance.invalidateSize(), 150);
-        } else if (mapPanel && !mapPanel.classList.contains('map-panel--open')) {
-            mapPanel.classList.add('hidden');
-        }
+        if (isDesktop()) setMobileMenuOpen(false);
+        if (mapInstance) mapInstance.invalidateSize();
     });
 
     function loadMorePrices() {
@@ -883,6 +774,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function handleSortChange(sortValue) {
+    document.getElementById('sort').value = sortValue;
     if (sortValue === 'nearest') {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('lat') && urlParams.get('lng')) {

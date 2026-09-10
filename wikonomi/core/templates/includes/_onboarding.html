@@ -3,7 +3,7 @@
     class="wk-onboarding"
     data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
     data-update-url="{% if user.is_authenticated %}{% url 'update_onboarding' %}{% endif %}"
-    data-auto-open="{% if user.is_authenticated %}{% if not user.profile.onboarding_completed_at and not user.profile.onboarding_dismissed_at %}true{% else %}false{% endif %}{% else %}true{% endif %}"
+    data-auto-open="{% if request.resolver_match.url_name == 'home' %}false{% elif user.is_authenticated %}{% if not user.profile.onboarding_completed_at and not user.profile.onboarding_dismissed_at %}true{% else %}false{% endif %}{% else %}true{% endif %}"
     hidden
 >
     <form class="hidden" aria-hidden="true">{% csrf_token %}</form>
