@@ -112,7 +112,7 @@
         if (action === 'share') sharePriceReport(event, {
             title: '{% if shortcut_enriched_share %}{{ shortcut_enriched_share.title|escapejs }}{% else %}{{ shortcut_share_title|escapejs }}{% endif %}',
             text: '{% if shortcut_enriched_share %}{{ shortcut_enriched_share.text|escapejs }}{% else %}{{ shortcut_share_text|escapejs }}{% endif %}',
-            url: '{% if shortcut_enriched_share %}{{ shortcut_enriched_share.text|escapejs }}{% else %}{{ shortcut_share_url|escapejs }}{% endif %}',
+            url: '{% if shortcut_enriched_share %}{{ shortcut_enriched_share.share_url|escapejs }}{% else %}{{ shortcut_share_url|escapejs }}{% endif %}',
             urlInText: {% if shortcut_enriched_share %}true{% else %}false{% endif %}
         });
         if (action === 'inline-edit') {
