@@ -146,8 +146,8 @@ def build_price_share_context(report, *, base_url=''):
                 comparison_line = f"Lowest current Wikonomi price across {store_count} stores."
         elif is_current_comparable:
             gap_from_best = report.price - cheapest.price
-            if report.price > 0 and gap_from_best > 0:
-                gap_percent = (gap_from_best / report.price) * Decimal('100')
+            if cheapest.price > 0 and gap_from_best > 0:
+                gap_percent = (gap_from_best / cheapest.price) * Decimal('100')
                 comparison_line = (
                     f"Best current Wikonomi price: {_money(currency, cheapest.price)} at {_store_name(cheapest)}. "
                     f"This price is {_money(currency, gap_from_best)} ({gap_percent:.1f}%) higher; "
