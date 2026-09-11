@@ -26,7 +26,7 @@ from django import forms
 from django.core.serializers.json import DjangoJSONEncoder
 from django.views.decorators.cache import cache_page
 from django.templatetags.static import static
-from .models import PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, PriceLike, PriceReportRating, BusinessRating, create_like_threshold_notification, PriceReportPhoto
+from .models import STALE_PRICE_DAYS, PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, PriceLike, PriceReportRating, BusinessRating, create_like_threshold_notification, PriceReportPhoto
 from comments.models import Comment
 from .utils import annotate_with_distance
 from categories.models import Category as PriceCategory, Subcategory, BusinessCategory, BusinessSubcategory
@@ -396,18 +396,20 @@ class PriceReportDuplicateView(PriceReportCreateView):
 price_report_duplicate = PriceReportDuplicateView.as_view()
 
 
-def _get_prices_queryset(request):
+def _get_prices_queryset(request, for_map=False):
     """Helper to get and sort prices uniformly across feed and map endpoints."""
     query = request.GET.get('q', '').strip()
     sort = request.GET.get('sort', 'recent')
     user_lat = request.GET.get('lat')
     user_lng = request.GET.get('lng')
     
-    qs = PriceReport.objects.select_related('product', 'business', 'user').prefetch_related('user__profile').annotate(
-        average_rating=Avg('ratings__rating'),
-        rating_count=Count('ratings'),
-    )
-    
+    if for_map:
+        qs = PriceReport.objects.select_related('product', 'business')
+    else:
+        qs = PriceReport.objects.select_related('product', 'business', 'user').prefetch_related('user__profile').annotate(
+            average_rating=Avg('ratings__rating'), rating_count=Count('ratings'),
+        )
+
     if query:
         # Enhanced search using product normalization
         matched_product_ids = _get_matched_product_ids(query)
@@ -427,6 +429,9 @@ def _get_prices_queryset(request):
         
         qs = qs.filter(search_query)
     
+    if for_map:
+        return qs.order_by('-pk'), sort, user_lat, user_lng
+
     # Apply sorting
     if sort == 'price_asc':
         qs = qs.order_by('price', '-observed_at')
@@ -544,14 +549,22 @@ def how_to_use_view(request):
 @cache_page(60 * 5)
 def api_map_prices(request):
     """Stateless JSON endpoint specifically for the map frontend."""
-    latest_prices, sort, user_lat, user_lng = _get_prices_queryset(request)
-    
-    # Require coords, limit to 150 points for browser performance
-    latest_prices = latest_prices.filter(latitude__isnull=False, longitude__isnull=False)[:150]
-    
-    from django.urls import reverse
-    import math
-    
+    latest_prices, sort, user_lat, user_lng = _get_prices_queryset(request, for_map=True)
+    # Keyset pagination: a batch size is not a total limit. Include older reports.
+    latest_prices = latest_prices.filter(latitude__range=(-90, 90), longitude__range=(-180, 180))
+    cursor = request.GET.get('cursor')
+    if cursor:
+        try:
+            cursor = int(cursor)
+            if cursor <= 0 or cursor > 9223372036854775807:
+                raise ValueError
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Invalid cursor'}, status=400)
+        latest_prices = latest_prices.filter(pk__lt=cursor)
+    batch = list(latest_prices[:501])
+    has_more = len(batch) > 500
+    latest_prices = batch[:500]
+
     items_data = []
     for p in latest_prices:
         # Check against pure math.isnan or db issues
@@ -564,12 +577,15 @@ def api_map_prices(request):
             'product': p.product.name,
             'price': f"{p.currency} {p.price:,.2f}",
             'rawPrice': float(p.price),
+            'id': p.pk,
+            'is_stale': p.is_stale,
+            'updated_date': p.updated_at.strftime('%b %d, %Y'),
             'business': p.business.name if p.business else '',
             'date': p.observed_at.strftime('%b %d, %Y'),
             'url': reverse('price_detail', args=[p.id]),
         })
         
-    return JsonResponse({'items': items_data})
+    return JsonResponse({'items': items_data, 'next_cursor': latest_prices[-1].pk if has_more else None, 'stale_days': STALE_PRICE_DAYS})
 
 def load_more_prices(request):
     page = request.GET.get('page', 1)
@@ -1481,7 +1497,6 @@ def delete_price_report(request, pk):
     return redirect('home')
 
 
-STALE_PRICE_DAYS = 30
 
 
 @login_required

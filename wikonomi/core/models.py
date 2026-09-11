@@ -18,6 +18,8 @@ import re
 
 from PIL import Image, ImageOps
 
+STALE_PRICE_DAYS = 30
+
 
 def _safe_image_extension(filename):
     extension = Path(filename or '').suffix.lower()
@@ -911,6 +913,12 @@ class PriceReport(models.Model):
 
     class Meta:
         ordering = ['-updated_at', '-observed_at']
+
+    @property
+    def is_stale(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        return self.updated_at < timezone.now() - timedelta(days=STALE_PRICE_DAYS)
 
     @property
     def is_updated(self):

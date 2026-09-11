@@ -52,6 +52,9 @@
         #home-split.map-hidden #price-feed { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     .wk-map-cluster { background: #4B2798; color: white; border: 2px solid white; border-radius: 12px; text-align: center; padding: 5px; box-shadow: 0 2px 8px #0003; font-size: 11px; line-height: 1.2; }
+    .wk-map-cluster--stale { background: #6b7280; }
+    #price-feed .price-card--stale { background: #f3f4f6; border-color: #d1d5db; }
+    #price-feed .price-card--stale .text-brand-green { color: #6b7280; }
     .wk-map-cluster strong { display: block; font-size: 13px; }
     .wk-price-marker {
         background: transparent;
@@ -418,12 +421,15 @@
                     <div class="wk-map-header">
                         <div><h2 class="text-sm font-bold text-gray-900">Explore price locations</h2>
                         <p id="map-status" class="wk-map-status" role="status">Loading reported prices…</p></div>
+                        <div class="flex flex-wrap gap-2">
+                        <button type="button" class="wk-home-shortcut" onclick="fitAllPrices()">Show all locations</button>
                         <button type="button" class="wk-home-shortcut" onclick="handleSortChange('nearest')">Near me</button>
+                        </div>
                     </div>
                     <div class="flex-1 min-h-0">
                         <div id="map" class="rounded-b-xl"></div>
                     </div>
-                    <div class="wk-map-help">Tap a cluster to explore prices. Tap a price for the shop and report date. <a href="{% url 'product_list' %}" class="text-brand-purple font-semibold">Compare products →</a></div>
+                    <div class="wk-map-help">Grey = outdated (not updated in 30 days). Tap a cluster to explore prices. Tap a price for the shop and report date. <a href="{% url 'product_list' %}" class="text-brand-purple font-semibold">Compare products →</a></div>
                 </div>
             </div>
         </section>
@@ -509,6 +515,7 @@ function tierColor(tier) {
         mid: '#4DB8FF',
         expensive: '#ef4444',
         other: '#4B2798',
+        stale: '#6b7280',
     }[tier] || '#4B2798';
 }
 
@@ -546,6 +553,12 @@ function shortPriceLabel(priceStr) {
     return priceStr;
 }
 
+function fitAllPrices() {
+    if (mapInstance && mapClusterGroup && mapClusterGroup.getBounds().isValid()) {
+        mapInstance.fitBounds(mapClusterGroup.getBounds(), {padding: [40, 40], maxZoom: 14});
+    }
+}
+
 function initPriceMap() {
     try {
         const userLat = document.getElementById('user-lat').value;
@@ -573,9 +586,11 @@ function initPriceMap() {
         }).addTo(mapInstance);
 
         mapClusterGroup = L.markerClusterGroup({
+            chunkedLoading: true,
             maxClusterRadius: 55,
             iconCreateFunction: function(cluster) {
-                return L.divIcon({className: 'wk-map-cluster', iconSize: [76, 42],
+                const allStale = cluster.getAllChildMarkers().every(marker => marker.options.isStale);
+                return L.divIcon({className: 'wk-map-cluster' + (allStale ? ' wk-map-cluster--stale' : ''), iconSize: [76, 42],
                     html: `<strong>${cluster.getChildCount()}</strong> price reports`});
             },
             spiderfyOnMaxZoom: true,
@@ -595,46 +610,67 @@ function initPriceMap() {
         }
 
         const urlArgs = new URLSearchParams({ q: searchQuery, sort: currentSort, lat: userLat, lng: userLng }).toString();
-        fetch(`/api/map-prices/?${urlArgs}`)
-            .then(res => { if (!res.ok) throw new Error('Map request failed'); return res.json(); })
-            .then(data => {
-                const status = document.getElementById('map-status');
-                status.textContent = data.items && data.items.length
-                    ? `${data.items.length === 150 ? 'Showing up to 150' : data.items.length} mapped reports · Search to narrow results`
-                    : 'No mapped prices for this search. Try another product or browse the list.';
-                if (!data.items || !data.items.length) return;
-
-                data.items.forEach(price => {
-                    const tier = 'other'; // Unrelated products are not a valid cheapest-price comparison.
-                    const marker = L.marker([price.lat, price.lng], {
-                        icon: createPriceMarkerIcon(shortPriceLabel(price.price), tier, price.product),
+        let loaded = 0;
+        let fitted = false;
+        mapInstance.addLayer(mapClusterGroup);
+        const status = document.getElementById('map-status');
+        async function loadAllMapPrices() {
+            let cursor = null;
+            try {
+                do {
+                    const response = await fetch(`/api/map-prices/?${urlArgs}${cursor ? `&cursor=${cursor}` : ''}`);
+                    if (!response.ok) throw new Error('Map request failed');
+                    const data = await response.json();
+                    const markers = [];
+                    data.items.forEach(price => {
+                        const tier = price.is_stale ? 'stale' : 'other';
+                        const marker = L.marker([price.lat, price.lng], {
+                            isStale: price.is_stale,
+                            icon: createPriceMarkerIcon(shortPriceLabel(price.price), tier, price.product),
+                        });
+                        const popup = document.createElement('div');
+                        for (const [value, className] of [
+                            [price.product, 'font-semibold text-sm text-gray-900'],
+                            [price.price, price.is_stale ? 'text-gray-500 font-bold' : 'text-brand-purple font-bold'],
+                            [price.is_stale ? 'Outdated · Check the current price with the shop' : 'Recently updated', 'text-xs text-gray-600'],
+                            [`Last updated ${price.updated_date || price.date}`, 'text-xs text-gray-500'],
+                            [price.business, 'text-xs text-gray-600 mt-1'],
+                            [`Reported ${price.date}`, 'text-xs text-gray-500'],
+                        ]) {
+                            const line = document.createElement('p');
+                            line.className = className;
+                            line.textContent = value;
+                            popup.appendChild(line);
+                        }
+                        const details = document.createElement('a');
+                        if (/^\/price\/\d+\/$/.test(price.url)) details.href = price.url;
+                        details.className = 'text-brand-purple text-sm font-semibold';
+                        details.textContent = 'View price details →';
+                        popup.appendChild(details);
+                        marker.bindPopup(popup);
+                        markers.push(marker);
+                        bounds.push([price.lat, price.lng]);
                     });
-                    const popup = document.createElement('div');
-                    for (const [value, className] of [
-                        [price.product, 'font-semibold text-sm text-gray-900'],
-                        [price.price, 'text-brand-purple font-bold'],
-                        [price.business, 'text-xs text-gray-600 mt-1'],
-                        [`Reported ${price.date}`, 'text-xs text-gray-500'],
-                    ]) {
-                        const line = document.createElement('p');
-                        line.className = className;
-                        line.textContent = value;
-                        popup.appendChild(line);
-                    }
-                    const details = document.createElement('a');
-                    if (/^\/price\/\d+\/$/.test(price.url)) details.href = price.url;
-                    details.className = 'text-brand-purple text-sm font-semibold';
-                    details.textContent = 'View price details →';
-                    popup.appendChild(details);
-                    marker.bindPopup(popup);
-                    mapClusterGroup.addLayer(marker);
-                    bounds.push([price.lat, price.lng]);
-                });
 
-                mapInstance.addLayer(mapClusterGroup);
-                if (bounds.length) mapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
-            })
-            .catch(err => { document.getElementById('map-status').textContent = 'Prices could not load on the map. Browse the price list or reload to try again.'; console.error('Map load failed:', err); });
+                    mapClusterGroup.addLayers(markers);
+                    loaded += data.items.length;
+                    if (!fitted && bounds.length) {
+                        mapInstance.fitBounds(bounds, {padding: [40, 40], maxZoom: 14});
+                        fitted = true;
+                    }
+                    cursor = data.next_cursor;
+                    status.textContent = loaded
+                        ? `${loaded} mapped reports${cursor ? ' · Loading more…' : ' · Includes outdated prices'}`
+                        : 'No mapped prices for this search. Try another product or browse the list.';
+                    // Yield between batches so map gestures remain responsive.
+                    if (cursor) await new Promise(resolve => setTimeout(resolve, 50));
+                } while (cursor);
+            } catch (error) {
+                status.textContent = `${loaded} reports loaded. More prices could not load; reload to retry.`;
+                console.error('Map load failed:', error);
+            }
+        }
+        loadAllMapPrices();
     } catch (error) {
         document.getElementById('map-status').textContent = 'Map unavailable. You can still search and browse the price list.'; console.error('Map init error:', error);
     }
