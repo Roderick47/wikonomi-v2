@@ -1,6 +1,151 @@
 (function () {
     'use strict';
 
+    const HOME_LOCATION_KEY = 'wikonomi_home_location_v1';
+    const HOME_LOCATION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+    const HOME_LOCAL_RADIUS_KM = 75;
+
+    function validCoordinate(value, min, max) {
+        const number = Number(value);
+        return Number.isFinite(number) && number >= min && number <= max;
+    }
+
+    function readStoredHomeLocation() {
+        try {
+            const raw = localStorage.getItem(HOME_LOCATION_KEY);
+            if (!raw) return null;
+            const saved = JSON.parse(raw);
+            if (!saved || !validCoordinate(saved.lat, -90, 90) || !validCoordinate(saved.lng, -180, 180)) return null;
+            if (!saved.savedAt || Date.now() - saved.savedAt > HOME_LOCATION_MAX_AGE_MS) {
+                localStorage.removeItem(HOME_LOCATION_KEY);
+                return null;
+            }
+            return { lat: Number(saved.lat), lng: Number(saved.lng) };
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function storeHomeLocation(lat, lng) {
+        try {
+            localStorage.setItem(HOME_LOCATION_KEY, JSON.stringify({
+                lat: Number(lat),
+                lng: Number(lng),
+                savedAt: Date.now()
+            }));
+        } catch (error) {
+            // Private browsing or storage restrictions should not block homepage use.
+        }
+    }
+
+    function redirectHomeWithLocation(lat, lng) {
+        const url = new URL(window.location.href);
+        const alreadyHasLocation = validCoordinate(url.searchParams.get('lat'), -90, 90)
+            && validCoordinate(url.searchParams.get('lng'), -180, 180);
+        if (alreadyHasLocation) return;
+
+        url.searchParams.set('lat', String(lat));
+        url.searchParams.set('lng', String(lng));
+        if (!url.searchParams.has('sort') || url.searchParams.get('sort') === 'recent') {
+            url.searchParams.set('sort', 'nearest');
+        }
+        window.location.replace(url.toString());
+    }
+
+    function distanceKm(lat1, lng1, lat2, lng2) {
+        const earthRadiusKm = 6371;
+        const toRadians = value => value * Math.PI / 180;
+        const dLat = toRadians(lat2 - lat1);
+        const dLng = toRadians(lng2 - lng1);
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+            + Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2))
+            * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function prioritizeHomepageMap(lat, lng) {
+        const status = document.getElementById('map-status');
+        if (!status || status.dataset.locationPriorityApplied === 'true') return;
+
+        const applyWhenReady = function () {
+            const text = status.textContent || '';
+            if (text.includes('Loading more')) return;
+
+            try {
+                if (typeof mapClusterGroup === 'undefined' || !mapClusterGroup || typeof mapInstance === 'undefined' || !mapInstance) {
+                    return;
+                }
+
+                const nearbyPoints = [];
+                mapClusterGroup.getLayers().forEach(function (layer) {
+                    if (typeof layer.getLatLng !== 'function') return;
+                    const point = layer.getLatLng();
+                    if (distanceKm(lat, lng, point.lat, point.lng) <= HOME_LOCAL_RADIUS_KM) {
+                        nearbyPoints.push([point.lat, point.lng]);
+                    }
+                });
+
+                status.dataset.locationPriorityApplied = 'true';
+                if (nearbyPoints.length) {
+                    nearbyPoints.push([lat, lng]);
+                    mapInstance.fitBounds(nearbyPoints, { padding: [40, 40], maxZoom: 14 });
+                    status.textContent = `${nearbyPoints.length - 1} nearby price report${nearbyPoints.length === 2 ? '' : 's'} prioritized · ${text}`;
+                } else if (typeof fitAllPrices === 'function') {
+                    fitAllPrices();
+                    status.textContent = `No nearby price reports yet · Showing all available locations · ${text}`;
+                }
+            } catch (error) {
+                // Keep the normal map behavior if location prioritization cannot be applied.
+            }
+        };
+
+        const observer = new MutationObserver(applyWhenReady);
+        observer.observe(status, { childList: true, characterData: true, subtree: true });
+        window.setTimeout(applyWhenReady, 1200);
+    }
+
+    function initializeLocationFirstHomepage() {
+        if (!document.getElementById('price-feed') || !document.getElementById('map')) return;
+
+        const url = new URL(window.location.href);
+        const latParam = url.searchParams.get('lat');
+        const lngParam = url.searchParams.get('lng');
+        if (validCoordinate(latParam, -90, 90) && validCoordinate(lngParam, -180, 180)) {
+            const lat = Number(latParam);
+            const lng = Number(lngParam);
+            storeHomeLocation(lat, lng);
+            prioritizeHomepageMap(lat, lng);
+            return;
+        }
+
+        const stored = readStoredHomeLocation();
+        if (stored) {
+            redirectHomeWithLocation(stored.lat, stored.lng);
+            return;
+        }
+
+        if (!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition(
+            function (position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                if (!validCoordinate(lat, -90, 90) || !validCoordinate(lng, -180, 180)) return;
+                storeHomeLocation(lat, lng);
+                redirectHomeWithLocation(lat, lng);
+            },
+            function () {
+                // Location is optional. The homepage keeps the existing global fallback.
+            },
+            {
+                enableHighAccuracy: false,
+                timeout: 5000,
+                maximumAge: 30 * 60 * 1000
+            }
+        );
+    }
+
+    document.addEventListener('DOMContentLoaded', initializeLocationFirstHomepage);
+
     const root = document.getElementById('wikonomi-onboarding');
     if (!root) return;
 
