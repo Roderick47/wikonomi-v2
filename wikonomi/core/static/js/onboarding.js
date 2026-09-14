@@ -6,6 +6,7 @@
     const HOME_LOCAL_RADIUS_KM = 75;
 
     function validCoordinate(value, min, max) {
+        if (value === null || value === undefined || value === '') return false;
         const number = Number(value);
         return Number.isFinite(number) && number >= min && number <= max;
     }
@@ -68,8 +69,9 @@
         if (!status || status.dataset.locationPriorityApplied === 'true') return;
 
         const applyWhenReady = function () {
+            if (status.dataset.locationPriorityApplied === 'true') return;
             const text = status.textContent || '';
-            if (text.includes('Loading more')) return;
+            if (text.includes('Loading reported') || text.includes('Loading more')) return;
 
             try {
                 if (typeof mapClusterGroup === 'undefined' || !mapClusterGroup || typeof mapInstance === 'undefined' || !mapInstance) {
