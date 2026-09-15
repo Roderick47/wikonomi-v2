@@ -7,7 +7,7 @@ from django.utils.safestring import mark_safe
 register = template.Library()
 
 ALLOWED_TAGS = [
-    'p', 'br', 'strong', 'em', 'code', 'pre', 'ul', 'ol', 'li',
+    'div', 'p', 'br', 'strong', 'em', 'code', 'pre', 'ul', 'ol', 'li',
     'blockquote', 'a', 'h2', 'h3', 'hr',
 ]
 ALLOWED_ATTRS = {
@@ -34,8 +34,8 @@ def _inline_markup(text):
         r'<a href="\2" target="_blank" rel="noopener noreferrer" class="font-semibold text-brand-purple underline decoration-violet-200 underline-offset-2 hover:decoration-brand-purple">\1</a>',
         text,
     )
-    text = re.sub(r'\*\*([^*]+)\*\*', r'<strong class="font-bold text-slate-900">\1</strong>', text)
-    text = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'<em class="italic">\1</em>', text)
+    text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', text)
+    text = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'<em>\1</em>', text)
     return text
 
 
@@ -55,7 +55,10 @@ def guide_markdown(value):
     def flush_paragraph():
         if paragraph:
             rendered_lines = '<br>'.join(_inline_markup(line) for line in paragraph)
-            html.append(f'<p class="my-3 leading-7 text-slate-700">{rendered_lines}</p>')
+            html.append(
+                '<div class="my-3 leading-7 text-slate-700">'
+                f'<p>{rendered_lines}</p></div>'
+            )
             paragraph.clear()
 
     def close_list():
