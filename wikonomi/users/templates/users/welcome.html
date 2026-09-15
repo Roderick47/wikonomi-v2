@@ -42,6 +42,37 @@
       <p>Thank you for joining us.</p>
       <p class="text-xl font-bold text-gray-900">Welcome to Wikonomi.</p>
 
+      <section class="mt-10 rounded-3xl border border-purple-100 bg-gradient-to-br from-purple-50 via-white to-blue-50 p-6 sm:p-8" aria-labelledby="share-wikonomi-title">
+        <div class="max-w-2xl">
+          <p class="text-sm font-semibold uppercase tracking-[0.16em] text-brand-purple">Help draw the map</p>
+          <h2 id="share-wikonomi-title" class="mt-2 text-2xl sm:text-3xl font-bold text-gray-900">Bring someone with you.</h2>
+          <p class="mt-3 text-gray-600 leading-7">If this mission speaks to you, share Wikonomi with your friends, family and community. One person telling one person is how something small begins to move.</p>
+        </div>
+
+        <div class="mt-6 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm">
+          <label for="wikonomi-share-text" class="block text-sm font-semibold text-gray-900">A message you can use</label>
+          <textarea id="wikonomi-share-text" rows="7" class="mt-3 w-full resize-y rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm leading-6 text-gray-700 focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20">PNG’s economy is full of knowledge hiding in plain sight — prices on shelves, businesses down the road, and know-how carried by ordinary people.
+
+Wikonomi is trying to bring that knowledge together into a living map of our local economy, built by Papua New Guineans for Papua New Guinea.
+
+I’ve joined early, while the map is still being drawn. If you believe PNG should be easier to discover, compare and navigate, come help us build it. Post a price. Add a business. Share a guide. Even one small contribution can become part of something much bigger.</textarea>
+          <div class="mt-3 flex flex-wrap items-center gap-3">
+            <button type="button" id="copy-share-text" class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Copy message</button>
+            <span id="copy-share-status" class="text-sm font-medium text-green-700" role="status" aria-live="polite"></span>
+          </div>
+        </div>
+
+        <div class="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <button type="button" data-share-platform="native" class="share-wikonomi-btn rounded-xl bg-brand-purple px-4 py-3 text-sm font-semibold text-white hover:bg-brand-purple/90">Share</button>
+          <button type="button" data-share-platform="whatsapp" class="share-wikonomi-btn rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50">WhatsApp</button>
+          <button type="button" data-share-platform="facebook" class="share-wikonomi-btn rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50">Facebook</button>
+          <button type="button" data-share-platform="x" class="share-wikonomi-btn rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50">X</button>
+          <button type="button" data-share-platform="linkedin" class="share-wikonomi-btn rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50">LinkedIn</button>
+          <button type="button" data-share-platform="email" class="share-wikonomi-btn rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50">Email</button>
+        </div>
+        <p class="mt-3 text-xs leading-5 text-gray-500">On phones, the Share button can also open other apps installed on your device. Facebook and LinkedIn control the final wording shown with shared links.</p>
+      </section>
+
       <div class="pt-6 flex flex-col sm:flex-row gap-3">
         <a href="{% url 'welcome_continue' %}" class="flex-1 text-center rounded-xl bg-brand-purple px-6 py-3 font-semibold text-white hover:bg-brand-purple/90">{% if has_return_destination %}Continue where I left off →{% else %}Start exploring Wikonomi →{% endif %}</a>
         {% if has_return_destination %}<a href="{% url 'welcome_explore' %}" class="flex-1 text-center rounded-xl border border-gray-300 px-6 py-3 font-semibold text-gray-700 hover:bg-gray-50">Explore Wikonomi</a>{% endif %}
@@ -49,4 +80,90 @@
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  const siteUrl = 'https://wikonomi.com/';
+  const shareTitle = 'Wikonomi — help build PNG’s local economic map';
+  const textArea = document.getElementById('wikonomi-share-text');
+  const copyButton = document.getElementById('copy-share-text');
+  const copyStatus = document.getElementById('copy-share-status');
+  const shareButtons = document.querySelectorAll('.share-wikonomi-btn');
+
+  function getShareText() {
+    return textArea.value.trim();
+  }
+
+  async function copyShareMessage() {
+    const fullMessage = getShareText() + '\n\n' + siteUrl;
+    try {
+      await navigator.clipboard.writeText(fullMessage);
+      copyStatus.textContent = 'Copied!';
+    } catch (error) {
+      textArea.focus();
+      textArea.select();
+      document.execCommand('copy');
+      copyStatus.textContent = 'Copied!';
+    }
+    window.setTimeout(function () {
+      copyStatus.textContent = '';
+    }, 2500);
+  }
+
+  function openShareWindow(url) {
+    window.open(url, '_blank', 'noopener,noreferrer,width=720,height=640');
+  }
+
+  copyButton.addEventListener('click', copyShareMessage);
+
+  shareButtons.forEach(function (button) {
+    button.addEventListener('click', async function () {
+      const platform = button.dataset.sharePlatform;
+      const shareText = getShareText();
+      const encodedText = encodeURIComponent(shareText);
+      const encodedUrl = encodeURIComponent(siteUrl);
+
+      if (platform === 'native') {
+        if (navigator.share) {
+          try {
+            await navigator.share({ title: shareTitle, text: shareText, url: siteUrl });
+          } catch (error) {
+            if (error.name !== 'AbortError') {
+              await copyShareMessage();
+            }
+          }
+        } else {
+          await copyShareMessage();
+        }
+        return;
+      }
+
+      if (platform === 'whatsapp') {
+        openShareWindow('https://wa.me/?text=' + encodeURIComponent(shareText + '\n\n' + siteUrl));
+        return;
+      }
+
+      if (platform === 'facebook') {
+        openShareWindow('https://www.facebook.com/sharer/sharer.php?u=' + encodedUrl);
+        return;
+      }
+
+      if (platform === 'x') {
+        const xText = 'PNG’s economy is full of knowledge hiding in plain sight. Wikonomi is building a living map of our local economy, by Papua New Guineans for Papua New Guinea. I joined while the map is still being drawn — come help build it. 🇵🇬';
+        openShareWindow('https://twitter.com/intent/tweet?text=' + encodeURIComponent(xText) + '&url=' + encodedUrl);
+        return;
+      }
+
+      if (platform === 'linkedin') {
+        openShareWindow('https://www.linkedin.com/sharing/share-offsite/?url=' + encodedUrl);
+        return;
+      }
+
+      if (platform === 'email') {
+        window.location.href = 'mailto:?subject=' + encodeURIComponent(shareTitle) + '&body=' + encodeURIComponent(shareText + '\n\n' + siteUrl);
+      }
+    });
+  });
+})();
+</script>
 {% endblock %}
