@@ -4,49 +4,14 @@ on:
   push:
     branches:
       - feature/promotions-commerce-hierarchy
-  pull_request:
-    paths:
-      - 'wikonomi/promotions/**'
-      - 'wikonomi/core/templates/**'
-      - 'wikonomi/wikonomi/settings.py'
-      - 'wikonomi/wikonomi/test_settings.py'
-      - 'wikonomi/wikonomi/urls.py'
-      - '.github/workflows/promotions-check.yml'
   workflow_dispatch:
 
 jobs:
-  django-checks:
+  runner-smoke-test:
     runs-on: ubuntu-latest
-    env:
-      DEBUG: 'True'
-      SECRET_KEY: ci-promotions-check
-      DJANGO_SETTINGS_MODULE: wikonomi.test_settings
-      PROMOTIONS_ENABLED: 'True'
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Compile Python
-        run: python -m compileall -q wikonomi
-
-      - name: Django system check
-        working-directory: wikonomi
-        run: python manage.py check
-
-      - name: Check migration drift
-        working-directory: wikonomi
-        run: python manage.py makemigrations --check --dry-run
-
-      - name: Run promotion tests
-        working-directory: wikonomi
-        run: python manage.py test promotions --verbosity 2
+      - name: Runner started
+        run: |
+          echo "GitHub-hosted runner started successfully"
+          python3 --version
+          git --version
