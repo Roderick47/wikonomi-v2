@@ -1,5 +1,6 @@
-{% load custom_filters humanize static %}
+{% load custom_filters humanize static promotions_tags %}
 {% static 'img/default-profile.svg' as fallback_profile_picture_url %}
+{% effective_promotion_price report as promo_price %}
 {% if price_card_static %}
 <div class="price-card {% if report.is_stale %}price-card--stale{% endif %} group block bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
 {% else %}
@@ -8,13 +9,16 @@
 {% endif %}
    data-product-card
    data-name="{{ report.product.name|lower|escape }}"
-   data-price="{{ report.price }}"
+   data-price="{% if promo_price %}{{ promo_price.effective_price }}{% else %}{{ report.price }}{% endif %}"
    data-updated="{{ report.updated_at|date:'U' }}"
    data-rating-widget
    data-rating-target="price-report"
    data-object-id="{{ report.id }}">
     <div class="p-4">
-        {% if report.is_stale %}<span class="inline-flex mb-2 rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">Outdated · Check current price</span>{% endif %}
+        <div class="mb-2 flex flex-wrap gap-1.5">
+            {% if report.is_stale %}<span class="inline-flex rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">Outdated · Check current price</span>{% endif %}
+            {% if promo_price %}<span class="inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-extrabold text-amber-800">🔥 {{ promo_price.promotion.display_deal }}</span>{% endif %}
+        </div>
         <div class="flex gap-3">
             <div class="h-20 w-20 shrink-0 rounded-lg bg-gray-50 border border-slate-100 overflow-hidden flex items-center justify-center">
                 {% if report.primary_photo %}
@@ -44,6 +48,18 @@
                             <svg class="ml-1 h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </a>
                         {% endif %}
+
+                        {% if promo_price and not price_card_editable %}
+                        <p class="mt-1 text-2xl font-extrabold text-brand-green leading-none">
+                            {% if promo_price.is_estimate %}<span class="text-lg" title="Calculated from the latest reported price">≈</span>{% endif %}
+                            <span>{{ report.currency }}</span> {{ promo_price.effective_price|intcomma }}
+                        </p>
+                        <p class="mt-1 text-xs text-gray-500">
+                            <span class="line-through">{{ report.currency }} {{ report.price|intcomma }}</span>
+                            · <span class="font-semibold text-amber-700">{{ promo_price.promotion.title }}</span>
+                            {% if promo_price.based_on_stale_price %} · estimate uses an outdated base price{% elif promo_price.is_estimate %} · calculated estimate{% endif %}
+                        </p>
+                        {% else %}
                         <p class="mt-1 text-2xl font-extrabold text-brand-green leading-none"{% if price_card_editable %} id="wk-price-badge"{% endif %}>
                             <span{% if price_card_editable %} class="wk-price-prefix"{% endif %}>{{ report.currency }}</span>
                             {% if price_card_editable %}
@@ -53,6 +69,10 @@
                             {{ report.price|intcomma }}
                             {% endif %}
                         </p>
+                        {% if promo_price and price_card_editable %}
+                        <p class="mt-1 text-xs font-semibold text-amber-700">🔥 {{ promo_price.promotion.display_deal }} currently applies · shopper price {% if promo_price.is_estimate %}≈ {% endif %}{{ report.currency }} {{ promo_price.effective_price|intcomma }}</p>
+                        {% endif %}
+                        {% endif %}
                     </div>
                     <div class="flex shrink-0 items-start gap-0.5">
                         <button type="button" onclick="sharePriceReport(event, {title: '{{ report.product.name|escapejs }}', text: 'Checked {{ report.product.name|escapejs }} at {{ report.business.name|default:"Unknown"|escapejs }} for {{ report.currency|escapejs }} {{ report.price|intcomma|escapejs }} on Wikonomi.', url: window.location.origin + '{% url 'price_share' report.pk %}'})" class="p-1.5 text-gray-400 hover:text-brand-purple rounded-full hover:bg-brand-purple/10" title="Share" aria-label="Share">

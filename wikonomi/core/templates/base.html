@@ -27,9 +27,7 @@
     {% endwith %}
     {% endblock %}
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='100%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' stop-color='%2366D17E' /%3E%3Cstop offset='50%25' stop-color='%234DB8FF' /%3E%3Cstop offset='100%25' stop-color='%234B2798' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ctext x='50%25' y='80%25' font-family='Arial, sans-serif' font-size='80' font-weight='900' font-style='italic' fill='url(%23g)' text-anchor='middle'%3EW%3C/text%3E%3C/svg%3E">
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -46,9 +44,7 @@
             }
         }
     </script>
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <link rel="stylesheet" href="{% static 'css/onboarding.css' %}">
     {% block extra_head %}{% endblock %}
@@ -59,20 +55,20 @@
     <nav id="site-navbar" class="bg-white shadow sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-4 min-w-0">
                     <div class="flex-shrink-0 flex items-center">
                         <a href="{% url 'home' %}" class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-green via-brand-blue to-brand-purple">wikonomi</a>
                     </div>
                     <div class="hidden md:flex items-center gap-1">
                         <a href="{% url 'product_list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-purple hover:bg-brand-purple/10 transition-colors">Prices</a>
-                        <a href="{% url 'business_list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-blue hover:bg-brand-blue/10 transition-colors">Businesses</a>
-                        <a href="{% url 'guides:list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-green hover:bg-brand-green/10 transition-colors">Guides</a>
-                        <a href="{% url 'transport_index:cab_list' %}" class="hidden lg:block px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-purple hover:bg-brand-purple/10 transition-colors">Transport</a>
+                        {% if promotions_enabled %}<a href="{% url 'promotions:list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-amber-700 hover:bg-amber-50 transition-colors">Specials</a>{% endif %}
+                        <a href="{% url 'business_list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-blue hover:bg-brand-blue/10 transition-colors">Stores</a>
+                        <a href="{% url 'guides:list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-600 hover:text-brand-green hover:bg-brand-green/10 transition-colors">Guides</a>
                     </div>
                 </div>
                 <div class="flex items-center space-x-2 sm:space-x-4">
                     {% if user.is_authenticated %}
-                        <div class="flex items-center space-x-2 sm:space-x-4">
+                        <div class="hidden sm:flex items-center space-x-3">
                             <a href="{% url 'my_prices' %}" class="text-gray-700 hover:text-brand-purple flex items-center relative" title="My Prices">
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                             </a>
@@ -81,86 +77,48 @@
                             </a>
                             <a href="{% url 'notifications' %}" class="relative text-gray-700 hover:text-brand-purple flex items-center" title="Notifications">
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                                {% if unread_notifications_count > 0 %}
-                                <span class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-red-100 transform translate-x-1/4 -translate-y-1/4 bg-red-600 rounded-full">{{ unread_notifications_count }}</span>
-                                {% endif %}
+                                {% if unread_notifications_count > 0 %}<span class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-red-100 transform translate-x-1/4 -translate-y-1/4 bg-red-600 rounded-full">{{ unread_notifications_count }}</span>{% endif %}
                             </a>
                         </div>
-                        <a href="{% url 'profile' %}" class="text-gray-700 hover:text-brand-purple font-medium text-sm sm:text-base">
-                            {{ user.username }}
-                        </a>
-                        <div class="relative">
-                            <button onclick="toggleAddDropdown()" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold py-1.5 px-3 sm:py-2 sm:px-4 rounded text-sm sm:text-base whitespace-nowrap flex items-center">
-                                Post
-                                <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                </svg>
-                            </button>
-                            <div id="add-dropdown" class="hidden absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                                <div class="py-1">
-                                    <a href="{% url 'add_price' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
-                                        <svg class="h-4 w-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        Post Prices
-                                    </a>
-                                    <a href="{% url 'add_business' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
-                                        <svg class="h-4 w-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                        </svg>
-                                        Post Business
-                                    </a>
-                                    <a href="{% url 'guides:create' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
-                                        <svg class="h-4 w-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                                        </svg>
-                                        Add Guide
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
+                        <a href="{% url 'profile' %}" class="hidden lg:inline text-gray-700 hover:text-brand-purple font-medium text-sm">{{ user.username }}</a>
                     {% else %}
-                        <a href="{% url 'signup' %}" class="text-gray-700 hover:text-brand-purple font-medium text-sm sm:text-base">
-                            Sign Up
-                        </a>
-                        <a href="{% url 'login' %}" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold py-1.5 px-3 sm:py-2 sm:px-4 rounded text-sm sm:text-base">
-                            Login
-                        </a>
+                        <a href="{% url 'signup' %}" class="hidden sm:inline text-gray-700 hover:text-brand-purple font-medium text-sm">Sign Up</a>
+                        <a href="{% url 'login' %}" class="hidden sm:inline bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2 px-3 rounded-lg text-sm">Login</a>
                     {% endif %}
+                    <a href="{% url 'contribute' %}" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-extrabold py-2 px-3 sm:px-4 rounded-lg text-sm whitespace-nowrap shadow-sm">+ Add</a>
                 </div>
+            </div>
+            <div class="flex md:hidden items-center gap-1 overflow-x-auto border-t border-gray-100 py-2 -mx-1 px-1 text-sm">
+                <a href="{% url 'product_list' %}" class="shrink-0 rounded-full bg-brand-purple/10 px-3 py-1.5 font-bold text-brand-purple">Prices</a>
+                {% if promotions_enabled %}<a href="{% url 'promotions:list' %}" class="shrink-0 rounded-full bg-amber-50 px-3 py-1.5 font-bold text-amber-700">Specials</a>{% endif %}
+                <a href="{% url 'business_list' %}" class="shrink-0 rounded-full px-3 py-1.5 font-semibold text-gray-600">Stores</a>
+                <a href="{% url 'guides:list' %}" class="shrink-0 rounded-full px-3 py-1.5 font-semibold text-gray-500">Guides</a>
             </div>
         </div>
     </nav>
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {% block content %}
-        {% endblock %}
+        {% block content %}{% endblock %}
     </main>
     <footer class="bg-white border-t border-gray-200 mt-12 py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center">
-            <div class="text-gray-500 text-sm">
-                &copy; 2026 Wikonomi. All rights reserved.
-            </div>
-            <div class="mt-4 md:mt-0 space-x-4">
+            <div class="text-gray-500 text-sm">&copy; 2026 Wikonomi. All rights reserved.</div>
+            <div class="mt-4 md:mt-0 flex flex-wrap justify-center gap-x-4 gap-y-2">
                 <a href="{% url 'about' %}" class="text-gray-500 hover:text-brand-purple text-sm font-medium">About Wikonomi</a>
                 <a href="{% url 'how_to_use' %}" class="text-gray-500 hover:text-brand-purple text-sm font-medium">How it works</a>
+                <a href="{% url 'transport_index:cab_list' %}" class="text-gray-500 hover:text-brand-purple text-sm font-medium">Transport</a>
                 <button type="button" data-onboarding-open class="text-gray-500 hover:text-brand-purple text-sm font-medium">Quick tour</button>
             </div>
         </div>
     </footer>
 
-    <!-- Cookie Consent Banner -->
     <div id="cookie-consent" class="fixed bottom-0 left-0 right-0 bg-gray-900 text-white p-4 transform translate-y-full transition-transform duration-300 z-50">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
             <p class="text-sm">We use cookies to improve your experience and support caching for faster performance. By continuing, you agree to our use of cookies.</p>
-            <div class="flex gap-4">
-                <button onclick="acceptCookies()" class="bg-brand-purple hover:bg-brand-purple/90 text-white px-4 py-2 rounded text-sm font-bold transition-colors">Accept</button>
-            </div>
+            <div class="flex gap-4"><button onclick="acceptCookies()" class="bg-brand-purple hover:bg-brand-purple/90 text-white px-4 py-2 rounded text-sm font-bold transition-colors">Accept</button></div>
         </div>
     </div>
 
-    <!-- Global Toast Notifications -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-[100] flex flex-col items-end gap-2 max-w-sm w-full pointer-events-none" aria-live="polite" aria-atomic="false"></div>
-
     {% include 'includes/_onboarding.html' %}
 
     <script>
@@ -179,22 +137,6 @@
         window.addEventListener('resize', updateNavbarHeight);
         window.addEventListener('orientationchange', updateNavbarHeight);
 
-        function toggleAddDropdown() {
-            const dropdown = document.getElementById('add-dropdown');
-            dropdown.classList.toggle('hidden');
-        }
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            const dropdown = document.getElementById('add-dropdown');
-            if (!dropdown) return;
-            const button = event.target.closest('button[onclick="toggleAddDropdown()"]');
-            
-            if (!dropdown.contains(event.target) && !button) {
-                dropdown.classList.add('hidden');
-            }
-        });
-
         document.addEventListener('DOMContentLoaded', function() {
             if (!localStorage.getItem('cookieConsent')) {
                 setTimeout(() => {
@@ -203,7 +145,6 @@
             }
         });
 
-        // Global Sharing Functionality
         async function sharePriceReport(event, data) {
             if (event) {
                 event.preventDefault();
@@ -242,7 +183,6 @@
             });
         }
 
-
         function getCookie(name) {
             const value = `; ${document.cookie}`;
             const parts = value.split(`; ${name}=`);
@@ -268,11 +208,9 @@
             if (menuToggle) {
                 event.preventDefault();
                 event.stopPropagation();
-
                 const root = menuToggle.closest('[data-rating-menu-root]');
                 const menu = root ? root.querySelector('[data-rating-menu]') : null;
                 if (!menu) return;
-
                 const willOpen = menu.classList.contains('hidden');
                 closeRatingMenus(root);
                 menu.classList.toggle('hidden', !willOpen);
@@ -315,9 +253,7 @@
                     return;
                 }
 
-                if (!response.ok) {
-                    throw new Error('Rating request failed');
-                }
+                if (!response.ok) throw new Error('Rating request failed');
 
                 const data = await response.json();
                 const widget = ratingButton.closest('[data-rating-widget]') || document.querySelector(`[data-rating-widget][data-rating-target="${target}"][data-object-id="${objectId}"]`);
@@ -347,13 +283,11 @@
                         button.classList.toggle('text-amber-700', isSelected);
                         button.classList.toggle('text-gray-700', !isSelected);
                     });
-                    // Update or create "Your rating" badge
                     let yourRatingBadge = widget.querySelector('[data-your-rating-badge]');
                     if (yourRatingBadge) {
                         const badgeValue = yourRatingBadge.querySelector('[data-your-rating-value]');
                         if (badgeValue) badgeValue.textContent = data.rating;
                     } else {
-                        // Create the badge if it doesn't exist
                         const headerDiv = widget.querySelector('.flex.flex-col.gap-1') || widget.querySelector('div');
                         if (headerDiv) {
                             const badge = document.createElement('span');
@@ -370,13 +304,11 @@
                         if (score) score.textContent = Number(data.average_rating || 0).toFixed(1);
                         if (count) count.textContent = data.rating_count;
                     });
-                    // Update or create "Your rating" badge
                     let yourRatingBadge = widget.querySelector('[data-your-rating-badge]');
                     if (yourRatingBadge) {
                         const badgeValue = yourRatingBadge.querySelector('[data-your-rating-value]');
                         if (badgeValue) badgeValue.textContent = data.rating;
                     } else {
-                        // Create the badge if it doesn't exist
                         const headerDiv = widget.querySelector('.flex.flex-col.gap-1') || widget.querySelector('div');
                         if (headerDiv) {
                             const badge = document.createElement('span');
@@ -397,63 +329,39 @@
         });
 
         document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                closeRatingMenus();
-            }
+            if (event.key === 'Escape') closeRatingMenus();
         });
 
         const TOAST_STYLES = {
-            success: {
-                bg: 'bg-gray-900', accent: 'text-green-400',
-                icon: '<svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>'
-            },
-            error: {
-                bg: 'bg-gray-900', accent: 'text-red-400',
-                icon: '<svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>'
-            },
-            warning: {
-                bg: 'bg-gray-900', accent: 'text-amber-400',
-                icon: '<svg class="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l6.518 11.59c.75 1.334-.213 2.987-1.743 2.987H3.482c-1.53 0-2.493-1.653-1.743-2.987L8.257 3.1zM11 14a1 1 0 11-2 0 1 1 0 012 0zm-1-2a1 1 0 01-1-1V8a1 1 0 112 0v3a1 1 0 01-1 1z" clip-rule="evenodd"></path></svg>'
-            },
-            info: {
-                bg: 'bg-gray-900', accent: 'text-blue-400',
-                icon: '<svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>'
-            },
+            success: { bg: 'bg-gray-900', accent: 'text-green-400', icon: '<svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>' },
+            error: { bg: 'bg-gray-900', accent: 'text-red-400', icon: '<svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>' },
+            warning: { bg: 'bg-gray-900', accent: 'text-amber-400', icon: '<svg class="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l6.518 11.59c.75 1.334-.213 2.987-1.743 2.987H3.482c-1.53 0-2.493-1.653-1.743-2.987L8.257 3.1zM11 14a1 1 0 11-2 0 1 1 0 012 0zm-1-2a1 1 0 01-1-1V8a1 1 0 112 0v3a1 1 0 01-1 1z" clip-rule="evenodd"></path></svg>' },
+            info: { bg: 'bg-gray-900', accent: 'text-blue-400', icon: '<svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>' },
         };
 
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
             if (!container) return;
             const style = TOAST_STYLES[type] || TOAST_STYLES.info;
-
             const toast = document.createElement('div');
             toast.className = `${style.bg} text-white px-4 py-3 rounded-lg shadow-2xl flex items-start gap-2 pointer-events-auto transform translate-y-2 opacity-0 transition-all duration-300 w-full`;
             toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
-
             const iconWrap = document.createElement('span');
             iconWrap.className = 'shrink-0 mt-0.5';
-            iconWrap.innerHTML = style.icon; // static markup, not user data
-
+            iconWrap.innerHTML = style.icon;
             const messageEl = document.createElement('span');
             messageEl.className = 'text-sm flex-1';
-            messageEl.textContent = message; // textContent — never parsed as HTML
-
+            messageEl.textContent = message;
             const closeBtn = document.createElement('button');
             closeBtn.type = 'button';
             closeBtn.className = 'shrink-0 text-gray-400 hover:text-white -mr-1 -mt-0.5';
             closeBtn.setAttribute('aria-label', 'Dismiss');
             closeBtn.innerHTML = '<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
-
             toast.appendChild(iconWrap);
             toast.appendChild(messageEl);
             toast.appendChild(closeBtn);
             container.appendChild(toast);
-
-            // Animate in
-            requestAnimationFrame(() => {
-                toast.classList.remove('translate-y-2', 'opacity-0');
-            });
-
+            requestAnimationFrame(() => toast.classList.remove('translate-y-2', 'opacity-0'));
             const dismiss = () => {
                 toast.classList.add('translate-y-2', 'opacity-0');
                 setTimeout(() => toast.remove(), 300);
@@ -462,10 +370,6 @@
             setTimeout(dismiss, type === 'error' || type === 'warning' ? 6000 : 4000);
         }
 
-        // Surface every server-side Django message (messages.success/error/warning/info
-        // from any view) as a toast — this used to only be wired up on a handful of
-        // pages that hand-rendered their own message boxes, so messages set by views
-        // backing other pages (e.g. a redirect to the home page) were silently dropped.
         document.addEventListener('DOMContentLoaded', function() {
             {% for message in messages %}
             showToast('{{ message|escapejs }}', '{{ message.tags|escapejs|default:"info" }}');

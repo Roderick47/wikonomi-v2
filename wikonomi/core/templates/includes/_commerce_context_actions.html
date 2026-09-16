@@ -1,0 +1,9 @@
+{% if shortcut_rating_target == 'business' and business %}
+<a href="{% url 'add_price' %}?business_name={{ business.name|urlencode }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/5">💰 Report a price here</a>
+{% if promotions_enabled %}<a href="{% url 'promotions:create' %}?business={{ business.pk }}&scope=storewide&next={{ request.get_full_path|urlencode }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50">🔥 Report a special here</a>{% endif %}
+{% elif shortcut_rating_target == 'price-report' and report %}
+<a href="{% url 'add_price' %}?product_name={{ report.product.name|urlencode }}{% if report.business %}&business_name={{ report.business.name|urlencode }}{% endif %}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/5">💰 Report the price you see now</a>
+{% if promotions_enabled and report.business %}<a href="{% url 'promotions:create' %}?business={{ report.business.pk }}&product={{ report.product.pk }}&scope=product&next={{ request.get_full_path|urlencode }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50">🔥 Report a special for this product</a>{% endif %}
+{% elif product %}
+<a href="{% url 'add_price' %}?product_name={{ product.name|urlencode }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/5">💰 Add a price for this product</a>
+{% endif %}

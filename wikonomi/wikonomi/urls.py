@@ -24,6 +24,7 @@ from transport_index.views import robots_txt
 from django.contrib.sitemaps.views import sitemap
 from .sitemaps import sitemaps
 from mcp_server.views import openai_apps_challenge
+from promotions import views as promotion_views
 from .health import health
 
 urlpatterns = [
@@ -39,6 +40,8 @@ urlpatterns = [
     path('users/', include('users.urls')),
     path('accounts/', include('allauth.urls')),
     path('categories/', include('categories.urls')),
+    path('add/', promotion_views.contribute, name='contribute'),
+    path('specials/', include('promotions.urls')),
     path('', include('core.urls')),
     path('analytics/', include('analytics.urls')),
     path('guides/', include('guides.urls')),
