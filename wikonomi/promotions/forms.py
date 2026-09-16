@@ -1,4 +1,5 @@
 from datetime import timedelta
+from zoneinfo import ZoneInfo
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -16,6 +17,23 @@ FIELD_CLASS = (
     'text-sm shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 '
     'focus:ring-brand-purple/20'
 )
+PNG_TIME_ZONE = ZoneInfo('Pacific/Port_Moresby')
+
+
+def _png_wall_time(value):
+    """Interpret datetime-local form values as Papua New Guinea local time.
+
+    The wider project currently stores/display-times with Django's UTC default.
+    Promotion forms use browser ``datetime-local`` inputs, so the wall-clock
+    value the user enters needs to mean PNG time rather than UTC. We convert
+    that one input boundary without changing the timezone behavior of existing
+    production models.
+    """
+    if value is None:
+        return None
+    if timezone.is_aware(value):
+        value = value.replace(tzinfo=None)
+    return timezone.make_aware(value, PNG_TIME_ZONE)
 
 
 class PromotionForm(forms.ModelForm):
@@ -127,7 +145,7 @@ class PromotionForm(forms.ModelForm):
         self.fields['end_at'].input_formats = ['%Y-%m-%dT%H:%M']
 
         if not self.is_bound and not self.initial.get('start_at'):
-            self.initial['start_at'] = timezone.localtime().strftime('%Y-%m-%dT%H:%M')
+            self.initial['start_at'] = timezone.now().astimezone(PNG_TIME_ZONE).strftime('%Y-%m-%dT%H:%M')
 
         business_id = self.data.get('business') or self.initial.get('business')
         if business_id:
@@ -154,9 +172,16 @@ class PromotionForm(forms.ModelForm):
         scope = cleaned.get('scope')
         deal_type = cleaned.get('deal_type')
         duration = cleaned.get('duration')
-        start_at = cleaned.get('start_at') or timezone.now()
         business = cleaned.get('business')
         branch = cleaned.get('business_branch')
+
+        start_at = _png_wall_time(cleaned.get('start_at'))
+        if start_at is None:
+            start_at = timezone.now().astimezone(PNG_TIME_ZONE)
+        cleaned['start_at'] = start_at
+
+        if cleaned.get('end_at'):
+            cleaned['end_at'] = _png_wall_time(cleaned['end_at'])
 
         if branch and business and branch.canonical_business_id != business.id:
             self.add_error('business_branch', 'Choose a branch belonging to this store.')
@@ -173,9 +198,7 @@ class PromotionForm(forms.ModelForm):
 
         if duration != self.Duration.CUSTOM:
             if duration == self.Duration.TODAY:
-                local_start = timezone.localtime(start_at)
-                local_end = local_start.replace(hour=23, minute=59, second=59, microsecond=0)
-                cleaned['end_at'] = local_end
+                cleaned['end_at'] = start_at.replace(hour=23, minute=59, second=59, microsecond=0)
             else:
                 days = 7 if duration == self.Duration.UNKNOWN else int(duration or 7)
                 cleaned['end_at'] = start_at + timedelta(days=days)
@@ -190,6 +213,7 @@ class PromotionForm(forms.ModelForm):
 
     def save(self, commit=True):
         promotion = super().save(commit=False)
+        promotion.start_at = self.cleaned_data.get('start_at')
         promotion.end_at = self.cleaned_data.get('end_at')
         if commit:
             promotion.save()
