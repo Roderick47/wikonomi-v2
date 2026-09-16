@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Report a special | Wikonomi{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl py-3 sm:py-8">
+    <a href="{{ cancel_url }}" class="inline-flex items-center text-sm font-semibold text-gray-600 hover:text-brand-purple">← Back</a>
+
+    <div class="mt-5 overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+        <div class="border-b border-gray-100 bg-gradient-to-br from-amber-50 via-white to-brand-purple/5 px-5 py-7 sm:px-8">
+            <p class="text-sm font-bold uppercase tracking-[0.18em] text-amber-700">Specials & promotions</p>
+            <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-gray-950">What special did you see?</h1>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-gray-600">Tell us what the store advertised. Wikonomi handles when it becomes active, when it expires, and which prices it can affect.</p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="space-y-8 px-5 py-7 sm:px-8" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <section>
+                <div class="mb-4 flex items-center gap-3">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-purple text-sm font-extrabold text-white">1</span>
+                    <div>
+                        <h2 class="font-extrabold text-gray-950">Where did you see it?</h2>
+                        <p class="text-xs text-gray-500">Choose the store. A branch is optional.</p>
+                    </div>
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="{{ form.business.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Store or business</label>
+                        {{ form.business }}
+                        {% if form.business.errors %}<p class="mt-1 text-xs text-red-600">{{ form.business.errors|join:", " }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.business_branch.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Specific branch <span class="font-normal text-gray-400">optional</span></label>
+                        {{ form.business_branch }}
+                        {% if form.business_branch.errors %}<p class="mt-1 text-xs text-red-600">{{ form.business_branch.errors|join:", " }}</p>{% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <section class="border-t border-gray-100 pt-7">
+                <div class="mb-4 flex items-center gap-3">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-purple text-sm font-extrabold text-white">2</span>
+                    <div>
+                        <h2 class="font-extrabold text-gray-950">What did the offer say?</h2>
+                        <p class="text-xs text-gray-500">Use the wording shoppers would recognize.</p>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label for="{{ form.title.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Name of the special</label>
+                        {{ form.title }}
+                        {% if form.title.errors %}<p class="mt-1 text-xs text-red-600">{{ form.title.errors|join:", " }}</p>{% endif %}
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="{{ form.kind.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">What kind of promotion?</label>
+                            {{ form.kind }}
+                        </div>
+                        <div>
+                            <label for="{{ form.deal_type.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">What kind of deal?</label>
+                            {{ form.deal_type }}
+                        </div>
+                    </div>
+                    <div data-discount-value>
+                        <label for="{{ form.discount_value.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800"><span data-discount-label>Discount</span></label>
+                        {{ form.discount_value }}
+                        {% if form.discount_value.errors %}<p class="mt-1 text-xs text-red-600">{{ form.discount_value.errors|join:", " }}</p>{% endif %}
+                    </div>
+                    <div data-special-price>
+                        <label for="{{ form.special_price.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Advertised special price (K)</label>
+                        {{ form.special_price }}
+                        {% if form.special_price.errors %}<p class="mt-1 text-xs text-red-600">{{ form.special_price.errors|join:", " }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.description.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Details <span class="font-normal text-gray-400">optional for simple discounts</span></label>
+                        {{ form.description }}
+                        {% if form.description.errors %}<p class="mt-1 text-xs text-red-600">{{ form.description.errors|join:", " }}</p>{% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <section class="border-t border-gray-100 pt-7">
+                <div class="mb-4 flex items-center gap-3">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-purple text-sm font-extrabold text-white">3</span>
+                    <div>
+                        <h2 class="font-extrabold text-gray-950">What does it apply to?</h2>
+                        <p class="text-xs text-gray-500">One report can cover a whole store or category.</p>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label for="{{ form.scope.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Applies to</label>
+                        {{ form.scope }}
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2" data-category-target>
+                        <div>
+                            <label for="{{ form.category.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Category</label>
+                            {{ form.category }}
+                        </div>
+                        <div>
+                            <label for="{{ form.subcategory.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Subcategory <span class="font-normal text-gray-400">optional</span></label>
+                            {{ form.subcategory }}
+                        </div>
+                    </div>
+                    <div data-product-target>
+                        <label for="{{ form.product.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Product</label>
+                        {{ form.product }}
+                    </div>
+                </div>
+            </section>
+
+            <section class="border-t border-gray-100 pt-7">
+                <div class="mb-4 flex items-center gap-3">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-purple text-sm font-extrabold text-white">4</span>
+                    <div>
+                        <h2 class="font-extrabold text-gray-950">How long is it running?</h2>
+                        <p class="text-xs text-gray-500">If you don't know, use the 7-day assumption. It can be confirmed again later.</p>
+                    </div>
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="{{ form.start_at.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Starts</label>
+                        {{ form.start_at }}
+                    </div>
+                    <div>
+                        <label for="{{ form.duration.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Duration</label>
+                        {{ form.duration }}
+                        <p class="mt-1 text-xs text-gray-500">{{ form.duration.help_text }}</p>
+                    </div>
+                </div>
+                <div class="mt-4" data-custom-end-wrap>
+                    <label for="{{ form.end_at.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Ends</label>
+                    {{ form.end_at }}
+                    {% if form.end_at.errors %}<p class="mt-1 text-xs text-red-600">{{ form.end_at.errors|join:", " }}</p>{% endif %}
+                </div>
+            </section>
+
+            <section class="border-t border-gray-100 pt-7">
+                <div class="mb-4 flex items-center gap-3">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-sm font-extrabold text-gray-700">5</span>
+                    <div>
+                        <h2 class="font-extrabold text-gray-950">Anything we should verify?</h2>
+                        <p class="text-xs text-gray-500">A photo of the shelf tag, poster, window sign, or advert makes the report much stronger.</p>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label for="{{ form.evidence.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Photo evidence <span class="font-normal text-gray-400">optional</span></label>
+                        {{ form.evidence }}
+                    </div>
+                    <div>
+                        <label for="{{ form.terms.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Exclusions or conditions <span class="font-normal text-gray-400">optional</span></label>
+                        {{ form.terms }}
+                    </div>
+                </div>
+            </section>
+
+            <div class="flex flex-col-reverse gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:justify-end">
+                <a href="{{ cancel_url }}" class="inline-flex justify-center rounded-xl border border-gray-300 px-5 py-3 text-sm font-bold text-gray-700 hover:bg-gray-50">Cancel</a>
+                <button type="submit" class="inline-flex justify-center rounded-xl bg-brand-purple px-6 py-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-brand-purple/90">Post special</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    const deal = document.querySelector('[data-deal-type]');
+    const scope = document.querySelector('[data-promotion-scope]');
+    const duration = document.querySelector('[data-duration-select]');
+    const discountWrap = document.querySelector('[data-discount-value]');
+    const discountLabel = document.querySelector('[data-discount-label]');
+    const specialPriceWrap = document.querySelector('[data-special-price]');
+    const categoryWrap = document.querySelector('[data-category-target]');
+    const productWrap = document.querySelector('[data-product-target]');
+    const customEndWrap = document.querySelector('[data-custom-end-wrap]');
+
+    function syncDeal() {
+        if (!deal) return;
+        const value = deal.value;
+        discountWrap?.classList.toggle('hidden', !['percent', 'amount_off'].includes(value));
+        specialPriceWrap?.classList.toggle('hidden', value !== 'fixed_price');
+        if (discountLabel) discountLabel.textContent = value === 'percent' ? 'Discount (%)' : 'Amount off (K)';
+    }
+
+    function syncScope() {
+        if (!scope) return;
+        categoryWrap?.classList.toggle('hidden', scope.value !== 'category');
+        productWrap?.classList.toggle('hidden', scope.value !== 'product');
+    }
+
+    function syncDuration() {
+        customEndWrap?.classList.toggle('hidden', duration?.value !== 'custom');
+    }
+
+    deal?.addEventListener('change', syncDeal);
+    scope?.addEventListener('change', syncScope);
+    duration?.addEventListener('change', syncDuration);
+    syncDeal();
+    syncScope();
+    syncDuration();
+})();
+</script>
+{% endblock %}
