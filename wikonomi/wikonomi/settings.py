@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'core',
+    'promotions',
     'catalog',
     'categories',
     'comments',
@@ -135,6 +136,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.notifications_count',
+                'promotions.context_processors.commerce_features',
             ],
         },
     },
@@ -300,6 +302,13 @@ SITE_VISIT_MIN_INTERVAL_SECONDS = int(
 # Keep the restored transport directory hidden from public users until launch.
 TRANSPORT_INDEX_PUBLIC_ENABLED = (
     os.environ.get('TRANSPORT_INDEX_PUBLIC_ENABLED', 'False') == 'True'
+)
+
+# Promotions/specials use an expand-first rollout. The schema and admin are
+# always available, while public routes and navigation stay hidden in
+# production until PROMOTIONS_ENABLED=True is set after staff testing.
+PROMOTIONS_ENABLED = (
+    os.environ.get('PROMOTIONS_ENABLED', 'True' if DEBUG else 'False') == 'True'
 )
 
 # Wikonomi MCP
