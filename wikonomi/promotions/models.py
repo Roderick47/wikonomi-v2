@@ -99,11 +99,6 @@ class Promotion(models.Model):
 
     class Meta:
         ordering = ['-start_at', '-created_at']
-        indexes = [
-            models.Index(fields=['business', 'start_at', 'end_at']),
-            models.Index(fields=['scope', 'start_at', 'end_at']),
-            models.Index(fields=['is_verified', 'start_at']),
-        ]
 
     def __str__(self):
         return f'{self.title} — {self.business.name}'
