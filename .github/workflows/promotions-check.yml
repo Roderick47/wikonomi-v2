@@ -1,6 +1,6 @@
 name: Promotions checks
 
-# Fresh run after GitHub Actions budget/entitlement update.
+# Fresh run after payment method verification completed.
 on:
   push:
     branches:
