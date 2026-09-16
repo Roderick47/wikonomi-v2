@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{{ promotion.title }} | Wikonomi Specials{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-4xl py-3 sm:py-7">
+    <a href="{% url 'promotions:list' %}" class="inline-flex items-center text-sm font-semibold text-gray-600 hover:text-brand-purple">← All specials</a>
+
+    <article class="mt-5 overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+        {% if promotion.evidence %}
+        <div class="max-h-[32rem] overflow-hidden bg-gray-100">
+            <img src="{{ promotion.evidence.url }}" alt="Evidence for {{ promotion.title }}" class="h-full w-full object-cover">
+        </div>
+        {% endif %}
+        <div class="p-6 sm:p-9">
+            <div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="rounded-full bg-amber-100 px-3 py-1 text-sm font-extrabold text-amber-800">{{ promotion.display_deal }}</span>
+                        <span class="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold text-gray-700">{{ promotion.scope_label }}</span>
+                        {% if promotion.is_verified %}<span class="rounded-full bg-emerald-100 px-3 py-1 text-sm font-bold text-emerald-800">Verified</span>{% endif %}
+                        {% if promotion.status == 'expired' %}<span class="rounded-full bg-gray-200 px-3 py-1 text-sm font-bold text-gray-600">Expired</span>{% elif promotion.status == 'scheduled' %}<span class="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-blue-800">Starts soon</span>{% endif %}
+                    </div>
+                    <h1 class="mt-4 text-3xl font-extrabold tracking-tight text-gray-950 sm:text-4xl">{{ promotion.title }}</h1>
+                    <a href="{% url 'business_detail' promotion.business.pk %}" class="mt-2 inline-flex text-base font-bold text-brand-purple hover:underline">{{ promotion.business.name }}{% if promotion.business_branch %} · {{ promotion.business_branch.name }}{% endif %}</a>
+                </div>
+                <div class="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    {% if promotion.status == 'active' %}<strong>Active now</strong>{% elif promotion.status == 'scheduled' %}<strong>Scheduled</strong>{% else %}<strong>No longer active</strong>{% endif %}
+                    <div class="mt-1 text-xs text-amber-800">
+                        {% if promotion.end_at %}Ends {{ promotion.end_at|date:"j M Y, g:i A" }}{% else %}No end date reported{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% if promotion.description %}<p class="mt-6 whitespace-pre-line text-base leading-7 text-gray-700">{{ promotion.description }}</p>{% endif %}
+
+            <dl class="mt-7 grid gap-4 rounded-2xl border border-gray-100 bg-gray-50 p-5 sm:grid-cols-2">
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wide text-gray-500">Applies to</dt>
+                    <dd class="mt-1 font-bold text-gray-900">{{ promotion.scope_label }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wide text-gray-500">Offer</dt>
+                    <dd class="mt-1 font-bold text-gray-900">{{ promotion.display_deal }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wide text-gray-500">Starts</dt>
+                    <dd class="mt-1 text-gray-800">{{ promotion.start_at|date:"j M Y, g:i A" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wide text-gray-500">Source</dt>
+                    <dd class="mt-1 text-gray-800">{{ promotion.get_source_display }}{% if promotion.created_by %} · {{ promotion.created_by.username }}{% endif %}</dd>
+                </div>
+            </dl>
+
+            {% if promotion.terms %}
+            <div class="mt-6 rounded-2xl border border-gray-200 p-5">
+                <h2 class="text-sm font-extrabold text-gray-900">Conditions or exclusions</h2>
+                <p class="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">{{ promotion.terms }}</p>
+            </div>
+            {% endif %}
+
+            {% if promotion.status == 'active' %}
+            <div class="mt-7 rounded-2xl border border-brand-purple/15 bg-brand-purple/5 p-5">
+                <h2 class="font-extrabold text-gray-950">Is this special still running?</h2>
+                <p class="mt-1 text-sm text-gray-600">Community confirmations help Wikonomi catch promotions that end early.</p>
+                {% if user.is_authenticated %}
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <form method="post" action="{% url 'promotions:confirm' promotion.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="active" value="yes">
+                        <button class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700">Yes, still active</button>
+                    </form>
+                    <form method="post" action="{% url 'promotions:confirm' promotion.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="active" value="no">
+                        <button class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">No, it ended</button>
+                    </form>
+                </div>
+                {% else %}
+                <a href="{% url 'login' %}?next={{ request.path|urlencode }}" class="mt-4 inline-flex rounded-xl bg-brand-purple px-4 py-2 text-sm font-bold text-white">Log in to confirm</a>
+                {% endif %}
+                <p class="mt-3 text-xs text-gray-500">{{ active_confirmation_count }} active confirmation{{ active_confirmation_count|pluralize }} · {{ ended_confirmation_count }} ended report{{ ended_confirmation_count|pluralize }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </article>
+</div>
+{% endblock %}
