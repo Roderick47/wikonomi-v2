@@ -9,6 +9,7 @@ on:
       - 'wikonomi/promotions/**'
       - 'wikonomi/core/templates/**'
       - 'wikonomi/wikonomi/settings.py'
+      - 'wikonomi/wikonomi/test_settings.py'
       - 'wikonomi/wikonomi/urls.py'
       - '.github/workflows/promotions-check.yml'
   workflow_dispatch:
@@ -16,25 +17,10 @@ on:
 jobs:
   django-checks:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: wikonomi_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U postgres -d wikonomi_test"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
     env:
       DEBUG: 'True'
       SECRET_KEY: ci-promotions-check
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/wikonomi_test
+      DJANGO_SETTINGS_MODULE: wikonomi.test_settings
       PROMOTIONS_ENABLED: 'True'
 
     steps:
@@ -49,6 +35,9 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Compile Python
+        run: python -m compileall -q wikonomi
 
       - name: Django system check
         working-directory: wikonomi
