@@ -60,9 +60,9 @@ class ProductIdentity(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=['brand', 'package_unit']),
-            models.Index(fields=['normalized_barcode']),
-            models.Index(fields=['identity_signature']),
+            models.Index(fields=['brand', 'package_unit'], name='catalog_id_brand_unit_idx'),
+            models.Index(fields=['normalized_barcode'], name='catalog_id_barcode_idx'),
+            models.Index(fields=['identity_signature'], name='catalog_id_signature_idx'),
         ]
 
     def __str__(self):
@@ -117,7 +117,7 @@ class ProductDuplicateCandidate(models.Model):
             ),
         ]
         indexes = [
-            models.Index(fields=['status', '-similarity_score']),
+            models.Index(fields=['status', '-similarity_score'], name='catalog_dup_status_score_idx'),
         ]
         ordering = ['status', '-similarity_score', '-created_at']
 
