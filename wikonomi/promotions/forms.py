@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django import forms
 from django.core.exceptions import ValidationError
+from django.db import models
 from django.utils import timezone
 
 from categories.models import Category, Subcategory
@@ -18,7 +19,7 @@ FIELD_CLASS = (
 
 
 class PromotionForm(forms.ModelForm):
-    class Duration(forms.TextChoices):
+    class Duration(models.TextChoices):
         TODAY = 'today', 'Today only'
         THREE_DAYS = '3', '3 days'
         ONE_WEEK = '7', '1 week'
