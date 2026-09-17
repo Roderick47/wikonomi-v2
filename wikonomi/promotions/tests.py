@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from categories.models import Category as PriceCategory, Subcategory
-from core.models import Business, PriceReport, Product
+from core.models import Business, BusinessBranch, PriceReport, Product
 
 from .forms import PNG_TIME_ZONE, PromotionForm
 from .models import Promotion, PromotionTarget
@@ -45,24 +45,13 @@ class PromotionTestCase(TestCase):
 
     def test_active_queryset_excludes_scheduled_and_expired_promotions(self):
         active = self._promotion(title='Active')
-        self._promotion(
-            title='Scheduled',
-            start_at=timezone.now() + timedelta(days=1),
-            end_at=timezone.now() + timedelta(days=2),
-        )
-        self._promotion(
-            title='Expired',
-            start_at=timezone.now() - timedelta(days=2),
-            end_at=timezone.now() - timedelta(days=1),
-        )
-
+        self._promotion(title='Scheduled', start_at=timezone.now() + timedelta(days=1), end_at=timezone.now() + timedelta(days=2))
+        self._promotion(title='Expired', start_at=timezone.now() - timedelta(days=2), end_at=timezone.now() - timedelta(days=1))
         self.assertEqual(list(Promotion.objects.active()), [active])
 
     def test_storewide_percent_overlay_does_not_mutate_observed_price(self):
         promotion = self._promotion(discount_value=Decimal('20.00'))
-
         result = effective_price(self.price)
-
         self.assertEqual(result['effective_price'], Decimal('80.00'))
         self.assertEqual(result['regular_price'], Decimal('100.00'))
         self.assertEqual(result['promotion'], promotion)
@@ -72,13 +61,7 @@ class PromotionTestCase(TestCase):
     def test_product_promotion_only_applies_to_selected_product(self):
         promotion = self._promotion(scope=Promotion.Scope.PRODUCT)
         PromotionTarget.objects.create(promotion=promotion, product=self.product)
-        other_price = PriceReport.objects.create(
-            product=self.other_product,
-            business=self.business,
-            user=self.user,
-            price=Decimal('50.00'),
-        )
-
+        other_price = PriceReport.objects.create(product=self.other_product, business=self.business, user=self.user, price=Decimal('50.00'))
         self.assertEqual(list(applicable_promotions(self.price)), [promotion])
         self.assertFalse(applicable_promotions(other_price).exists())
 
@@ -89,28 +72,19 @@ class PromotionTestCase(TestCase):
         self.price.save(update_fields=['subcategory'])
         promotion = self._promotion(scope=Promotion.Scope.CATEGORY)
         PromotionTarget.objects.create(promotion=promotion, category=category)
-
         self.assertEqual(list(applicable_promotions(self.price)), [promotion])
 
     def test_multiple_promotions_are_not_stacked_and_best_single_offer_wins(self):
         twenty_percent = self._promotion(title='20 percent', discount_value=Decimal('20'))
         thirty_percent = self._promotion(title='30 percent', discount_value=Decimal('30'))
-
         result = effective_price(self.price)
-
         self.assertEqual(result['effective_price'], Decimal('70.00'))
         self.assertEqual(result['promotion'], thirty_percent)
         self.assertNotEqual(result['promotion'], twenty_percent)
 
     def test_fixed_special_price_is_marked_as_observed_not_calculated(self):
-        promotion = self._promotion(
-            deal_type=Promotion.DealType.FIXED_PRICE,
-            discount_value=None,
-            special_price=Decimal('65.00'),
-        )
-
+        promotion = self._promotion(deal_type=Promotion.DealType.FIXED_PRICE, discount_value=None, special_price=Decimal('65.00'))
         result = effective_price(self.price)
-
         self.assertEqual(result['effective_price'], Decimal('65.00'))
         self.assertFalse(result['is_estimate'])
         self.assertEqual(result['promotion'], promotion)
@@ -143,7 +117,6 @@ class PromotionFormTests(TestCase):
             'description': '',
             'terms': '',
         })
-
         self.assertTrue(form.is_valid(), form.errors)
         promotion = self._save_for_business(form)
         local_start = promotion.start_at.astimezone(PNG_TIME_ZONE)
@@ -164,7 +137,6 @@ class PromotionFormTests(TestCase):
             'description': '',
             'terms': '',
         })
-
         self.assertTrue(form.is_valid(), form.errors)
         promotion = self._save_for_business(form)
         local_end = promotion.end_at.astimezone(PNG_TIME_ZONE)
@@ -177,6 +149,27 @@ class PromotionRolloutTests(TestCase):
         self.user = User.objects.create_user(username='normal', password='pass12345')
         self.staff = User.objects.create_user(username='staff', password='pass12345', is_staff=True)
         self.business = Business.objects.create(name='Rollout Store', slug='rollout-store')
+        self.branch = BusinessBranch.objects.create(
+            canonical_business=self.business,
+            name='Waigani',
+            is_active=True,
+        )
+
+    def _special_payload(self, **overrides):
+        payload = {
+            'business_name': self.business.name,
+            'title': 'Easter Sale',
+            'kind': Promotion.Kind.EVENT,
+            'deal_type': Promotion.DealType.PERCENT,
+            'scope': Promotion.Scope.STOREWIDE,
+            'discount_value': '30',
+            'start_at': '2026-09-16T09:00',
+            'duration': PromotionForm.Duration.TWO_WEEKS,
+            'description': '30% off across the store.',
+            'terms': '',
+        }
+        payload.update(overrides)
+        return payload
 
     @override_settings(PROMOTIONS_ENABLED=False)
     def test_public_specials_route_is_hidden_when_feature_is_disabled(self):
@@ -190,28 +183,45 @@ class PromotionRolloutTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
     @override_settings(PROMOTIONS_ENABLED=True)
-    def test_special_report_form_offers_existing_business_names(self):
+    def test_special_report_form_offers_existing_business_and_branch_names(self):
         response = self.client.get(reverse('promotions:create'))
         self.assertContains(response, 'list="business_list"')
         self.assertContains(response, f'value="{self.business.name}"')
-        self.assertContains(response, 'keep typing a new name to add it')
+        self.assertContains(response, 'list="branch_list"')
+        self.assertContains(response, f'value="{self.branch.name}"')
+        self.assertContains(response, f'label="{self.business.name}"')
+
+    @override_settings(PROMOTIONS_ENABLED=True)
+    def test_create_special_reuses_existing_business_and_branch(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('promotions:create'),
+            data=self._special_payload(branch_name=self.branch.name),
+        )
+        self.assertEqual(response.status_code, 302)
+        promotion = Promotion.objects.get(title='Easter Sale')
+        self.assertEqual(promotion.business, self.business)
+        self.assertEqual(promotion.business_branch, self.branch)
+        self.assertEqual(BusinessBranch.objects.filter(canonical_business=self.business, name=self.branch.name).count(), 1)
+
+    @override_settings(PROMOTIONS_ENABLED=True)
+    def test_typing_new_branch_creates_and_links_it(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('promotions:create'),
+            data=self._special_payload(title='Boroko Special', branch_name='Boroko'),
+        )
+        self.assertEqual(response.status_code, 302)
+        promotion = Promotion.objects.get(title='Boroko Special')
+        self.assertEqual(promotion.business, self.business)
+        self.assertIsNotNone(promotion.business_branch)
+        self.assertEqual(promotion.business_branch.canonical_business, self.business)
+        self.assertEqual(promotion.business_branch.name, 'Boroko')
 
     @override_settings(PROMOTIONS_ENABLED=True)
     def test_create_special_from_question_driven_form_reuses_existing_business(self):
         self.client.force_login(self.user)
-        response = self.client.post(reverse('promotions:create'), data={
-            'business_name': self.business.name,
-            'title': 'Easter Sale',
-            'kind': Promotion.Kind.EVENT,
-            'deal_type': Promotion.DealType.PERCENT,
-            'scope': Promotion.Scope.STOREWIDE,
-            'discount_value': '30',
-            'start_at': '2026-09-16T09:00',
-            'duration': PromotionForm.Duration.TWO_WEEKS,
-            'description': '30% off across the store.',
-            'terms': '',
-        })
-
+        response = self.client.post(reverse('promotions:create'), data=self._special_payload())
         self.assertEqual(response.status_code, 302)
         promotion = Promotion.objects.get(title='Easter Sale')
         self.assertEqual(promotion.created_by, self.user)
@@ -224,19 +234,10 @@ class PromotionRolloutTests(TestCase):
     def test_typing_new_business_name_creates_business_and_links_special(self):
         self.client.force_login(self.user)
         new_business_name = 'New Market Shop'
-        response = self.client.post(reverse('promotions:create'), data={
-            'business_name': new_business_name,
-            'title': 'Opening Special',
-            'kind': Promotion.Kind.SALE,
-            'deal_type': Promotion.DealType.PERCENT,
-            'scope': Promotion.Scope.STOREWIDE,
-            'discount_value': '20',
-            'start_at': '2026-09-16T09:00',
-            'duration': PromotionForm.Duration.ONE_WEEK,
-            'description': '20% off storewide.',
-            'terms': '',
-        })
-
+        response = self.client.post(
+            reverse('promotions:create'),
+            data=self._special_payload(business_name=new_business_name, title='Opening Special'),
+        )
         self.assertEqual(response.status_code, 302)
         business = Business.objects.get(name=new_business_name)
         promotion = Promotion.objects.get(title='Opening Special')
