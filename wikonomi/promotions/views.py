@@ -7,6 +7,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
+from core.models import Business, BusinessNormalizationService
+
 from .forms import PromotionForm
 from .models import Promotion, PromotionConfirmation
 
@@ -80,6 +82,14 @@ def promotion_detail(request, pk):
     })
 
 
+def _promotion_form_context(request, form):
+    return {
+        'form': form,
+        'businesses': Business.objects.order_by('name'),
+        'cancel_url': request.GET.get('next') or reverse('promotions:list'),
+    }
+
+
 def promotion_create(request):
     _require_promotions(request)
 
@@ -89,27 +99,49 @@ def promotion_create(request):
         if value:
             initial[key] = value
 
+    if request.GET.get('business_name'):
+        initial['business_name'] = request.GET['business_name'].strip()
+    elif initial.get('business'):
+        try:
+            initial['business_name'] = Business.objects.get(pk=initial['business']).name
+        except (Business.DoesNotExist, TypeError, ValueError):
+            pass
+
     if request.method == 'POST':
         form = PromotionForm(request.POST, request.FILES)
         if form.is_valid():
-            promotion = form.save(commit=False)
-            if request.user.is_authenticated:
-                promotion.created_by = request.user
-            if request.user.is_authenticated and request.user.is_staff:
-                promotion.source = Promotion.Source.ADMIN
-                promotion.is_verified = True
-            promotion.full_clean()
-            promotion.save()
-            form.save_target(promotion)
-            messages.success(request, 'Special reported. Wikonomi will stop showing it as active when it expires.')
-            return redirect(promotion.get_absolute_url())
+            business_name = form.cleaned_data['business_name']
+            business, _normalized_branch, _was_created = (
+                BusinessNormalizationService.normalize_price_report_data(
+                    business_name=business_name,
+                    location='',
+                )
+            )
+
+            selected_branch = form.cleaned_data.get('business_branch')
+            if selected_branch and selected_branch.canonical_business_id != business.id:
+                form.add_error('business_branch', 'Choose a branch belonging to this store.')
+            else:
+                promotion = form.save(commit=False)
+                promotion.business = business
+                promotion.business_branch = selected_branch
+                if request.user.is_authenticated:
+                    promotion.created_by = request.user
+                if request.user.is_authenticated and request.user.is_staff:
+                    promotion.source = Promotion.Source.ADMIN
+                    promotion.is_verified = True
+                promotion.full_clean()
+                promotion.save()
+                form.save_target(promotion)
+                messages.success(
+                    request,
+                    'Special reported. Wikonomi will stop showing it as active when it expires.',
+                )
+                return redirect(promotion.get_absolute_url())
     else:
         form = PromotionForm(initial=initial)
 
-    return render(request, 'promotions/form.html', {
-        'form': form,
-        'cancel_url': request.GET.get('next') or reverse('promotions:list'),
-    })
+    return render(request, 'promotions/form.html', _promotion_form_context(request, form))
 
 
 @login_required

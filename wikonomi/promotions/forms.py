@@ -46,6 +46,19 @@ class PromotionForm(forms.ModelForm):
         CUSTOM = 'custom', 'Custom end date'
         UNKNOWN = 'unknown', "I don't know — assume 7 days"
 
+    business_name = forms.CharField(
+        required=True,
+        max_length=255,
+        widget=forms.TextInput(attrs={
+            'class': FIELD_CLASS,
+            'id': 'business_search',
+            'list': 'business_list',
+            'placeholder': 'Type a business name...',
+            'autocomplete': 'off',
+            'data-promotion-business': '',
+        }),
+        help_text='Select an existing business or type a new name to add it.',
+    )
     duration = forms.ChoiceField(
         choices=Duration.choices,
         initial=Duration.ONE_WEEK,
@@ -75,7 +88,6 @@ class PromotionForm(forms.ModelForm):
     class Meta:
         model = Promotion
         fields = [
-            'business',
             'business_branch',
             'title',
             'kind',
@@ -90,7 +102,6 @@ class PromotionForm(forms.ModelForm):
             'evidence',
         ]
         widgets = {
-            'business': forms.Select(attrs={'class': FIELD_CLASS, 'data-promotion-business': ''}),
             'business_branch': forms.Select(attrs={'class': FIELD_CLASS}),
             'title': forms.TextInput(attrs={
                 'class': FIELD_CLASS,
@@ -137,7 +148,6 @@ class PromotionForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['business'].queryset = Business.objects.order_by('name')
         self.fields['business_branch'].queryset = BusinessBranch.objects.select_related(
             'canonical_business'
         ).filter(is_active=True).order_by('canonical_business__name', 'name')
@@ -147,15 +157,25 @@ class PromotionForm(forms.ModelForm):
         if not self.is_bound and not self.initial.get('start_at'):
             self.initial['start_at'] = timezone.now().astimezone(PNG_TIME_ZONE).strftime('%Y-%m-%dT%H:%M')
 
-        business_id = self.data.get('business') or self.initial.get('business')
-        if business_id:
+        initial_business = self.initial.get('business')
+        if not self.is_bound and initial_business and not self.initial.get('business_name'):
             try:
-                business_id = int(getattr(business_id, 'pk', business_id))
+                business = initial_business if isinstance(initial_business, Business) else Business.objects.get(pk=initial_business)
+            except (Business.DoesNotExist, TypeError, ValueError):
+                business = None
+            if business:
+                self.initial['business_name'] = business.name
                 self.fields['business_branch'].queryset = self.fields['business_branch'].queryset.filter(
-                    canonical_business_id=business_id
+                    canonical_business=business
                 )
-            except (TypeError, ValueError):
-                pass
+
+        business_name = (self.data.get('business_name') or self.initial.get('business_name') or '').strip()
+        if business_name:
+            business = Business.objects.filter(name__iexact=business_name).first()
+            if business:
+                self.fields['business_branch'].queryset = self.fields['business_branch'].queryset.filter(
+                    canonical_business=business
+                )
 
         category_id = self.data.get('category') or self.initial.get('category')
         if category_id:
@@ -172,8 +192,11 @@ class PromotionForm(forms.ModelForm):
         scope = cleaned.get('scope')
         deal_type = cleaned.get('deal_type')
         duration = cleaned.get('duration')
-        business = cleaned.get('business')
-        branch = cleaned.get('business_branch')
+
+        business_name = (cleaned.get('business_name') or '').strip()
+        if not business_name:
+            self.add_error('business_name', 'Enter the store or business where you saw this special.')
+        cleaned['business_name'] = business_name
 
         start_at = _png_wall_time(cleaned.get('start_at'))
         if start_at is None:
@@ -182,9 +205,6 @@ class PromotionForm(forms.ModelForm):
 
         if cleaned.get('end_at'):
             cleaned['end_at'] = _png_wall_time(cleaned['end_at'])
-
-        if branch and business and branch.canonical_business_id != business.id:
-            self.add_error('business_branch', 'Choose a branch belonging to this store.')
 
         if scope == Promotion.Scope.CATEGORY:
             if not cleaned.get('category') and not cleaned.get('subcategory'):

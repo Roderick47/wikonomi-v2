@@ -124,9 +124,15 @@ class PromotionFormTests(TestCase):
     def setUp(self):
         self.business = Business.objects.create(name='PNG Store', slug='png-store')
 
+    def _save_for_business(self, form):
+        promotion = form.save(commit=False)
+        promotion.business = self.business
+        promotion.save()
+        return promotion
+
     def test_one_week_duration_is_calculated_in_png_local_time(self):
         form = PromotionForm(data={
-            'business': self.business.pk,
+            'business_name': self.business.name,
             'title': 'PNG Week Sale',
             'kind': Promotion.Kind.SALE,
             'deal_type': Promotion.DealType.PERCENT,
@@ -139,7 +145,7 @@ class PromotionFormTests(TestCase):
         })
 
         self.assertTrue(form.is_valid(), form.errors)
-        promotion = form.save()
+        promotion = self._save_for_business(form)
         local_start = promotion.start_at.astimezone(PNG_TIME_ZONE)
         local_end = promotion.end_at.astimezone(PNG_TIME_ZONE)
         self.assertEqual((local_start.hour, local_start.minute), (8, 0))
@@ -147,7 +153,7 @@ class PromotionFormTests(TestCase):
 
     def test_today_only_ends_at_png_end_of_day(self):
         form = PromotionForm(data={
-            'business': self.business.pk,
+            'business_name': self.business.name,
             'title': 'One Day Sale',
             'kind': Promotion.Kind.SALE,
             'deal_type': Promotion.DealType.PERCENT,
@@ -160,7 +166,7 @@ class PromotionFormTests(TestCase):
         })
 
         self.assertTrue(form.is_valid(), form.errors)
-        promotion = form.save()
+        promotion = self._save_for_business(form)
         local_end = promotion.end_at.astimezone(PNG_TIME_ZONE)
         self.assertEqual((local_end.year, local_end.month, local_end.day), (2026, 9, 16))
         self.assertEqual((local_end.hour, local_end.minute, local_end.second), (23, 59, 59))
@@ -184,10 +190,17 @@ class PromotionRolloutTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
     @override_settings(PROMOTIONS_ENABLED=True)
-    def test_create_special_from_question_driven_form(self):
+    def test_special_report_form_offers_existing_business_names(self):
+        response = self.client.get(reverse('promotions:create'))
+        self.assertContains(response, 'list="business_list"')
+        self.assertContains(response, f'value="{self.business.name}"')
+        self.assertContains(response, 'keep typing a new name to add it')
+
+    @override_settings(PROMOTIONS_ENABLED=True)
+    def test_create_special_from_question_driven_form_reuses_existing_business(self):
         self.client.force_login(self.user)
         response = self.client.post(reverse('promotions:create'), data={
-            'business': self.business.pk,
+            'business_name': self.business.name,
             'title': 'Easter Sale',
             'kind': Promotion.Kind.EVENT,
             'deal_type': Promotion.DealType.PERCENT,
@@ -202,5 +215,29 @@ class PromotionRolloutTests(TestCase):
         self.assertEqual(response.status_code, 302)
         promotion = Promotion.objects.get(title='Easter Sale')
         self.assertEqual(promotion.created_by, self.user)
+        self.assertEqual(promotion.business, self.business)
+        self.assertEqual(Business.objects.filter(name=self.business.name).count(), 1)
         self.assertEqual(promotion.scope, Promotion.Scope.STOREWIDE)
         self.assertEqual(promotion.discount_value, Decimal('30.00'))
+
+    @override_settings(PROMOTIONS_ENABLED=True)
+    def test_typing_new_business_name_creates_business_and_links_special(self):
+        self.client.force_login(self.user)
+        new_business_name = 'New Market Shop'
+        response = self.client.post(reverse('promotions:create'), data={
+            'business_name': new_business_name,
+            'title': 'Opening Special',
+            'kind': Promotion.Kind.SALE,
+            'deal_type': Promotion.DealType.PERCENT,
+            'scope': Promotion.Scope.STOREWIDE,
+            'discount_value': '20',
+            'start_at': '2026-09-16T09:00',
+            'duration': PromotionForm.Duration.ONE_WEEK,
+            'description': '20% off storewide.',
+            'terms': '',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        business = Business.objects.get(name=new_business_name)
+        promotion = Promotion.objects.get(title='Opening Special')
+        self.assertEqual(promotion.business, business)

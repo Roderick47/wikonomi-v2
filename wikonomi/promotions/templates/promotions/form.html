@@ -30,9 +30,15 @@
                 </div>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label for="{{ form.business.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Store or business</label>
-                        {{ form.business }}
-                        {% if form.business.errors %}<p class="mt-1 text-xs text-red-600">{{ form.business.errors|join:", " }}</p>{% endif %}
+                        <label for="{{ form.business_name.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Store or business</label>
+                        {{ form.business_name }}
+                        <datalist id="business_list">
+                            {% for business in businesses %}
+                            <option value="{{ business.name }}"></option>
+                            {% endfor %}
+                        </datalist>
+                        <p class="mt-1 text-xs text-gray-500">Select an existing business or keep typing a new name to add it.</p>
+                        {% if form.business_name.errors %}<p class="mt-1 text-xs text-red-600">{{ form.business_name.errors|join:", " }}</p>{% endif %}
                     </div>
                     <div>
                         <label for="{{ form.business_branch.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Specific branch <span class="font-normal text-gray-400">optional</span></label>
