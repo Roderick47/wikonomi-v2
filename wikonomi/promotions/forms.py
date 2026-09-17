@@ -5,6 +5,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+from django.utils.html import format_html, format_html_join
 
 from categories.models import Category, Subcategory
 from core.models import Business, BusinessBranch, Product
@@ -18,6 +19,26 @@ FIELD_CLASS = (
     'focus:ring-brand-purple/20'
 )
 PNG_TIME_ZONE = ZoneInfo('Pacific/Port_Moresby')
+
+
+class BranchAutocompleteWidget(forms.TextInput):
+    """Text input with existing branch/location suggestions.
+
+    The option label includes the parent business so similarly named branches
+    remain understandable, while the submitted value stays the branch name.
+    """
+
+    def render(self, name, value, attrs=None, renderer=None):
+        input_html = super().render(name, value, attrs, renderer)
+        branches = BusinessBranch.objects.select_related('canonical_business').filter(
+            is_active=True
+        ).order_by('canonical_business__name', 'name')
+        options = format_html_join(
+            '',
+            '<option value="{}" label="{}"></option>',
+            ((branch.name, branch.canonical_business.name) for branch in branches),
+        )
+        return format_html('{}<datalist id="branch_list">{}</datalist>', input_html, options)
 
 
 def _png_wall_time(value):
@@ -55,7 +76,7 @@ class PromotionForm(forms.ModelForm):
     branch_name = forms.CharField(
         required=False,
         max_length=255,
-        widget=forms.TextInput(attrs={
+        widget=BranchAutocompleteWidget(attrs={
             'class': FIELD_CLASS,
             'id': 'branch_search',
             'list': 'branch_list',
@@ -149,6 +170,11 @@ class PromotionForm(forms.ModelForm):
                 'accept': 'image/jpeg,image/png,image/webp',
             }),
         }
+
+    @property
+    def business_branch(self):
+        """Compatibility alias for the existing template's branch slot."""
+        return self['branch_name']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
