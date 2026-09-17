@@ -21,14 +21,7 @@ PNG_TIME_ZONE = ZoneInfo('Pacific/Port_Moresby')
 
 
 def _png_wall_time(value):
-    """Interpret datetime-local form values as Papua New Guinea local time.
-
-    The wider project currently stores/display-times with Django's UTC default.
-    Promotion forms use browser ``datetime-local`` inputs, so the wall-clock
-    value the user enters needs to mean PNG time rather than UTC. We convert
-    that one input boundary without changing the timezone behavior of existing
-    production models.
-    """
+    """Interpret datetime-local form values as Papua New Guinea local time."""
     if value is None:
         return None
     if timezone.is_aware(value):
@@ -59,6 +52,19 @@ class PromotionForm(forms.ModelForm):
         }),
         help_text='Select an existing business or type a new name to add it.',
     )
+    branch_name = forms.CharField(
+        required=False,
+        max_length=255,
+        widget=forms.TextInput(attrs={
+            'class': FIELD_CLASS,
+            'id': 'branch_search',
+            'list': 'branch_list',
+            'placeholder': 'Type a branch or location...',
+            'autocomplete': 'off',
+            'data-promotion-branch': '',
+        }),
+        help_text='Select an existing branch or type a new branch/location to add it.',
+    )
     duration = forms.ChoiceField(
         choices=Duration.choices,
         initial=Duration.ONE_WEEK,
@@ -88,7 +94,6 @@ class PromotionForm(forms.ModelForm):
     class Meta:
         model = Promotion
         fields = [
-            'business_branch',
             'title',
             'kind',
             'deal_type',
@@ -102,7 +107,6 @@ class PromotionForm(forms.ModelForm):
             'evidence',
         ]
         widgets = {
-            'business_branch': forms.Select(attrs={'class': FIELD_CLASS}),
             'title': forms.TextInput(attrs={
                 'class': FIELD_CLASS,
                 'placeholder': 'e.g. Easter Sale, Weekend Special',
@@ -148,9 +152,6 @@ class PromotionForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['business_branch'].queryset = BusinessBranch.objects.select_related(
-            'canonical_business'
-        ).filter(is_active=True).order_by('canonical_business__name', 'name')
         self.fields['start_at'].input_formats = ['%Y-%m-%dT%H:%M']
         self.fields['end_at'].input_formats = ['%Y-%m-%dT%H:%M']
 
@@ -165,17 +166,20 @@ class PromotionForm(forms.ModelForm):
                 business = None
             if business:
                 self.initial['business_name'] = business.name
-                self.fields['business_branch'].queryset = self.fields['business_branch'].queryset.filter(
-                    canonical_business=business
-                )
 
-        business_name = (self.data.get('business_name') or self.initial.get('business_name') or '').strip()
-        if business_name:
-            business = Business.objects.filter(name__iexact=business_name).first()
-            if business:
-                self.fields['business_branch'].queryset = self.fields['business_branch'].queryset.filter(
-                    canonical_business=business
+        initial_branch = self.initial.get('business_branch')
+        if not self.is_bound and initial_branch and not self.initial.get('branch_name'):
+            try:
+                branch = (
+                    initial_branch
+                    if isinstance(initial_branch, BusinessBranch)
+                    else BusinessBranch.objects.select_related('canonical_business').get(pk=initial_branch)
                 )
+            except (BusinessBranch.DoesNotExist, TypeError, ValueError):
+                branch = None
+            if branch:
+                self.initial['branch_name'] = branch.name
+                self.initial.setdefault('business_name', branch.canonical_business.name)
 
         category_id = self.data.get('category') or self.initial.get('category')
         if category_id:
@@ -197,6 +201,7 @@ class PromotionForm(forms.ModelForm):
         if not business_name:
             self.add_error('business_name', 'Enter the store or business where you saw this special.')
         cleaned['business_name'] = business_name
+        cleaned['branch_name'] = (cleaned.get('branch_name') or '').strip()
 
         start_at = _png_wall_time(cleaned.get('start_at'))
         if start_at is None:
