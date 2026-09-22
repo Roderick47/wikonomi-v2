@@ -1,0 +1,121 @@
+{% if reference_formset %}
+<section class="guide-form-card" data-reference-editor>
+    <span class="guide-form-number">6</span>
+    <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h2 class="guide-form-label">Add your sources</h2>
+                <p class="guide-form-help">Link to official pages, forms, notices, or other reliable references people can verify.</p>
+            </div>
+            <button type="button" class="rounded-lg border border-brand-purple/25 bg-brand-purple/5 px-3 py-2 text-xs font-bold text-brand-purple hover:bg-brand-purple/10" data-add-reference>+ Add source</button>
+        </div>
+
+        {{ reference_formset.management_form }}
+        {% if reference_formset.non_form_errors %}<div class="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ reference_formset.non_form_errors }}</div>{% endif %}
+
+        <div class="mt-5 space-y-4" data-reference-list>
+            {% for reference_form in reference_formset %}
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 {% if reference_form.DELETE.value %}hidden{% endif %}" data-reference-row>
+                {% for hidden in reference_form.hidden_fields %}{{ hidden }}{% endfor %}
+                <div class="mb-3 flex items-center justify-between gap-3">
+                    <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Source <span data-reference-number>{{ forloop.counter }}</span></p>
+                    <button type="button" class="text-xs font-bold text-red-500 hover:underline" data-remove-reference>Remove</button>
+                </div>
+                <div class="grid gap-4">
+                    <div>
+                        <label for="{{ reference_form.title.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ reference_form.title.label }}</label>
+                        <div class="mt-2">{{ reference_form.title }}</div>{{ reference_form.title.errors }}
+                    </div>
+                    <div>
+                        <label for="{{ reference_form.url.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ reference_form.url.label }}</label>
+                        <div class="mt-2">{{ reference_form.url }}</div>{{ reference_form.url.errors }}
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="{{ reference_form.publisher.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ reference_form.publisher.label }}</label>
+                            <div class="mt-2">{{ reference_form.publisher }}</div>{{ reference_form.publisher.errors }}
+                        </div>
+                        <div>
+                            <label for="{{ reference_form.accessed_at.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ reference_form.accessed_at.label }}</label>
+                            <div class="mt-2">{{ reference_form.accessed_at }}</div>{{ reference_form.accessed_at.errors }}
+                        </div>
+                    </div>
+                </div>
+                <div class="hidden">{{ reference_form.DELETE }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <template data-reference-template>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4" data-reference-row>
+                {% with reference_form=reference_formset.empty_form %}
+                {% for hidden in reference_form.hidden_fields %}{{ hidden }}{% endfor %}
+                <div class="mb-3 flex items-center justify-between gap-3">
+                    <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Source <span data-reference-number></span></p>
+                    <button type="button" class="text-xs font-bold text-red-500 hover:underline" data-remove-reference>Remove</button>
+                </div>
+                <div class="grid gap-4">
+                    <div><label for="{{ reference_form.title.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ reference_form.title.label }}</label><div class="mt-2">{{ reference_form.title }}</div></div>
+                    <div><label for="{{ reference_form.url.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ reference_form.url.label }}</label><div class="mt-2">{{ reference_form.url }}</div></div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div><label for="{{ reference_form.publisher.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ reference_form.publisher.label }}</label><div class="mt-2">{{ reference_form.publisher }}</div></div>
+                        <div><label for="{{ reference_form.accessed_at.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ reference_form.accessed_at.label }}</label><div class="mt-2">{{ reference_form.accessed_at }}</div></div>
+                    </div>
+                </div>
+                <div class="hidden">{{ reference_form.DELETE }}</div>
+                {% endwith %}
+            </div>
+        </template>
+    </div>
+</section>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const editor = document.querySelector('[data-reference-editor]');
+    if (!editor) return;
+    const list = editor.querySelector('[data-reference-list]');
+    const total = editor.querySelector('#id_references-TOTAL_FORMS');
+    const template = editor.querySelector('[data-reference-template]');
+    const addButton = editor.querySelector('[data-add-reference]');
+
+    const renumber = () => {
+        let visible = 0;
+        list.querySelectorAll('[data-reference-row]').forEach((row) => {
+            if (row.classList.contains('hidden')) return;
+            visible += 1;
+            const number = row.querySelector('[data-reference-number]');
+            if (number) number.textContent = visible;
+        });
+    };
+
+    const bindRemove = (row) => {
+        const button = row.querySelector('[data-remove-reference]');
+        if (!button) return;
+        button.addEventListener('click', () => {
+            const deleteInput = row.querySelector('input[name$="-DELETE"]');
+            const titleInput = row.querySelector('input[name$="-title"]');
+            const isPersisted = Boolean(titleInput && titleInput.value.trim());
+            if (deleteInput && isPersisted) {
+                deleteInput.checked = true;
+                row.classList.add('hidden');
+            } else {
+                row.remove();
+            }
+            renumber();
+        });
+    };
+
+    list.querySelectorAll('[data-reference-row]').forEach(bindRemove);
+    addButton?.addEventListener('click', () => {
+        const index = Number(total.value);
+        const html = template.innerHTML.replaceAll('__prefix__', String(index));
+        list.insertAdjacentHTML('beforeend', html);
+        total.value = String(index + 1);
+        const row = list.lastElementChild;
+        bindRemove(row);
+        renumber();
+        row.querySelector('input')?.focus();
+    });
+    renumber();
+});
+</script>
+{% endif %}

@@ -12,9 +12,12 @@ from django.views.decorators.http import require_GET, require_POST
 
 from categories.models import BusinessCategory
 from core.models import Business, Notification
-from .forms import GuideAnswerForm, GuideForkForm, GuideForm, GuideQuestionForm, StepTipForm
+from .forms import (
+    GuideAnswerForm, GuideForkForm, GuideForm, GuideQuestionForm,
+    GuideReferenceFormSet, StepTipForm,
+)
 from .models import (
-    Guide, GuideAnswer, GuideQuestion, GuideRating, GuideVersion, Step,
+    Guide, GuideAnswer, GuideQuestion, GuideRating, GuideReference, GuideVersion, Step,
     StepPhoto, StepTip, StepTipPhoto, StepTipVote,
 )
 
@@ -89,6 +92,57 @@ def _create_steps_from_payload(version, steps_payload, request=None):
         if request is not None:
             for image in _photo_files_for_step(request, index - 1):
                 StepPhoto.objects.create(step=step, image=image, uploaded_by=request.user)
+
+def _reference_initial(version):
+    if not version:
+        return []
+    return [
+        {
+            'title': reference.title,
+            'url': reference.url,
+            'publisher': reference.publisher,
+            'accessed_at': reference.accessed_at,
+        }
+        for reference in version.references.all()
+    ]
+
+
+def _reference_formset(request, version=None):
+    initial = _reference_initial(version)
+    submitted = request.method == 'POST' and 'references-TOTAL_FORMS' in request.POST
+    data = request.POST if submitted else None
+    return GuideReferenceFormSet(data=data, initial=initial, prefix='references'), submitted
+
+
+def _save_references(version, reference_formset, *, source_version=None, submitted=False):
+    if submitted:
+        references = []
+        for form in reference_formset:
+            if not form.cleaned_data or form.cleaned_data.get('DELETE'):
+                continue
+            references.append(GuideReference(
+                version=version,
+                title=form.cleaned_data['title'].strip(),
+                url=form.cleaned_data['url'],
+                publisher=(form.cleaned_data.get('publisher') or '').strip(),
+                accessed_at=form.cleaned_data.get('accessed_at'),
+            ))
+        if references:
+            GuideReference.objects.bulk_create(references)
+        return
+
+    if source_version:
+        GuideReference.objects.bulk_create([
+            GuideReference(
+                version=version,
+                title=reference.title,
+                url=reference.url,
+                publisher=reference.publisher,
+                accessed_at=reference.accessed_at,
+            )
+            for reference in source_version.references.all()
+        ])
+
 
 def _guide_form_context(form, **extra):
     context = {
@@ -193,9 +247,11 @@ def guide_create(request):
     business_id = request.GET.get('business')
     if business_id and business_id.isdigit():
         source_business = Business.objects.filter(pk=business_id).first()
+    reference_formset, references_submitted = _reference_formset(request)
     if request.method == 'POST':
         form = GuideForm(request.POST, request.FILES)
-        if form.is_valid():
+        references_valid = reference_formset.is_valid() if references_submitted else True
+        if form.is_valid() and references_valid:
             guide = form.save(commit=False)
             guide.organization = _business_from_name(form.cleaned_data.get('organization_name'), request.user)
             guide.category = _category_from_name(form.cleaned_data.get('category_name'))
@@ -204,13 +260,14 @@ def guide_create(request):
             guide.save()
             version = GuideVersion.objects.create(guide=guide, edited_by=request.user, edit_summary='Initial draft')
             _create_steps_from_payload(version, _steps_payload_from_post(request), request)
+            _save_references(version, reference_formset, submitted=references_submitted)
             guide.current_version = version
             guide.save(update_fields=['current_version'])
             return redirect('guides:detail', slug=guide.slug)
     else:
         initial = {'organization_name': source_business.name} if source_business else None
         form = GuideForm(initial=initial)
-    context = _guide_form_context(form)
+    context = _guide_form_context(form, reference_formset=reference_formset)
     context['source_business'] = source_business
     context['guide_draft_key'] = (
         f'wikonomi-guide-new-business-{source_business.pk}'
@@ -279,13 +336,16 @@ def guide_edit(request, slug):
         post_data.setdefault('organization_name', guide.organization.name if guide.organization else '')
         post_data.setdefault('category_name', guide.category.name if guide.category else '')
     form = GuideForm(post_data, request.FILES or None, instance=guide)
+    reference_formset, references_submitted = _reference_formset(request, guide.current_version)
     if request.method == 'POST':
-        if not form.is_valid():
+        references_valid = reference_formset.is_valid() if references_submitted else True
+        if not form.is_valid() or not references_valid:
             return render(request, 'guides/edit.html', _guide_form_context(
                 form,
                 guide=guide,
                 steps=_steps_for_version(guide.current_version),
                 source_question=source_question,
+                reference_formset=reference_formset,
             ))
         steps_payload = _steps_payload_from_post(request)
         deleted_ids = set(str(step_id) for step_id in json.loads(request.POST.get('deleted_step_ids', '[]')))
@@ -322,6 +382,12 @@ def guide_edit(request, slug):
                 StepTip.objects.filter(step_id=old_id).update(step_id=new_id)
                 GuideQuestion.objects.filter(step_id=old_id).update(step_id=new_id)
             GuideQuestion.objects.filter(step_id__in=deleted_ids).update(step=None)
+            _save_references(
+                version,
+                reference_formset,
+                source_version=guide.current_version,
+                submitted=references_submitted,
+            )
             guide.current_version = version
             guide.save(update_fields=['current_version'])
         return redirect('guides:detail', slug=guide.slug)
@@ -330,6 +396,7 @@ def guide_edit(request, slug):
         guide=guide,
         steps=_steps_for_version(guide.current_version),
         source_question=source_question,
+        reference_formset=reference_formset,
     ))
 
 
