@@ -109,7 +109,7 @@ class GuideReferenceForm(forms.Form):
 
 GuideReferenceFormSet = formset_factory(
     GuideReferenceForm,
-    extra=1,
+    extra=0,
     can_delete=True,
 )
 
