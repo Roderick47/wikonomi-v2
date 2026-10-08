@@ -22,6 +22,7 @@
         {% csrf_token %}
         {% include "guides/_guide_fields.html" %}
         {% include "guides/_steps_editor.html" %}
+        {% include "guides/_references_editor.html" %}
         <div class="guide-submit-bar">
             <a href="{% url 'guides:list' %}" class="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100">Cancel</a>
             <button type="submit" class="rounded-lg bg-brand-purple px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-purple/90">Publish guide</button>
