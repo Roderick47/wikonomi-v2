@@ -28,20 +28,20 @@ def signup(request):
                 
                 profile, created = Profile.objects.get_or_create(user=user)
                 
-                # Send verification email - DISABLED
-                if False and settings.ACCOUNT_VERIFICATION_REQUIRED:
+                # Send verification email when account verification is enabled.
+                if settings.ACCOUNT_VERIFICATION_REQUIRED:
                     try:
                         email_sent = send_verification_email(request, user, profile)
                         
                         if email_sent:
                             messages.info(request, 'Account created successfully! Please check your email to verify your account.')
                         else:
-                            messages.warning(request, 'Account created but we couldn\'t send a verification email. Please contact support.')
+                            messages.warning(request, 'Account created successfully, but the verification email could not be sent. You can resend it from your profile.')
                     except Exception as e:
                         import logging
                         logger = logging.getLogger(__name__)
                         logger.error(f'Email sending failed: {str(e)}')
-                        messages.error(request, f'Account created but email sending failed: {str(e)}')
+                        messages.warning(request, 'Account created successfully, but the verification email could not be sent. You can resend it from your profile.')
                 else:
                     messages.success(request, 'Account created successfully!')
                 
@@ -220,9 +220,10 @@ def change_password(request):
         if form.is_valid():
             user = form.save()
             update_session_auth_hash(request, user)  # Important!
-            
-            # Send password change notification - DISABLED
-            # send_password_change_notification(request, user)
+
+            # Password-change email is a security notification. Failure to send
+            # must never block the password change itself.
+            send_password_change_notification(request, user)
             
             messages.success(request, 'Password changed successfully!')
             return redirect('profile')
@@ -288,11 +289,18 @@ def delete_account(request):
 
 @login_required
 def resend_verification_email(request):
-    """
-    Resend verification email to logged-in user
-    EMAIL FUNCTIONALITY DISABLED
-    """
-    messages.info(request, 'Email verification is currently disabled. Your account is fully active.')
+    """Resend an email-verification link to the logged-in user."""
+    profile, _ = Profile.objects.get_or_create(user=request.user)
+
+    if profile.email_verified:
+        messages.info(request, 'Your email address is already verified.')
+        return redirect('profile')
+
+    if send_verification_email(request, request.user, profile):
+        messages.success(request, 'A new verification email has been sent. Please check your inbox.')
+    else:
+        messages.error(request, 'We could not send the verification email. Please try again later.')
+
     return redirect('profile')
 
 
