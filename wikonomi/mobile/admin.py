@@ -10,9 +10,11 @@ from .services import approve_submission, reject_submission
 class MobileSubmissionAdmin(admin.ModelAdmin):
     list_display = (
         "submitted_at", "product", "business_branch", "price",
-        "contributor", "status", "reviewed_by",
+        "evidence_preview", "contributor", "status", "reviewed_by",
     )
     list_filter = ("status", "submitted_at")
+    list_select_related = ("product", "business_branch", "contributor", "reviewed_by")
+    date_hierarchy = "submitted_at"
     search_fields = (
         "product__name", "business_branch__name",
         "contributor__username",
