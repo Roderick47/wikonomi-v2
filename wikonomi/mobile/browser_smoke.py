@@ -94,12 +94,26 @@ with tempfile.TemporaryDirectory() as directory:
             page.get_by_role("button", name="Save draft").click()
             expect(page.locator("#draft-status")).to_contain_text("Draft saved")
             page.screenshot(path=str(screenshots / "submit.png"), full_page=True)
+
+            # IndexedDB drafts should survive navigation, including the photo.
+            page.goto("/app/")
+            expect(page.locator("#draft-count")).to_have_text("1")
+            page.get_by_role("button", name="Open").click()
+            expect(page.locator("#draft-status")).to_contain_text("Draft loaded")
+            expect(page.locator("#id_price")).to_have_value("12.50")
+            expect(page.locator("#photo-preview")).to_be_visible()
+
+            # A user losing mobile data must be able to save before retrying.
+            context.set_offline(True)
+            page.get_by_role("button", name="Submit price").click()
+            expect(page.locator("#draft-status")).to_contain_text("Draft saved")
+            context.set_offline(False)
             page.get_by_role("button", name="Submit price").click()
             expect(page).to_have_url(__import__("re").compile(r".*/app/[?]created=.*"))
             expect(page.get_by_text("Price submitted for review.")).to_be_visible()
             expect(page.get_by_role("heading", name="CI Trukai Rice 1kg")).to_be_visible()
             page.screenshot(path=str(screenshots / "success.png"), full_page=True)
-            print("PASS: Android-sized dashboard, photo upload, suggestions, offline draft and contribution")
+            print("PASS: Android-sized dashboard, photo upload, suggestions, IndexedDB recovery, offline retry and contribution")
             browser.close()
     finally:
         server.terminate()
