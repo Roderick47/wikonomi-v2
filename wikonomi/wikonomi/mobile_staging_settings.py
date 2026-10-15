@@ -48,9 +48,12 @@ else:
     MOBILE_STAGING_EPHEMERAL_DB = True
 
 MEDIA_ROOT = "/tmp/wikonomi-mobile-media"
-# Never reuse the public production R2 bucket.
+# Use only STAGING_R2_* credentials for the private dedicated staging bucket.
+# Without them, uploads remain temporary and must not be used for a real pilot.
+from mobile.staging_media import staging_media_storage  # noqa: E402
+_staging_media, MOBILE_STAGING_PERSISTENT_MEDIA_CONFIGURED = staging_media_storage(os.environ)
 STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "default": _staging_media,
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 MEDIA_URL = "/media/"
