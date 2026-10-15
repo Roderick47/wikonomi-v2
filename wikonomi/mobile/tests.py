@@ -394,3 +394,95 @@ class MobileContributionTests(TestCase):
             staging_media_storage({**staging_variables, "STAGING_R2_BUCKET_NAME": "wikonomi-production"})
         with self.assertRaises(ImproperlyConfigured):
             staging_media_storage({**staging_variables, "STAGING_R2_ENDPOINT_URL": "https://example.com"})
+
+    def test_production_rollout_flag_hides_contribution_routes(self):
+        self.client.force_login(self.contributor)
+        with override_settings(MOBILE_CONTRIBUTOR_ENABLED=False):
+            for url in (
+                reverse("mobile:home"),
+                reverse("mobile:submit"),
+                reverse("mobile:search_products"),
+                reverse("mobile:search_branches"),
+            ):
+                with self.subTest(url=url):
+                    self.assertEqual(self.client.get(url).status_code, 404)
+            self.assertEqual(self.client.post(
+                reverse("mobile:submit"), self.payload()
+            ).status_code, 404)
+            self.assertEqual(MobileSubmission.objects.count(), 0)
+
+    def test_admin_moderation_approve_publishes_exactly_once(self):
+        from django.contrib.auth.models import Permission
+
+        self.client.force_login(self.contributor)
+        self.assertEqual(self.client.post(
+            reverse("mobile:submit"), self.payload()
+        ).status_code, 302)
+        submission = MobileSubmission.objects.get()
+        self.reviewer.user_permissions.add(Permission.objects.get(
+            content_type__app_label="mobile", codename="change_mobilesubmission"
+        ))
+
+        changelist = reverse("admin:mobile_mobilesubmission_changelist")
+        self.client.force_login(self.reviewer)
+        listing = self.client.get(changelist)
+        self.assertEqual(listing.status_code, 200)
+        self.assertContains(listing, "View original photo")
+        self.assertContains(listing, reverse("mobile:evidence", args=[submission.pk]))
+
+        post = {
+            "action": "approve_selected",
+            "_selected_action": [str(submission.pk)],
+            "select_across": "0",
+            "index": "0",
+        }
+        self.assertEqual(self.client.post(changelist, post).status_code, 302)
+        submission.refresh_from_db()
+        self.assertEqual(submission.status, MobileSubmission.Status.APPROVED)
+        self.assertEqual(PriceReport.objects.count(), 1)
+        report = submission.published_report
+        self.assertEqual(report.price, Decimal("12.50"))
+        self.assertEqual(report.user, self.contributor)
+        self.assertEqual(submission.reviewed_by, self.reviewer)
+        self.assertIsNotNone(submission.reviewed_at)
+
+        # Repeating the admin action must never republish the same price.
+        self.assertEqual(self.client.post(changelist, post).status_code, 302)
+        self.assertEqual(PriceReport.objects.count(), 1)
+
+    def test_admin_moderation_reject_does_not_publish(self):
+        from django.contrib.auth.models import Permission
+
+        self.client.force_login(self.contributor)
+        self.client.post(reverse("mobile:submit"), self.payload())
+        submission = MobileSubmission.objects.get()
+        self.reviewer.user_permissions.add(Permission.objects.get(
+            content_type__app_label="mobile", codename="change_mobilesubmission"
+        ))
+        self.client.force_login(self.reviewer)
+        changelist = reverse("admin:mobile_mobilesubmission_changelist")
+        post = {
+            "action": "reject_selected",
+            "_selected_action": [str(submission.pk)],
+            "select_across": "0",
+            "index": "0",
+        }
+        self.assertEqual(self.client.post(changelist, post).status_code, 302)
+        submission.refresh_from_db()
+        self.assertEqual(submission.status, MobileSubmission.Status.REJECTED)
+        self.assertEqual(submission.reviewed_by, self.reviewer)
+        self.assertEqual(PriceReport.objects.count(), 0)
+
+    def test_regular_user_cannot_use_admin_review_actions(self):
+        self.client.force_login(self.contributor)
+        self.client.post(reverse("mobile:submit"), self.payload())
+        submission = MobileSubmission.objects.get()
+        response = self.client.post(
+            reverse("admin:mobile_mobilesubmission_changelist"),
+            {"action": "approve_selected",
+             "_selected_action": [str(submission.pk)]},
+        )
+        self.assertIn(response.status_code, (302, 403))
+        self.assertEqual(PriceReport.objects.count(), 0)
+        submission.refresh_from_db()
+        self.assertEqual(submission.status, MobileSubmission.Status.PENDING)
