@@ -3,11 +3,12 @@ import uuid
 from datetime import timedelta
 from pathlib import Path
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import Q
-from django.http import FileResponse, HttpResponse, JsonResponse
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.urls import reverse
@@ -188,3 +189,40 @@ def evidence(request, submission_id):
         filename=submission.photo.name.rsplit("/", 1)[-1],
         headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"},
     )
+
+
+@never_cache
+@require_GET
+def staging_db_status(request):
+    """Minimal readiness probe available only on the dedicated staging domain.
+
+    No database host, credentials, username, or database name is returned.
+    """
+    if (
+        request.get_host().split(":")[0] != "wikonomi-mobile-staging.onrender.com"
+        or not hasattr(settings, "MOBILE_STAGING_EPHEMERAL_DB")
+    ):
+        raise Http404()
+
+    ready = (
+        not settings.MOBILE_STAGING_EPHEMERAL_DB
+        and connection.vendor == "postgresql"
+    )
+    migrated = False
+    if ready:
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT 1 FROM django_migrations WHERE app = %s "
+                    "AND name = %s LIMIT 1", ["mobile", "0001_initial"]
+                )
+                migrated = cursor.fetchone() is not None
+        except Exception:
+            ready = False
+    result = bool(ready and migrated)
+    response = JsonResponse(
+        {"staging_database_ready": result, "mobile_migrations_ready": migrated},
+        status=200 if result else 503,
+    )
+    response["Cache-Control"] = "no-store"
+    return response
