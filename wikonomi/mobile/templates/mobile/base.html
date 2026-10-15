@@ -19,6 +19,9 @@
     <a class="site-link" href="/" target="_blank" rel="noopener">Website ↗</a>
   </header>
   <main class="main-content">
+    {% if request.get_host == "wikonomi-mobile-staging.onrender.com" %}
+    <div class="notice quiet" role="note"><strong>Wikonomi test environment.</strong> Do not use your production account password or upload sensitive images here. Test data may be reset.</div>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
   <nav class="bottom-nav" aria-label="Mobile navigation">
