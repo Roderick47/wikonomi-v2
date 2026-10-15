@@ -150,7 +150,7 @@ class MobileContributionTests(TestCase):
         pending = MobileSubmission.objects.get()
         with pending.photo.open("rb") as image:
             original_bytes = image.read()
-        self.assertTrue(original_bytes.startswith(b"\\x89PNG"))
+        self.assertTrue(original_bytes.startswith(bytes((0x89, 0x50, 0x4e, 0x47))))
 
         report = approve_submission(pending.pk, self.reviewer)
         self.assertIsNotNone(report)
@@ -232,7 +232,7 @@ class MobileContributionTests(TestCase):
                 image_key = submission.photo.name
                 self.assertTrue(image_key.startswith("mobile_price_evidence/"))
                 raw_image = s3.get_object(Bucket=bucket, Key=image_key)["Body"].read()
-                self.assertTrue(raw_image.startswith(b"\\x89PNG"))
+                self.assertTrue(raw_image.startswith(bytes((0x89, 0x50, 0x4e, 0x47))))
                 report = approve_submission(submission.pk, self.reviewer)
                 self.assertEqual(report.image.name, image_key)
                 with report.image.open("rb") as published:
