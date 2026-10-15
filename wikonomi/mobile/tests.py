@@ -336,3 +336,21 @@ class MobileContributionTests(TestCase):
         self.assertEqual(self.client.get(url).status_code, 403)
         self.client.logout()
         self.assertEqual(self.client.get(url).status_code, 302)
+
+
+    def test_staging_database_probe_not_exposed_outside_staging_domain(self):
+        response = self.client.get(reverse("mobile:staging_db_status"))
+        self.assertEqual(response.status_code, 404)
+
+    def test_staging_database_probe_rejects_temporary_sqlite(self):
+        with override_settings(
+            ALLOWED_HOSTS=["wikonomi-mobile-staging.onrender.com"],
+            MOBILE_STAGING_EPHEMERAL_DB=True,
+        ):
+            response = self.client.get(
+                reverse("mobile:staging_db_status"),
+                HTTP_HOST="wikonomi-mobile-staging.onrender.com",
+            )
+        self.assertEqual(response.status_code, 503)
+        self.assertFalse(response.json()["staging_database_ready"])
+        self.assertIn("no-store", response["Cache-Control"])
