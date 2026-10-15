@@ -7,6 +7,8 @@ on:
       - "wikonomi/core/models.py"
       - "wikonomi/wikonomi/settings.py"
       - "wikonomi/wikonomi/postgres_test_settings.py"
+      - "wikonomi/wikonomi/mobile_staging_settings.py"
+      - "scripts/mobile_staging_smoke.py"
       - "wikonomi/wikonomi/urls.py"
       - ".github/workflows/mobile-checks.yml"
   push:
@@ -105,3 +107,12 @@ jobs:
         run: python manage.py migrate --noinput
       - name: Run mobile HTTP, reviewer and media round-trip tests on PostgreSQL
         run: python manage.py test mobile --verbosity 2
+
+  staging-public-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - name: Check out smoke script
+        uses: actions/checkout@v4
+      - name: Test deployed staging health, auth gate, manifest and static assets
+        run: python scripts/mobile_staging_smoke.py
