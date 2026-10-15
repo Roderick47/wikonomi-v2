@@ -49,8 +49,8 @@ class MobileSubmission(models.Model):
     class Meta:
         ordering = ["-submitted_at"]
         indexes = [
-            models.Index(fields=["contributor", "-submitted_at"]),
-            models.Index(fields=["status", "-submitted_at"]),
+            models.Index(fields=["contributor", "-submitted_at"], name="mobile_sub_contrib_1"),
+            models.Index(fields=["status", "-submitted_at"], name="mobile_sub_status_1"),
         ]
 
     def __str__(self):
