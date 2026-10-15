@@ -16,6 +16,7 @@ class NoRedirect(HTTPRedirectHandler):
 opener = build_opener(NoRedirect())
 paths = {
     "/healthz/": 200,
+    "/app/staging-db-status/": 200,
     "/app/": 302,
     "/app/submit/": 302,
     "/app/manifest.webmanifest": 200,
@@ -42,6 +43,13 @@ for path, expected in paths.items():
                     raise AssertionError(f"{path}: HTTP {code}, expected {expected}")
                 if path == "/healthz/" and body.strip() != b"ok":
                     raise AssertionError("health endpoint did not return ok")
+                if path == "/app/staging-db-status/":
+                    readiness = json.loads(body)
+                    if readiness != {
+                        "staging_database_ready": True,
+                        "mobile_migrations_ready": True,
+                    }:
+                        raise AssertionError("staging Postgres/migrations not ready")
                 if path.endswith("manifest.webmanifest"):
                     manifest = json.loads(body)
                     if manifest.get("scope") != "/app/":
