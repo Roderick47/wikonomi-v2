@@ -302,8 +302,18 @@ class MobileContributionTests(TestCase):
         self.assertEqual(manifest["scope"], "/app/")
         self.assertEqual(manifest["display"], "standalone")
         for icon in manifest["icons"]:
-            self.assertTrue(icon["src"].startswith("/static/mobile/"))
-            self.assertIsNotNone(find(icon["src"].removeprefix("/static/")))
+            if icon["src"].startswith("/static/mobile/"):
+                self.assertIsNotNone(find(icon["src"].removeprefix("/static/")))
+            else:
+                self.assertTrue(icon["src"].startswith("/app/icon-"))
+                rendered = self.client.get(icon["src"])
+                self.assertEqual(rendered.status_code, 200)
+                self.assertEqual(rendered["Content-Type"], "image/png")
+                with Image.open(io.BytesIO(rendered.content)) as image:
+                    self.assertEqual(image.format, "PNG")
+                    expected = int(icon["sizes"].split("x")[0])
+                    self.assertEqual(image.size, (expected, expected))
+                self.assertTrue("maskable" not in icon["purpose"] or "maskable" in icon["src"])
         for asset in ("mobile/app.css", "mobile/app.js", "mobile/offline.html", "mobile/sw.js"):
             self.assertIsNotNone(find(asset), asset)
         worker = self.client.get(reverse("mobile:service_worker"))
@@ -354,3 +364,33 @@ class MobileContributionTests(TestCase):
         self.assertEqual(response.status_code, 503)
         self.assertFalse(response.json()["staging_database_ready"])
         self.assertIn("no-store", response["Cache-Control"])
+
+    def test_staging_media_config_enforces_separate_private_r2_bucket(self):
+        from django.core.exceptions import ImproperlyConfigured
+        from mobile.staging_media import staging_media_storage
+
+        config, enabled = staging_media_storage({})
+        self.assertFalse(enabled)
+        self.assertEqual(config["BACKEND"], "django.core.files.storage.FileSystemStorage")
+
+        endpoint = "https://" + ("a" * 32) + ".r2.cloudflarestorage.com"
+        staging_variables = {
+            "STAGING_R2_ACCESS_KEY_ID": "fake-ci-key",
+            "STAGING_R2_SECRET_ACCESS_KEY": "fake-ci-secret",
+            "STAGING_R2_ENDPOINT_URL": endpoint,
+            "STAGING_R2_BUCKET_NAME": "wikonomi-mobile-staging",
+        }
+        config, enabled = staging_media_storage(staging_variables)
+        self.assertTrue(enabled)
+        self.assertEqual(config["BACKEND"], "storages.backends.s3boto3.S3Boto3Storage")
+        options = config["OPTIONS"]
+        self.assertTrue(options["querystring_auth"])
+        self.assertEqual(options["bucket_name"], "wikonomi-mobile-staging")
+        self.assertFalse(options["file_overwrite"])
+        self.assertIsNone(options["default_acl"])
+        with self.assertRaises(ImproperlyConfigured):
+            staging_media_storage({"STAGING_R2_ACCESS_KEY_ID": "incomplete"})
+        with self.assertRaises(ImproperlyConfigured):
+            staging_media_storage({**staging_variables, "STAGING_R2_BUCKET_NAME": "wikonomi-production"})
+        with self.assertRaises(ImproperlyConfigured):
+            staging_media_storage({**staging_variables, "STAGING_R2_ENDPOINT_URL": "https://example.com"})
