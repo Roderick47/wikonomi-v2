@@ -191,3 +191,49 @@ class MobileContributionTests(TestCase):
         )
         self.assertEqual(response.status_code, 403)
         self.assertEqual(MobileSubmission.objects.count(), 1)
+
+    def test_s3_compatible_storage_preserves_price_photo(self):
+        """Mock S3 verifies Django/R2-compatible object storage integration.
+
+        This is NOT a live Cloudflare R2 credential or persistence test.
+        """
+        try:
+            import boto3
+            from moto import mock_aws
+        except ImportError:
+            self.skipTest("Install moto[s3] to run S3 compatibility test")
+
+        with mock_aws():
+            region = "us-east-1"
+            bucket = "wikonomi-mobile-ci"
+            s3 = boto3.client("s3", region_name=region)
+            s3.create_bucket(Bucket=bucket)
+            storage_settings = {
+                "default": {
+                    "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+                    "OPTIONS": {
+                        "access_key": "mock-access-key",
+                        "secret_key": "mock-secret-key",
+                        "bucket_name": bucket,
+                        "region_name": region,
+                        "querystring_auth": False,
+                        "default_acl": None,
+                    },
+                },
+                "staticfiles": {
+                    "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+                },
+            }
+            with override_settings(STORAGES=storage_settings):
+                self.client.force_login(self.contributor)
+                response = self.client.post(reverse("mobile:submit"), self.payload())
+                self.assertEqual(response.status_code, 302)
+                submission = MobileSubmission.objects.get()
+                image_key = submission.photo.name
+                self.assertTrue(image_key.startswith("mobile_price_evidence/"))
+                raw_image = s3.get_object(Bucket=bucket, Key=image_key)["Body"].read()
+                self.assertTrue(raw_image.startswith(b"\\x89PNG"))
+                report = approve_submission(submission.pk, self.reviewer)
+                self.assertEqual(report.image.name, image_key)
+                with report.image.open("rb") as published:
+                    self.assertEqual(published.read(), raw_image)
