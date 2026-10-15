@@ -31,7 +31,7 @@ def approve_submission(submission_id, reviewer):
         user=submission.contributor,
         price=submission.price,
         currency="PGK",
-        image=submission.photo.name,  # Same persistent storage; no duplicate upload.
+        image=submission.photo.name,  # ResizedImageField creates a published JPEG; retain source evidence.
         latitude=branch.latitude,
         longitude=branch.longitude,
         notes="Price contributed through Wikonomi mobile.",
