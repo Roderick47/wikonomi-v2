@@ -1,0 +1,142 @@
+import json
+from pathlib import Path
+
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.db import transaction
+from django.db.models import Q
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.utils.http import urlencode
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_GET, require_http_methods
+
+from core.models import BusinessBranch, Product
+from .forms import MobileSubmissionForm
+from .models import MobileSubmission
+
+
+@login_required
+@never_cache
+@require_GET
+def home(request):
+    submissions = (
+        MobileSubmission.objects.filter(contributor=request.user)
+        .select_related("product", "business_branch__canonical_business")[:20]
+    )
+    return render(request, "mobile/home.html", {
+        "submissions": submissions,
+        "approved_count": MobileSubmission.objects.filter(
+            contributor=request.user,
+            status=MobileSubmission.Status.APPROVED,
+        ).count(),
+        "pending_count": MobileSubmission.objects.filter(
+            contributor=request.user,
+            status=MobileSubmission.Status.PENDING,
+        ).count(),
+    })
+
+
+@login_required
+@never_cache
+@require_http_methods(["GET", "POST"])
+def submit(request):
+    if request.method == "POST":
+        form = MobileSubmissionForm(request.POST, request.FILES)
+        if form.is_valid():
+            submission = form.save(commit=False)
+            identifier = form.cleaned_data["client_submission_id"]
+            with transaction.atomic():
+                existing = MobileSubmission.objects.filter(
+                    client_submission_id=identifier,
+                ).first()
+                if existing:
+                    if existing.contributor_id != request.user.pk:
+                        raise PermissionDenied("Invalid submission ID.")
+                else:
+                    submission.contributor = request.user
+                    submission.client_submission_id = identifier
+                    submission.save()
+            return redirect(
+                reverse("mobile:home") + "?created=" + str(identifier)
+            )
+    else:
+        form = MobileSubmissionForm()
+
+    product = Product.objects.filter(
+        pk=request.POST.get("product")
+    ).first() if request.method == "POST" else None
+    branch = BusinessBranch.objects.filter(
+        pk=request.POST.get("business_branch")
+    ).select_related("canonical_business").first() if request.method == "POST" else None
+
+    return render(request, "mobile/submit.html", {
+        "form": form,
+        "product_label": product.name if product else "",
+        "branch_label": branch.get_full_name() if branch else "",
+    })
+
+
+@login_required
+@require_GET
+def search_products(request):
+    query = request.GET.get("q", "").strip()[:80]
+    if len(query) < 2:
+        return JsonResponse({"results": []})
+    matches = Product.objects.filter(name__icontains=query).order_by("name")[:12]
+    return JsonResponse({"results": [
+        {"id": obj.pk, "name": obj.name} for obj in matches
+    ]})
+
+
+@login_required
+@require_GET
+def search_branches(request):
+    query = request.GET.get("q", "").strip()[:80]
+    if len(query) < 2:
+        return JsonResponse({"results": []})
+    matches = (
+        BusinessBranch.objects.filter(is_active=True)
+        .filter(Q(name__icontains=query) | Q(canonical_business__name__icontains=query))
+        .select_related("canonical_business").order_by("canonical_business__name", "name")[:12]
+    )
+    return JsonResponse({"results": [
+        {"id": obj.pk, "name": obj.get_full_name()} for obj in matches
+    ]})
+
+
+@require_GET
+def manifest(request):
+    data = {
+        "id": "/app/",
+        "name": "Wikonomi Contributor",
+        "short_name": "Wikonomi",
+        "description": "Help Papua New Guinea compare prices by sharing prices you see.",
+        "start_url": "/app/",
+        "scope": "/app/",
+        "display": "standalone",
+        "background_color": "#f7f8fc",
+        "theme_color": "#5149dd",
+        "icons": [
+            {"src": "/static/mobile/icons/icon-192.png", "sizes": "192x192",
+             "type": "image/png", "purpose": "any"},
+            {"src": "/static/mobile/icons/icon-512.png", "sizes": "512x512",
+             "type": "image/png", "purpose": "any maskable"},
+        ],
+    }
+    return HttpResponse(
+        json.dumps(data), content_type="application/manifest+json",
+    )
+
+
+@require_GET
+def service_worker(request):
+    file_path = Path(__file__).resolve().parent / "static/mobile/sw.js"
+    response = HttpResponse(
+        file_path.read_text(encoding="utf-8"),
+        content_type="application/javascript",
+    )
+    response["Cache-Control"] = "no-cache"
+    response["Service-Worker-Allowed"] = "/app/"
+    return response
