@@ -8,7 +8,7 @@ from PIL import Image
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from core.models import Business, BusinessBranch, PriceReport, Product
@@ -141,3 +141,53 @@ class MobileContributionTests(TestCase):
         response = self.client.post(reverse("mobile:submit"), self.payload())
         self.assertEqual(response.status_code, 429)
         self.assertEqual(MobileSubmission.objects.count(), 20)
+
+    def test_photo_evidence_survives_review_and_publishes_with_same_bytes(self):
+        """HTTP upload -> pending evidence file -> approval -> published image."""
+        self.client.force_login(self.contributor)
+        response = self.client.post(reverse("mobile:submit"), self.payload())
+        self.assertEqual(response.status_code, 302)
+        pending = MobileSubmission.objects.get()
+        with pending.photo.open("rb") as image:
+            original_bytes = image.read()
+        self.assertTrue(original_bytes.startswith(b"\\x89PNG"))
+
+        report = approve_submission(pending.pk, self.reviewer)
+        self.assertIsNotNone(report)
+        report.refresh_from_db()
+        self.assertEqual(report.image.name, pending.photo.name)
+        with report.image.open("rb") as published_image:
+            self.assertEqual(published_image.read(), original_bytes)
+        self.assertEqual(PriceReport.objects.count(), 1)
+
+    def test_product_and_branch_search_return_existing_entities(self):
+        self.client.force_login(self.contributor)
+        product_results = self.client.get(
+            reverse("mobile:search_products"), {"q": "Rice"}
+        ).json()["results"]
+        branch_results = self.client.get(
+            reverse("mobile:search_branches"), {"q": "Grocery"}
+        ).json()["results"]
+        self.assertIn(self.product.pk, [row["id"] for row in product_results])
+        self.assertIn(self.branch.pk, [row["id"] for row in branch_results])
+
+    def test_mobile_form_requires_csrf_token(self):
+        guarded_client = Client(enforce_csrf_checks=True)
+        guarded_client.force_login(self.contributor)
+        response = guarded_client.post(
+            reverse("mobile:submit"), self.payload()
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(MobileSubmission.objects.count(), 0)
+
+    def test_cannot_reuse_another_users_submission_id(self):
+        self.client.force_login(self.contributor)
+        submission_id = uuid.uuid4()
+        self.client.post(reverse("mobile:submit"), self.payload(submission_id))
+        another = User.objects.create_user(username="other", password="test-pass")
+        self.client.force_login(another)
+        response = self.client.post(
+            reverse("mobile:submit"), self.payload(submission_id)
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(MobileSubmission.objects.count(), 1)
