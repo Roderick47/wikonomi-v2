@@ -95,6 +95,8 @@ jobs:
           cache: pip
       - name: Install dependencies
         run: python -m pip install -r ../requirements.txt
+      - name: Install isolated S3 mock dependencies
+        run: python -m pip install "moto[s3]>=5,<6"
       - name: Validate Django settings against ephemeral PostgreSQL
         run: python manage.py check
       - name: Check PostgreSQL migrations for drift
