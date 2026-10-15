@@ -31,6 +31,7 @@
         <h3>{{ submission.product.name }}</h3>
         <p>{{ submission.business_branch.get_full_name }}</p>
         <small>{{ submission.submitted_at|date:"d M Y, g:i A" }}</small>
+        <a class="evidence-link" href="{% url 'mobile:evidence' submission.id %}" target="_blank" rel="noopener">View price-tag photo ↗</a>
       </div>
       <div class="submission-end">
         <strong>K{{ submission.price }}</strong>
