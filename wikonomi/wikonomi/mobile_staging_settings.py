@@ -12,6 +12,8 @@ from django.core.exceptions import ImproperlyConfigured
 from .test_settings import *  # noqa: F401,F403
 
 DEBUG = False
+# Isolated staging intentionally opts into the pilot while production stays gated.
+MOBILE_CONTRIBUTOR_ENABLED = True
 ALLOWED_HOSTS = ["wikonomi-mobile-staging.onrender.com", "localhost", "127.0.0.1"]
 CSRF_TRUSTED_ORIGINS = ["https://wikonomi-mobile-staging.onrender.com"]
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
