@@ -116,3 +116,41 @@ jobs:
         uses: actions/checkout@v4
       - name: Test deployed staging health, auth gate, manifest and static assets
         run: python scripts/mobile_staging_smoke.py
+
+  mobile-android-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DEBUG: "True"
+      SECRET_KEY: ci-mobile-chromium-only
+      DJANGO_SETTINGS_MODULE: wikonomi.test_settings
+      DATABASE_URL: ""
+      AWS_ACCESS_KEY_ID: ""
+      AWS_SECRET_ACCESS_KEY: ""
+      MEDIA_ROOT: /tmp/wikonomi-android-ci-media
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install Django and Chromium test runner
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install "playwright>=1.50,<2"
+          python -m playwright install --with-deps chromium
+      - name: Apply migrations to isolated SQLite
+        working-directory: wikonomi
+        run: python manage.py migrate --noinput
+      - name: Run Android-sized Chromium screen and upload test
+        working-directory: wikonomi
+        run: python mobile/browser_smoke.py
+      - name: Upload UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-contributor-screens
+          path: wikonomi/browser-screenshots/*.png
+          if-no-files-found: ignore
