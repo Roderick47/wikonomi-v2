@@ -13,6 +13,7 @@ from pathlib import Path
 from urllib.request import urlopen
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "wikonomi.test_settings"
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import django  # noqa: E402
 django.setup()
 from django.conf import settings  # noqa: E402
