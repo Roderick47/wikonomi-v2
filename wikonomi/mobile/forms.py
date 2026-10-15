@@ -40,6 +40,12 @@ class MobileSubmissionForm(forms.ModelForm):
         self.fields["photo"].required = True
         self.fields["client_submission_id"].initial = uuid.uuid4()
 
+    def clean_price(self):
+        price = self.cleaned_data["price"]
+        if price <= 0:
+            raise forms.ValidationError("Price must be greater than zero.")
+        return price
+
     def clean_photo(self):
         photo = self.cleaned_data["photo"]
         if photo.size > 8 * 1024 * 1024:
