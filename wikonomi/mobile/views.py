@@ -1,4 +1,5 @@
 import json
+import uuid
 from datetime import timedelta
 from pathlib import Path
 
@@ -45,6 +46,22 @@ def home(request):
 @require_http_methods(["GET", "POST"])
 def submit(request):
     if request.method == "POST":
+        # Check replay identifiers before ModelForm's unique-field validation.
+        # Retries from the same contributor succeed without creating duplicates.
+        try:
+            identifier = uuid.UUID(request.POST.get("client_submission_id", ""))
+        except (TypeError, ValueError, AttributeError):
+            identifier = None
+        if identifier:
+            existing = MobileSubmission.objects.filter(
+                client_submission_id=identifier,
+            ).only("contributor_id").first()
+            if existing:
+                if existing.contributor_id != request.user.pk:
+                    raise PermissionDenied("Invalid submission ID.")
+                return redirect(
+                    reverse("mobile:home") + "?created=" + str(identifier)
+                )
         form = MobileSubmissionForm(request.POST, request.FILES)
         if form.is_valid():
             recent_count = MobileSubmission.objects.filter(
