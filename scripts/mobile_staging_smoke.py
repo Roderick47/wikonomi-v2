@@ -20,6 +20,10 @@ paths = {
     "/app/": 302,
     "/app/submit/": 302,
     "/app/manifest.webmanifest": 200,
+    "/app/icon-192.png": 200,
+    "/app/icon-512.png": 200,
+    "/app/icon-maskable-192.png": 200,
+    "/app/icon-maskable-512.png": 200,
     "/app/sw.js": 200,
     "/static/mobile/app.css": 200,
     "/static/mobile/app.js": 200,
@@ -45,15 +49,18 @@ for path, expected in paths.items():
                     raise AssertionError("health endpoint did not return ok")
                 if path == "/app/staging-db-status/":
                     readiness = json.loads(body)
-                    if readiness != {
-                        "staging_database_ready": True,
-                        "mobile_migrations_ready": True,
-                    }:
+                    if not (
+                        readiness.get("staging_database_ready") is True
+                        and readiness.get("mobile_migrations_ready") is True
+                        and isinstance(readiness.get("staging_media_configured"), bool)
+                    ):
                         raise AssertionError("staging Postgres/migrations not ready")
                 if path.endswith("manifest.webmanifest"):
                     manifest = json.loads(body)
                     if manifest.get("scope") != "/app/":
                         raise AssertionError("bad manifest scope")
+                if path.endswith(".png") and not body.startswith(bytes((0x89, 0x50, 0x4e, 0x47))):
+                    raise AssertionError("Launcher image is not PNG")
                 if path.endswith(".svg") and b"<svg" not in body:
                     raise AssertionError("SVG icon body missing")
                 print(f"OK {path}: HTTP {code}, {len(body)} bytes")
