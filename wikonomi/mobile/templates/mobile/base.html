@@ -1,0 +1,31 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#5149dd">
+  <meta name="description" content="Wikonomi mobile price contributions for Papua New Guinea">
+  <link rel="manifest" href="{% url 'mobile:manifest' %}">
+  <link rel="icon" type="image/png" href="{% static 'mobile/icons/icon-192.png' %}">
+  <link rel="stylesheet" href="{% static 'mobile/app.css' %}">
+  <title>{% block title %}Wikonomi Contributor{% endblock %}</title>
+</head>
+<body data-user-id="{{ request.user.pk }}">
+  <header class="topbar">
+    <a class="brand" href="{% url 'mobile:home' %}" aria-label="Wikonomi contributor home">
+      <span class="brand-mark">W</span> <span>Wikonomi</span>
+    </a>
+    <a class="site-link" href="/" target="_blank" rel="noopener">Website ↗</a>
+  </header>
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+  <nav class="bottom-nav" aria-label="Mobile navigation">
+    <a href="{% url 'mobile:home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">⌂ <span>Home</span></a>
+    <a href="{% url 'mobile:submit' %}" class="{% if request.resolver_match.url_name == 'submit' %}active{% endif %}">＋ <span>Submit</span></a>
+    <a href="{% url 'mobile:home' %}#history">▤ <span>My prices</span></a>
+  </nav>
+  <script src="{% static 'mobile/app.js' %}" defer></script>
+</body>
+</html>

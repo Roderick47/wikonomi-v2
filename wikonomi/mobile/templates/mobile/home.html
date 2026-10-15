@@ -1,0 +1,51 @@
+{% extends "mobile/base.html" %}
+{% block content %}
+  <section class="welcome">
+    <p class="eyebrow">WIKONOMI CONTRIBUTOR</p>
+    <h1>Help PNG find better prices.</h1>
+    <p>See a price tag while shopping? Share it so your community can compare.</p>
+  </section>
+
+  {% if request.GET.created %}
+  <div class="notice success" role="status">
+    ✓ Price submitted for review. Thank you for contributing!
+  </div>
+  {% endif %}
+  <a class="primary-action" href="{% url 'mobile:submit' %}">
+    <span class="action-icon">▣</span>
+    <span><strong>Snap a price</strong><small>Photograph a price tag and submit</small></span>
+    <span aria-hidden="true">→</span>
+  </a>
+
+  <div class="stat-grid">
+    <div class="stat"><strong>{{ approved_count }}</strong><span>Approved</span></div>
+    <div class="stat"><strong>{{ pending_count }}</strong><span>Under review</span></div>
+    <div class="stat"><strong id="draft-count">—</strong><span>Saved drafts</span></div>
+  </div>
+
+  <section class="section" id="history">
+    <div class="section-heading"><h2>My contributions</h2><span>Latest 20</span></div>
+    {% for submission in submissions %}
+    <article class="submission-card">
+      <div class="submission-main">
+        <h3>{{ submission.product.name }}</h3>
+        <p>{{ submission.business_branch.get_full_name }}</p>
+        <small>{{ submission.submitted_at|date:"d M Y, g:i A" }}</small>
+      </div>
+      <div class="submission-end">
+        <strong>K{{ submission.price }}</strong>
+        <span class="status status-{{ submission.status }}">{{ submission.get_status_display }}</span>
+      </div>
+    </article>
+    {% empty %}
+      <div class="empty"><span>🛒</span><h3>Every price starts with one person.</h3><p>Your first submission will appear here.</p></div>
+    {% endfor %}
+  </section>
+  <section class="section">
+    <div class="section-heading"><h2>Offline drafts</h2><span>Stored on this phone</span></div>
+    <div id="drafts-list" class="drafts-list" aria-live="polite">
+      <p class="muted">Checking saved drafts…</p>
+    </div>
+    <p class="hint">Drafts remain on this device. Connect to the internet to submit them.</p>
+  </section>
+{% endblock %}
