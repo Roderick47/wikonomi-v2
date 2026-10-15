@@ -1,0 +1,56 @@
+name: Mobile contributor backend validation
+
+on:
+  pull_request:
+    paths:
+      - "wikonomi/mobile/**"
+      - "wikonomi/core/models.py"
+      - "wikonomi/wikonomi/settings.py"
+      - "wikonomi/wikonomi/urls.py"
+      - ".github/workflows/mobile-checks.yml"
+  push:
+    branches:
+      - feature/android-contributor-mvp
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DEBUG: "True"
+      SECRET_KEY: ci-mobile-only-not-production
+      DJANGO_SETTINGS_MODULE: wikonomi.test_settings
+      DATABASE_URL: ""
+      USE_R2_STORAGE: "False"
+      AWS_ACCESS_KEY_ID: ""
+      AWS_SECRET_ACCESS_KEY: ""
+      DB_HOST: ""
+      EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend
+      MEDIA_ROOT: /tmp/wikonomi-mobile-test-media
+    defaults:
+      run:
+        working-directory: wikonomi
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install application dependencies
+        run: python -m pip install -r ../requirements.txt
+      - name: Compile Python modules
+        run: python -m compileall -q mobile
+      - name: Django system checks
+        run: python manage.py check
+      - name: Verify migration/model consistency
+        run: python manage.py makemigrations --check --dry-run
+      - name: Apply all migrations to isolated CI SQLite
+        run: python manage.py migrate --noinput
+      - name: Run mobile backend regression suite
+        run: python manage.py test mobile --verbosity 2
