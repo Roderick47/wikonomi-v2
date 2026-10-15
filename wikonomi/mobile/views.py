@@ -18,6 +18,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 
 from core.models import BusinessBranch, Product
 from .forms import MobileSubmissionForm
+from .pwa_icons import png_icon
 from .models import MobileSubmission
 
 
@@ -150,16 +151,36 @@ def manifest(request):
         "background_color": "#f7f8fc",
         "theme_color": "#5149dd",
         "icons": [
+            {"src": "/app/icon-192.png", "sizes": "192x192",
+             "type": "image/png", "purpose": "any"},
+            {"src": "/app/icon-512.png", "sizes": "512x512",
+             "type": "image/png", "purpose": "any"},
+            {"src": "/app/icon-maskable-192.png", "sizes": "192x192",
+             "type": "image/png", "purpose": "maskable"},
+            {"src": "/app/icon-maskable-512.png", "sizes": "512x512",
+             "type": "image/png", "purpose": "maskable"},
             {"src": "/static/mobile/icons/icon.svg", "sizes": "any",
              "type": "image/svg+xml", "purpose": "any"},
-            {"src": "/static/mobile/icons/icon.svg", "sizes": "any",
-             "type": "image/svg+xml", "purpose": "any maskable"},
         ],
     }
     return HttpResponse(
         json.dumps(data), content_type="application/manifest+json",
     )
 
+
+
+@require_GET
+def android_icon(request, size, variant=None):
+    """Cacheable, anonymous PNG launcher icons for installable Android PWA."""
+    from django.http import Http404
+    if size not in (192, 512) or variant not in (None, "maskable"):
+        raise Http404()
+    response = HttpResponse(
+        png_icon(size, maskable=variant == "maskable"),
+        content_type="image/png",
+    )
+    response["Cache-Control"] = "public, max-age=604800"
+    return response
 
 @require_GET
 def service_worker(request):
