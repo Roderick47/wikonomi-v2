@@ -4,8 +4,7 @@ const ASSETS = [
   "/static/mobile/app.css",
   "/static/mobile/app.js",
   "/static/mobile/offline.html",
-  "/static/mobile/icons/icon-192.png",
-  "/static/mobile/icons/icon-512.png"
+  "/static/mobile/icons/icon.svg"
 ];
 
 self.addEventListener("install", event => {
