@@ -7,6 +7,7 @@ app_name = "mobile"
 urlpatterns = [
     path("", views.home, name="home"),
     path("submit/", views.submit, name="submit"),
+    path("evidence/<uuid:submission_id>/", views.evidence, name="evidence"),
     path("search/products/", views.search_products, name="search_products"),
     path("search/branches/", views.search_branches, name="search_branches"),
     path("manifest.webmanifest", views.manifest, name="manifest"),
