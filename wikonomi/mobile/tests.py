@@ -316,3 +316,23 @@ class MobileContributionTests(TestCase):
         for name in ("mobile:home", "mobile:submit"):
             response = self.client.get(reverse(name))
             self.assertIn("no-store", response.get("Cache-Control", ""))
+
+    def test_price_tag_evidence_is_owner_or_staff_only(self):
+        self.client.force_login(self.contributor)
+        self.client.post(reverse("mobile:submit"), self.payload())
+        submission = MobileSubmission.objects.get()
+        url = reverse("mobile:evidence", args=[submission.pk])
+        for allowed_user in (self.contributor, self.reviewer):
+            self.client.force_login(allowed_user)
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.streaming)
+            self.assertIn("no-store", response["Cache-Control"])
+            raw = b"".join(response.streaming_content)
+            self.assertTrue(raw.startswith(bytes((0x89, 0x50, 0x4e, 0x47))))
+
+        other = User.objects.create_user(username="private_photo_test", password="test-pass")
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.client.logout()
+        self.assertEqual(self.client.get(url).status_code, 302)
