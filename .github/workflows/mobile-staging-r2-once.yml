@@ -1,0 +1,21 @@
+name: Staging R2 evidence upload verification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staging-r2-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install isolated HTTP and PNG dependencies
+        run: python -m pip install requests pillow
+      - name: Test staging-only signup, demo price upload, and private R2 photo retrieval
+        run: python scripts/mobile_staging_r2_e2e.py
