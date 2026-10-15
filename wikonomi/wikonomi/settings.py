@@ -305,6 +305,13 @@ TRANSPORT_INDEX_PUBLIC_ENABLED = (
     os.environ.get('TRANSPORT_INDEX_PUBLIC_ENABLED', 'False') == 'True'
 )
 
+# Additive mobile contributor rollout. Keep /app/ unavailable to production
+# contributors until real-device and staff moderation checks are signed off.
+# Staging and isolated CI explicitly override this setting.
+MOBILE_CONTRIBUTOR_ENABLED = (
+    os.environ.get('MOBILE_CONTRIBUTOR_ENABLED', 'False') == 'True'
+)
+
 # Promotions/specials use an expand-first rollout. The schema and admin are
 # always available, while public routes and navigation stay hidden in
 # production until PROMOTIONS_ENABLED=True is set after staff testing.
