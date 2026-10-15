@@ -1,4 +1,6 @@
 from django.contrib import admin, messages
+from django.urls import reverse
+from django.utils.html import format_html
 
 from .models import MobileSubmission
 from .services import approve_submission, reject_submission
@@ -17,10 +19,17 @@ class MobileSubmissionAdmin(admin.ModelAdmin):
     )
     readonly_fields = (
         "contributor", "product", "business_branch", "price", "photo",
-        "observed_at", "submitted_at", "client_submission_id",
+        "observed_at", "submitted_at", "client_submission_id", "evidence_preview",
         "status", "published_report", "reviewed_by", "reviewed_at",
     )
     actions = ("approve_selected", "reject_selected")
+
+    @admin.display(description="Price-tag evidence")
+    def evidence_preview(self, obj):
+        if not obj or not obj.pk:
+            return "—"
+        return format_html('<a href="{}" target="_blank" rel="noopener">View original photo</a>',
+                           reverse("mobile:evidence", args=[obj.pk]))
 
     def has_add_permission(self, request):
         return False
