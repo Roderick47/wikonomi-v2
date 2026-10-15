@@ -1,10 +1,14 @@
 /* Never cache authenticated HTML, searches, API results, or price photos. */
-const CACHE = "wikonomi-mobile-static-v1";
+const CACHE = "wikonomi-mobile-static-v2";
 const ASSETS = [
   "/static/mobile/app.css",
   "/static/mobile/app.js",
   "/static/mobile/offline.html",
-  "/static/mobile/icons/icon.svg"
+  "/static/mobile/icons/icon.svg",
+  "/app/icon-192.png",
+  "/app/icon-512.png",
+  "/app/icon-maskable-192.png",
+  "/app/icon-maskable-512.png"
 ];
 
 self.addEventListener("install", event => {
