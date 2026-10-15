@@ -2,6 +2,7 @@ import json
 import uuid
 from datetime import timedelta
 from pathlib import Path
+from functools import wraps
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -22,6 +23,17 @@ from .pwa_icons import png_icon
 from .models import MobileSubmission
 
 
+def mobile_pilot_required(view_func):
+    """Return 404 for public contributor routes until explicitly enabled."""
+    @wraps(view_func)
+    def wrapped(request, *args, **kwargs):
+        if not getattr(settings, "MOBILE_CONTRIBUTOR_ENABLED", False):
+            raise Http404()
+        return view_func(request, *args, **kwargs)
+    return wrapped
+
+
+@mobile_pilot_required
 @login_required
 @never_cache
 @require_GET
@@ -43,6 +55,7 @@ def home(request):
     })
 
 
+@mobile_pilot_required
 @login_required
 @never_cache
 @require_http_methods(["GET", "POST"])
@@ -110,6 +123,7 @@ def submit(request):
     })
 
 
+@mobile_pilot_required
 @login_required
 @require_GET
 def search_products(request):
@@ -122,6 +136,7 @@ def search_products(request):
     ]})
 
 
+@mobile_pilot_required
 @login_required
 @require_GET
 def search_branches(request):
@@ -194,6 +209,7 @@ def service_worker(request):
     return response
 
 
+@mobile_pilot_required
 @login_required
 @never_cache
 @require_GET
