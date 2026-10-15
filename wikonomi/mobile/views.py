@@ -242,7 +242,8 @@ def staging_db_status(request):
             ready = False
     result = bool(ready and migrated)
     response = JsonResponse(
-        {"staging_database_ready": result, "mobile_migrations_ready": migrated},
+        {"staging_database_ready": result, "mobile_migrations_ready": migrated,
+         "staging_media_configured": bool(getattr(settings, "MOBILE_STAGING_PERSISTENT_MEDIA_CONFIGURED", False))},
         status=200 if result else 503,
     )
     response["Cache-Control"] = "no-store"
