@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 from pathlib import Path
 
 from django.contrib.auth.decorators import login_required
@@ -7,6 +8,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
+from django.utils import timezone
 from django.urls import reverse
 from django.utils.http import urlencode
 from django.views.decorators.cache import never_cache
@@ -45,6 +47,17 @@ def submit(request):
     if request.method == "POST":
         form = MobileSubmissionForm(request.POST, request.FILES)
         if form.is_valid():
+            recent_count = MobileSubmission.objects.filter(
+                contributor=request.user,
+                submitted_at__gte=timezone.now() - timedelta(hours=1),
+            ).count()
+            if recent_count >= 20:
+                form.add_error(None, "Upload limit reached. Please try again in an hour.")
+                return render(request, "mobile/submit.html", {
+                    "form": form,
+                    "product_label": form.cleaned_data["product"].name,
+                    "branch_label": form.cleaned_data["business_branch"].get_full_name(),
+                }, status=429)
             submission = form.save(commit=False)
             identifier = form.cleaned_data["client_submission_id"]
             with transaction.atomic():
