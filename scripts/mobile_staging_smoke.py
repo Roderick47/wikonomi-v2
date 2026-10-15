@@ -52,7 +52,7 @@ for path, expected in paths.items():
                     if not (
                         readiness.get("staging_database_ready") is True
                         and readiness.get("mobile_migrations_ready") is True
-                        and isinstance(readiness.get("staging_media_configured"), bool)
+                        and readiness.get("staging_media_configured") is True
                     ):
                         raise AssertionError("staging Postgres/migrations not ready")
                 if path.endswith("manifest.webmanifest"):
