@@ -6,6 +6,7 @@ from decimal import Decimal
 
 from PIL import Image
 from django.contrib.auth import get_user_model
+from django.core.exceptions import PermissionDenied
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -98,3 +99,45 @@ class MobileContributionTests(TestCase):
         for name in ("search_products", "search_branches"):
             response = self.client.get(reverse("mobile:" + name), {"q": "rice"})
             self.assertEqual(response.status_code, 302)
+
+    def test_negative_and_zero_prices_are_rejected(self):
+        self.client.force_login(self.contributor)
+        for value in ("0", "-0.50"):
+            with self.subTest(price=value):
+                payload = self.payload()
+                payload["price"] = value
+                response = self.client.post(reverse("mobile:submit"), payload)
+                self.assertEqual(response.status_code, 200)
+        self.assertEqual(MobileSubmission.objects.count(), 0)
+
+    def test_non_image_evidence_is_rejected(self):
+        self.client.force_login(self.contributor)
+        payload = self.payload()
+        payload["photo"] = SimpleUploadedFile(
+            "fake.png", b"not an actual image", content_type="image/png"
+        )
+        self.assertEqual(self.client.post(reverse("mobile:submit"), payload).status_code, 200)
+        self.assertEqual(MobileSubmission.objects.count(), 0)
+
+    def test_normal_user_cannot_approve_or_reject(self):
+        self.client.force_login(self.contributor)
+        self.client.post(reverse("mobile:submit"), self.payload())
+        submission = MobileSubmission.objects.get()
+        with self.assertRaises(PermissionDenied):
+            approve_submission(submission.pk, self.contributor)
+        with self.assertRaises(PermissionDenied):
+            reject_submission(submission.pk, self.contributor)
+        self.assertEqual(PriceReport.objects.count(), 0)
+
+    def test_hourly_limit_rejects_21st_submission(self):
+        self.client.force_login(self.contributor)
+        MobileSubmission.objects.bulk_create([
+            MobileSubmission(
+                client_submission_id=uuid.uuid4(), contributor=self.contributor,
+                product=self.product, business_branch=self.branch,
+                price=Decimal("2.50"), photo="test.jpg",
+            ) for _ in range(20)
+        ])
+        response = self.client.post(reverse("mobile:submit"), self.payload())
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(MobileSubmission.objects.count(), 20)
