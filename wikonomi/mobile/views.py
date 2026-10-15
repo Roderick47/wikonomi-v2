@@ -7,8 +7,8 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import redirect, render
+from django.http import FileResponse, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.urls import reverse
 from django.utils.http import urlencode
@@ -170,3 +170,21 @@ def service_worker(request):
     response["Cache-Control"] = "no-cache"
     response["Service-Worker-Allowed"] = "/app/"
     return response
+
+
+@login_required
+@never_cache
+@require_GET
+def evidence(request, submission_id):
+    """Private original price-tag photo for its contributor or review staff."""
+    submission = get_object_or_404(MobileSubmission, pk=submission_id)
+    if not request.user.is_staff and submission.contributor_id != request.user.pk:
+        raise PermissionDenied("You cannot view this price evidence.")
+    # FieldFile.open streams from the configured default storage, including
+    # S3-compatible storage; never expose the underlying storage URL directly.
+    return FileResponse(
+        submission.photo.open("rb"),
+        as_attachment=False,
+        filename=submission.photo.name.rsplit("/", 1)[-1],
+        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"},
+    )
