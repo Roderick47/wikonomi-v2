@@ -155,9 +155,15 @@ class MobileContributionTests(TestCase):
         report = approve_submission(pending.pk, self.reviewer)
         self.assertIsNotNone(report)
         report.refresh_from_db()
-        self.assertEqual(report.image.name, pending.photo.name)
+        # V2's ResizedImageField produces a separate JPEG for the published
+        # report; the original PNG remains retained as review evidence.
+        self.assertNotEqual(report.image.name, pending.photo.name)
         with report.image.open("rb") as published_image:
-            self.assertEqual(published_image.read(), original_bytes)
+            with Image.open(published_image) as decoded:
+                self.assertEqual(decoded.size, (32, 32))
+                self.assertEqual(decoded.format, "JPEG")
+        with pending.photo.open("rb") as original_evidence:
+            self.assertEqual(original_evidence.read(), original_bytes)
         self.assertEqual(PriceReport.objects.count(), 1)
 
     def test_product_and_branch_search_return_existing_entities(self):
@@ -234,6 +240,16 @@ class MobileContributionTests(TestCase):
                 raw_image = s3.get_object(Bucket=bucket, Key=image_key)["Body"].read()
                 self.assertTrue(raw_image.startswith(bytes((0x89, 0x50, 0x4e, 0x47))))
                 report = approve_submission(submission.pk, self.reviewer)
-                self.assertEqual(report.image.name, image_key)
-                with report.image.open("rb") as published:
-                    self.assertEqual(published.read(), raw_image)
+                self.assertNotEqual(report.image.name, image_key)
+                # S3-compatible storage contains both review evidence and
+                # the publication-safe resized JPEG.
+                report_bytes = s3.get_object(
+                    Bucket=bucket, Key=report.image.name
+                )["Body"].read()
+                with Image.open(io.BytesIO(report_bytes)) as decoded:
+                    self.assertEqual(decoded.format, "JPEG")
+                    self.assertEqual(decoded.size, (32, 32))
+                self.assertEqual(
+                    s3.get_object(Bucket=bucket, Key=image_key)["Body"].read(),
+                    raw_image,
+                )
