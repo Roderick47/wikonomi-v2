@@ -253,3 +253,66 @@ class MobileContributionTests(TestCase):
                     s3.get_object(Bucket=bucket, Key=image_key)["Body"].read(),
                     raw_image,
                 )
+
+    def test_home_mobile_screen_renders_after_login(self):
+        self.client.force_login(self.contributor)
+        response = self.client.get(reverse("mobile:home"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "mobile/home.html")
+        html = response.content.decode("utf-8")
+        for label in ("Snap a price", "My contributions", "Offline drafts", "Saved drafts"):
+            self.assertIn(label, html)
+        self.assertIn('name="viewport"', html)
+        self.assertIn('rel="manifest"', html)
+
+    def test_submit_mobile_screen_contains_camera_price_and_csrf(self):
+        self.client.force_login(self.contributor)
+        response = self.client.get(reverse("mobile:submit"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "mobile/submit.html")
+        html = response.content.decode("utf-8")
+        for required in (
+            'id="price-form"', 'enctype="multipart/form-data"',
+            'name="csrfmiddlewaretoken"', 'name="photo"', 'capture="environment"',
+            'name="product"', 'name="business_branch"', 'name="price"',
+            'id="save-draft"', 'id="submit-price"',
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, html)
+
+    def test_success_message_and_my_prices_are_contributor_scoped(self):
+        self.client.force_login(self.contributor)
+        response = self.client.post(reverse("mobile:submit"), self.payload(), follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Price submitted for review")
+        self.assertContains(response, "Rice 1kg")
+        self.assertContains(response, "Pending review")
+        other = User.objects.create_user(username="another_buyer", password="test-pass")
+        self.client.force_login(other)
+        my_home = self.client.get(reverse("mobile:home"))
+        self.assertNotContains(my_home, "Rice 1kg")
+        self.assertContains(my_home, "Every price starts with one person")
+
+    def test_pwa_manifest_worker_and_assets_exist(self):
+        from django.contrib.staticfiles.finders import find
+        response = self.client.get(reverse("mobile:manifest"))
+        self.assertEqual(response.status_code, 200)
+        manifest = response.json()
+        self.assertEqual(manifest["start_url"], "/app/")
+        self.assertEqual(manifest["scope"], "/app/")
+        self.assertEqual(manifest["display"], "standalone")
+        for icon in manifest["icons"]:
+            self.assertTrue(icon["src"].startswith("/static/mobile/"))
+            self.assertIsNotNone(find(icon["src"].removeprefix("/static/")))
+        for asset in ("mobile/app.css", "mobile/app.js", "mobile/offline.html", "mobile/sw.js"):
+            self.assertIsNotNone(find(asset), asset)
+        worker = self.client.get(reverse("mobile:service_worker"))
+        self.assertEqual(worker.status_code, 200)
+        self.assertEqual(worker["Service-Worker-Allowed"], "/app/")
+        self.assertIn(b"wikonomi-mobile-static", worker.content)
+
+    def test_mobile_pages_are_not_cached(self):
+        self.client.force_login(self.contributor)
+        for name in ("mobile:home", "mobile:submit"):
+            response = self.client.get(reverse(name))
+            self.assertIn("no-store", response.get("Cache-Control", ""))
