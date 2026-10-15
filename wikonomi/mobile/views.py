@@ -119,10 +119,10 @@ def manifest(request):
         "background_color": "#f7f8fc",
         "theme_color": "#5149dd",
         "icons": [
-            {"src": "/static/mobile/icons/icon-192.png", "sizes": "192x192",
-             "type": "image/png", "purpose": "any"},
-            {"src": "/static/mobile/icons/icon-512.png", "sizes": "512x512",
-             "type": "image/png", "purpose": "any maskable"},
+            {"src": "/static/mobile/icons/icon.svg", "sizes": "any",
+             "type": "image/svg+xml", "purpose": "any"},
+            {"src": "/static/mobile/icons/icon.svg", "sizes": "any",
+             "type": "image/svg+xml", "purpose": "any maskable"},
         ],
     }
     return HttpResponse(
