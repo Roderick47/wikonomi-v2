@@ -12,4 +12,5 @@ urlpatterns = [
     path("search/branches/", views.search_branches, name="search_branches"),
     path("manifest.webmanifest", views.manifest, name="manifest"),
     path("sw.js", views.service_worker, name="service_worker"),
+    path("staging-db-status/", views.staging_db_status, name="staging_db_status"),
 ]
