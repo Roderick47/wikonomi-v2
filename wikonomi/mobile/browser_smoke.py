@@ -97,7 +97,7 @@ with tempfile.TemporaryDirectory() as directory:
             page.get_by_role("button", name="Submit price").click()
             expect(page).to_have_url(__import__("re").compile(r".*/app/[?]created=.*"))
             expect(page.get_by_text("Price submitted for review.")).to_be_visible()
-            expect(page.get_by_text("CI Trukai Rice 1kg")).to_be_visible()
+            expect(page.get_by_role("heading", name="CI Trukai Rice 1kg")).to_be_visible()
             page.screenshot(path=str(screenshots / "success.png"), full_page=True)
             print("PASS: Android-sized dashboard, photo upload, suggestions, offline draft and contribution")
             browser.close()
