@@ -2,12 +2,6 @@ name: Staging R2 evidence upload verification
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feature/android-contributor-mvp
-    paths:
-      - ".github/workflows/mobile-staging-r2-once.yml"
-      - "scripts/mobile_staging_r2_e2e.py"
 
 permissions:
   contents: read
