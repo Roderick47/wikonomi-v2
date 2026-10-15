@@ -92,7 +92,7 @@ def main():
     print("PASS created isolated staging-only synthetic contributor")
 
     product_id = lookup_id(session, "products", "Wikonomi Demo Rice", "Wikonomi Demo Rice 1kg")
-    branch_id = lookup_id(session, "branches", "Wikonomi Demo Shop", "Wikonomi Demo Shop Main")
+    branch_id = lookup_id(session, "branches", "Wikonomi Demo Shop", "Wikonomi Demo Shop")
     print("PASS demo-only product and branch search")
 
     submit = get(session, "/app/submit/")
@@ -123,7 +123,7 @@ def main():
         raise AssertionError("Protected price-photo evidence link not displayed")
     evidence_path = match.group(1)
     photo = get(session, evidence_path)
-    if photo.content != image_bytes or not photo.content.startswith(b"\\x89PNG"):
+    if photo.content != image_bytes or not photo.content.startswith(bytes((0x89, 0x50, 0x4e, 0x47))):
         raise AssertionError("Staging evidence downloaded incorrectly")
     print("PASS evidence photo round-trip matches original PNG bytes")
 
