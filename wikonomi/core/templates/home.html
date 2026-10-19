@@ -72,8 +72,8 @@
         border: 2px solid #fff;
         line-height: 1.2;
     }
-    .wk-price-marker__tag--cheap { background: #66D17E; }
-    .wk-price-marker__tag--mid { background: #4DB8FF; }
+    .wk-price-marker__tag--cheap { background: #66D17E; color: #162235; }
+    .wk-price-marker__tag--mid { background: #4DB8FF; color: #162235; }
     .wk-price-marker__tag--expensive { background: #ef4444; }
     .wk-price-marker__tag--other { background: #4B2798; }
     .marker-cluster-small,
@@ -230,7 +230,7 @@
 <!-- Hero Search Hub -->
 <section class="relative wk-home-hero">
     <div class="max-w-3xl mx-auto text-center">
-        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">
+        <h1 class="wk-display text-gray-900">
             Find better prices. See where to shop.
         </h1>
         <p class="mt-2 text-base sm:text-lg text-gray-600">
@@ -313,7 +313,7 @@
                     {% for fuel in fuel_summary %}
                     <a href="{% url 'price_detail' fuel.report.pk %}" class="block bg-white rounded-xl border border-red-100 shadow-sm hover:shadow-md transition-shadow p-4">
                         <div class="text-xs font-semibold text-red-600 uppercase tracking-wide mb-1">{{ fuel.type }}</div>
-                        <div class="text-2xl font-extrabold text-brand-green">{{ fuel.report.currency }} {{ fuel.report.price|intcomma }}</div>
+                        <div class="wk-price-lg text-brand-greenDark">{{ fuel.report.currency }} {{ fuel.report.price|intcomma }}</div>
                         <p class="mt-2 text-sm text-gray-600 truncate">
                             {% if fuel.report.business %}{{ fuel.report.business.name }}{% else %}Unknown location{% endif %}
                         </p>

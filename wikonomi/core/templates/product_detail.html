@@ -58,7 +58,7 @@
                 </div>
                 <div>
                     <span class="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-purple ring-1 ring-brand-purple/20">Price comparison</span>
-                    <h1 class="mt-4 text-3xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">{{ product.name }}</h1>
+                    <h1 class="wk-page-title mt-4 text-gray-900">{{ product.name }}</h1>
                     {% if product.description %}
                     <p class="mt-4 max-w-3xl text-gray-600">{{ product.description }}</p>
                     {% else %}
@@ -167,7 +167,7 @@
             {% if cheapest_report %}
             <div class="rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5">
                 <p class="text-xs font-bold uppercase tracking-wide text-brand-green">{% if comparison_has_multiple_stores %}Best comparable price{% else %}Current known price{% endif %}</p>
-                <a href="{% url 'price_detail' cheapest_report.pk %}" class="mt-2 block text-3xl font-extrabold text-gray-900 hover:text-brand-purple">{{ cheapest_report.currency }} {{ cheapest_report.price|floatformat:2|intcomma }}</a>
+                <a href="{% url 'price_detail' cheapest_report.pk %}" class="wk-price-lg mt-2 block text-gray-900 hover:text-brand-purple">{{ cheapest_report.currency }} {{ cheapest_report.price|floatformat:2|intcomma }}</a>
                 <p class="mt-1 font-semibold text-gray-800">{{ cheapest_report.get_business_display }}</p>
                 <p class="mt-1 text-xs text-gray-500">Checked {{ cheapest_report.observed_at|rounded_timesince }}</p>
             </div>
@@ -182,7 +182,7 @@
             {% if comparison_has_multiple_stores %}
             <div class="rounded-2xl border border-gray-200 bg-gray-50 p-5">
                 <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Highest comparable store price</p>
-                <a href="{% url 'price_detail' most_expensive_report.pk %}" class="mt-2 block text-3xl font-extrabold text-gray-900 hover:text-brand-purple">{{ most_expensive_report.currency }} {{ most_expensive_report.price|floatformat:2|intcomma }}</a>
+                <a href="{% url 'price_detail' most_expensive_report.pk %}" class="wk-price-lg mt-2 block text-gray-900 hover:text-brand-purple">{{ most_expensive_report.currency }} {{ most_expensive_report.price|floatformat:2|intcomma }}</a>
                 <p class="mt-1 font-semibold text-gray-800">{{ most_expensive_report.get_business_display }}</p>
                 <p class="mt-1 text-xs text-gray-500">Checked {{ most_expensive_report.observed_at|rounded_timesince }}</p>
             </div>
@@ -219,7 +219,7 @@
                             <p class="font-bold text-gray-900">{{ report.get_business_display }}</p>
                             <p class="text-xs text-gray-500">Checked {{ report.observed_at|rounded_timesince }}</p>
                         </td>
-                        <td class="whitespace-nowrap px-5 py-4 text-lg font-extrabold text-gray-900">{{ report.currency }} {{ report.price|floatformat:2|intcomma }}</td>
+                        <td class="wk-price-sm whitespace-nowrap px-5 py-4 text-gray-900">{{ report.currency }} {{ report.price|floatformat:2|intcomma }}</td>
                         <td class="whitespace-nowrap px-5 py-4">
                             {% if report.freshness_key == 'fresh' %}
                             <span class="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-800">Fresh</span>
