@@ -56,14 +56,14 @@ The existing green → blue → purple gradient is retained as a signature accen
 
 These semantic shades are also exposed as CSS custom properties in `brand.css`.
 
-### Accessibility / contrast decisions
+### Accessibility / contrast decisions (WCAG 2.2 AA target)
 
 - Purple **#4B2798** against white: approximately **10.28:1**. White text on the same purple: approximately **10.28:1**.
 - Dark blue **#075B85** on white: approximately **7.38:1**. The brighter #4DB8FF on white is only **2.18:1**: use dark blue for small text.
 - Dark green **#17683F** on white: approximately **6.80:1**. Bright green #66D17E on white is only **1.91:1**: use dark green for small text.
 - Muted copy **#516174** against white: approximately **6.34:1**.
 - Never rely solely on color to indicate a new/old/unverified price. Use explicit labels and freshness indicators as well.
-- Validate additional foreground/background combinations, keyboard focus, and 200% zoom during review; these checks are not a substitute for an automated/manual accessibility audit.
+- Target WCAG 2.2 AA: at least 4.5:1 for normal text, 3:1 for large text and necessary component boundaries/focus indicators. Validate additional foreground/background combinations, keyboard focus, and 200% zoom during review; these spot checks are not a substitute for an automated/manual accessibility audit.
 
 ## Page recipes
 
