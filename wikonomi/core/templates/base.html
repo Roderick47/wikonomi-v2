@@ -28,6 +28,9 @@
     {% endblock %}
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='100%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' stop-color='%2366D17E' /%3E%3Cstop offset='50%25' stop-color='%234DB8FF' /%3E%3Cstop offset='100%25' stop-color='%234B2798' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ctext x='50%25' y='80%25' font-family='Arial, sans-serif' font-size='80' font-weight='900' font-style='italic' fill='url(%23g)' text-anchor='middle'%3EW%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -36,9 +39,46 @@
                     colors: {
                         brand: {
                             purple: '#4B2798',
+                            purpleDark: '#351A70',
+                            purpleTint: '#F2ECFC',
                             blue: '#4DB8FF',
+                            blueDark: '#075B85',
+                            blueTint: '#E8F6FF',
                             green: '#66D17E',
+                            greenDark: '#17683F',
+                            greenTint: '#EAF9EE',
+                            ink: '#162235',
+                            muted: '#516174',
+                            canvas: '#F7F9FC',
+                            surface: '#FFFFFF',
+                            line: '#DDE4ED',
                         }
+                    },
+                    fontFamily: {
+                        sans: ['"Space Grotesk"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        display: ['"Space Grotesk"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                    },
+                    // Space Grotesk ships weights 400–700, not 800/900.
+                    fontWeight: {
+                        extrabold: '700',
+                        black: '700',
+                    },
+                    fontSize: {
+                        'display-xl': ['3.5rem', { lineHeight: '1.06', letterSpacing: '-0.045em' }],
+                        'display-lg': ['3rem', { lineHeight: '1.1', letterSpacing: '-0.04em' }],
+                        'display-md': ['2.25rem', { lineHeight: '1.15', letterSpacing: '-0.035em' }],
+                        'heading-1': ['2rem', { lineHeight: '1.15', letterSpacing: '-0.035em' }],
+                        'heading-2': ['1.5rem', { lineHeight: '1.2', letterSpacing: '-0.025em' }],
+                        'heading-3': ['1.25rem', { lineHeight: '1.3', letterSpacing: '-0.015em' }],
+                        'heading-4': ['1.125rem', { lineHeight: '1.3', letterSpacing: '-0.01em' }],
+                        'body-lg': ['1.125rem', { lineHeight: '1.65' }],
+                        'body-md': ['1rem', { lineHeight: '1.55' }],
+                        'body-sm': ['0.875rem', { lineHeight: '1.55' }],
+                        'body-xs': ['0.75rem', { lineHeight: '1.5' }],
+                        'price-xl': ['2rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
+                        'price-lg': ['1.5rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
+                        'price-md': ['1.25rem', { lineHeight: '1.2', letterSpacing: '-0.02em' }],
+                        'price-sm': ['1rem', { lineHeight: '1.2' }],
                     }
                 }
             }
@@ -46,18 +86,19 @@
     </script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="stylesheet" href="{% static 'css/brand.css' %}">
     <link rel="stylesheet" href="{% static 'css/onboarding.css' %}">
     {% block extra_head %}{% endblock %}
     <script src="{% static 'js/form-validation.js' %}" defer></script>
     <script src="{% static 'js/onboarding.js' %}" defer></script>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-brand-canvas text-brand-ink font-sans">
     <nav id="site-navbar" class="bg-white shadow sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center gap-4 min-w-0">
                     <div class="flex-shrink-0 flex items-center">
-                        <a href="{% url 'home' %}" class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-green via-brand-blue to-brand-purple">wikonomi</a>
+                        <a href="{% url 'home' %}" class="wk-wordmark wk-focus-ring text-2xl bg-clip-text text-transparent bg-gradient-to-r from-brand-green via-brand-blue to-brand-purple">wikonomi</a>
                     </div>
                     <div class="hidden md:flex items-center gap-1">
                         <a href="{% url 'product_list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-purple hover:bg-brand-purple/10 transition-colors">Prices</a>
@@ -85,7 +126,7 @@
                         <a href="{% url 'signup' %}" class="hidden sm:inline text-gray-700 hover:text-brand-purple font-medium text-sm">Sign Up</a>
                         <a href="{% url 'login' %}" class="hidden sm:inline bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2 px-3 rounded-lg text-sm">Login</a>
                     {% endif %}
-                    <a href="{% url 'contribute' %}" class="bg-brand-purple hover:bg-brand-purple/90 text-white font-extrabold py-2 px-3 sm:px-4 rounded-lg text-sm whitespace-nowrap shadow-sm">+ Add</a>
+                    <a href="{% url 'contribute' %}" class="wk-button wk-focus-ring bg-brand-purple hover:bg-brand-purpleDark text-white py-2 px-3 sm:px-4 rounded-lg text-sm whitespace-nowrap shadow-sm">+ Add</a>
                 </div>
             </div>
             <div class="flex md:hidden items-center gap-1 overflow-x-auto border-t border-gray-100 py-2 -mx-1 px-1 text-sm">
