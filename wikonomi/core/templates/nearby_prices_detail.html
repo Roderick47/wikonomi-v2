@@ -28,7 +28,7 @@
 {% block content %}
 <div class="max-w-7xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
     <div class="mb-6">
-        <a href="{% url 'price_detail' reference_report.pk %}" class="text-brand-purple hover:text-brand-purple/80 flex items-center font-medium">
+        <a href="{% url 'price_detail' reference_report.pk %}" class="text-brand-blueDark hover:text-brand-blueDark/80 flex items-center font-medium">
             <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             Back to price details
         </a>
@@ -175,7 +175,7 @@
                         shadowSize: [41, 41]
                     })
                 }).addTo(map)
-                    .bindPopup('<div class="p-2"><h4 class="font-semibold text-brand-purple">Your Reference Price</h4><p class="text-brand-green font-medium">{{ reference_report.currency }} {{ reference_report.price|intcomma }}</p><p class="text-xs text-gray-500">{{ reference_report.observed_at|date:"M d, Y" }}</p><p class="text-xs text-gray-500">By {{ reference_report.user.username|escapejs }}</p><a href="{% url "price_detail" reference_report.pk %}" class="text-brand-purple text-xs hover:underline">View details →</a></div>');
+                    .bindPopup('<div class="p-2"><h4 class="font-semibold text-brand-purple">Your Reference Price</h4><p class="text-brand-green font-medium">{{ reference_report.currency }} {{ reference_report.price|intcomma }}</p><p class="text-xs text-gray-500">{{ reference_report.observed_at|date:"M d, Y" }}</p><p class="text-xs text-gray-500">By {{ reference_report.user.username|escapejs }}</p><a href="{% url "price_detail" reference_report.pk %}" class="text-brand-blueDark text-xs hover:underline">View details →</a></div>');
                 
                 markers.push(refMarker);
                 bounds.push([refLat, refLng]);
@@ -204,7 +204,7 @@
                         shadowSize: [41, 41]
                     })
                 }).addTo(map)
-                    .bindPopup('<div class="p-2"><h4 class="font-semibold">{{ price.product.name|escapejs }}</h4><p class="font-medium">{{ price.currency }} {{ price.price|intcomma }}</p>{% if price.business %}<p class="text-xs text-gray-500">{{ price.business.name|escapejs }}</p>{% endif %}<p class="text-xs text-gray-500">{{ price.observed_at|date:"M d, Y" }}</p><p class="text-xs text-gray-500">By {{ price.user.username|escapejs }}</p><a href="{% url "price_detail" price.pk %}" class="text-brand-purple text-xs hover:underline">View details →</a></div>');
+                    .bindPopup('<div class="p-2"><h4 class="font-semibold">{{ price.product.name|escapejs }}</h4><p class="font-medium">{{ price.currency }} {{ price.price|intcomma }}</p>{% if price.business %}<p class="text-xs text-gray-500">{{ price.business.name|escapejs }}</p>{% endif %}<p class="text-xs text-gray-500">{{ price.observed_at|date:"M d, Y" }}</p><p class="text-xs text-gray-500">By {{ price.user.username|escapejs }}</p><a href="{% url "price_detail" price.pk %}" class="text-brand-blueDark text-xs hover:underline">View details →</a></div>');
                 
                 markers.push(marker{{ forloop.counter }});
                 bounds.push([lat{{ forloop.counter }}, lng{{ forloop.counter }}]);
