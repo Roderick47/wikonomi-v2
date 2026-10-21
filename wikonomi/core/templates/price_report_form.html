@@ -24,7 +24,7 @@
                     </div>
                 </div>
                 <div class="flex flex-col items-start sm:items-end shrink-0">
-                    <a href="{% url 'bulk_upload' %}" class="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-sm font-semibold text-white bg-brand-purple hover:bg-brand-purple/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50 transition-colors">
+                    <a href="{% url 'bulk_upload' %}" class="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-sm font-semibold text-white bg-brand-greenDark hover:bg-brand-greenDark/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-greenDark/50 transition-colors">
                         <svg class="h-4 w-4 mr-1.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
@@ -71,12 +71,12 @@
                                 </svg>
 
                                 <div class="flex flex-col sm:flex-row justify-center gap-3 mt-2">
-                                    <button type="button" onclick="openPhotosFilePicker(false)" class="inline-flex items-center justify-center px-4 py-2 border border-brand-purple text-sm font-medium rounded-md text-brand-purple bg-white hover:bg-brand-purple hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple">
+                                    <button type="button" onclick="openPhotosFilePicker(false)" class="inline-flex items-center justify-center px-4 py-2 border border-brand-green text-sm font-medium rounded-md text-brand-greenDark bg-white hover:bg-brand-greenDark hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-greenDark">
                                         <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                                         Choose from Files
                                     </button>
 
-                                    <button type="button" onclick="openPhotosFilePicker(true)" class="inline-flex items-center justify-center px-4 py-2 border border-brand-purple text-sm font-medium rounded-md text-white bg-brand-purple hover:bg-brand-purple/90 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple">
+                                    <button type="button" onclick="openPhotosFilePicker(true)" class="inline-flex items-center justify-center px-4 py-2 border border-brand-green text-sm font-medium rounded-md text-white bg-brand-greenDark hover:bg-brand-greenDark/90 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-greenDark">
                                         <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                                         Take Photo
                                     </button>
@@ -191,7 +191,7 @@
                     <a href="{{ cancel_url|default:'/' }}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
                         Cancel
                     </a>
-                    <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-purple hover:bg-brand-purple/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
+                    <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-greenDark hover:bg-brand-greenDark/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-greenDark/50">
                         {{ submit_label|default:"Save" }}
                     </button>
                 </div>
@@ -474,13 +474,13 @@
 
         ['dragenter', 'dragover'].forEach(eventName => {
             photosDropZone.addEventListener(eventName, () => {
-                photosDropZone.classList.add('border-brand-purple', 'bg-brand-purple/5');
+                photosDropZone.classList.add('border-brand-green', 'bg-brand-green/5');
             }, false);
         });
 
         ['dragleave', 'drop'].forEach(eventName => {
             photosDropZone.addEventListener(eventName, () => {
-                photosDropZone.classList.remove('border-brand-purple', 'bg-brand-purple/5');
+                photosDropZone.classList.remove('border-brand-green', 'bg-brand-green/5');
             }, false);
         });
 
