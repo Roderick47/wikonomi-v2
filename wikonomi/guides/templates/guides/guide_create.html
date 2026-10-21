@@ -4,11 +4,11 @@
 {% block content %}
 <div class="mx-auto max-w-3xl pb-24">
     <header class="mb-7">
-        <a href="{% url 'guides:list' %}" class="text-sm font-semibold text-brand-purple hover:underline">← Guides</a>
+        <a href="{% url 'guides:list' %}" class="text-sm font-semibold text-brand-blueDark hover:underline">← Guides</a>
         <div class="mt-4 overflow-hidden rounded-2xl border border-brand-purple/20 bg-white shadow-sm">
             <div class="h-2 bg-gradient-to-r from-brand-purple via-brand-blue to-brand-green"></div>
             <div class="px-5 py-6 sm:px-8">
-                <p class="text-xs font-bold uppercase tracking-widest text-brand-purple">Wikonomi Guides</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-brand-greenDark">Wikonomi Guides</p>
                 <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">Create a practical guide</h1>
                 <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Share clear, useful instructions that help people get something done in Papua New Guinea.</p>
                 {% if source_business %}
@@ -24,7 +24,7 @@
         {% include "guides/_steps_editor.html" %}
         <div class="guide-submit-bar">
             <a href="{% url 'guides:list' %}" class="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100">Cancel</a>
-            <button type="submit" class="rounded-lg bg-brand-purple px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-purple/90">Publish guide</button>
+            <button type="submit" class="rounded-lg bg-brand-greenDark px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-greenDark/90">Publish guide</button>
         </div>
     </form>
 </div>
