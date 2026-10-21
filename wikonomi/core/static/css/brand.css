@@ -66,13 +66,15 @@ textarea {
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: wk-navbar-wordmark-shimmer 6.5s ease-in-out 1s infinite;
+  /* Wait 7s after page load; then shimmer for 3s and rest for 7s per cycle. */
+  animation: wk-navbar-wordmark-shimmer 10s ease-in-out 7s infinite;
 }
 
 @keyframes wk-navbar-wordmark-shimmer {
-  0%, 10%, 100% { background-position: 0% 50%; }
-  42%, 58% { background-position: 100% 50%; }
-  90% { background-position: 0% 50%; }
+  /* 0–15%: sweep forward (1.5s); 15–30%: return (1.5s).
+     30–100%: original position, completely still for 7s. */
+  0%, 30%, 100% { background-position: 0% 50%; }
+  15% { background-position: 100% 50%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
