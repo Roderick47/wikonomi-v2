@@ -69,7 +69,7 @@ These semantic shades are also exposed as CSS custom properties in `brand.css`.
 
 | Surface | Use |
 | --- | --- |
-| Homepage | `.wk-display` for hero; muted explanatory copy; purple CTAs; gradient reserved for the wordmark and accents |
+| Homepage | `.wk-display` for hero; muted explanatory copy; dark-blue Search and dark-green Add actions; spectrum reserved for the wordmark and accents |
 | Product directory | `.wk-page-title`; `.wk-card-title` for product names; `.wk-price` for observed prices; meta labels for dates and source |
 | Product detail | `.wk-page-title` product heading; `.wk-price-lg` for featured comparable prices; `.wk-stat` for summary metrics |
 | Guides | `.wk-page-title` title; `.wk-section-title` major sections; readable text/step spacing |
@@ -78,8 +78,8 @@ These semantic shades are also exposed as CSS custom properties in `brand.css`.
 
 ## Component conventions
 
-- **Primary button:** purple background, white text, 700 font weight. Hover: dark purple. Focus-visible: 3px purple outline with offset.
-- **Secondary button:** white or purple tint, purple label, purple border.
+- **Primary action:** choose the intent, not a default purple. Discover/search = dark blue, contribute/post = dark green, organize/edit/account = purple; all use white text and 700 font weight. Focus-visible: clear 3px outline with offset.
+- **Secondary action:** white or the relevant pale brand tint with a dark, readable blue/green/purple label and matching border. Avoid white text on bright blue/green.
 - **Card:** white, subtle border, plenty of whitespace, product title 600, price 700.
 - **Status chip:** green tint/dark green for verified; blue tint/dark blue for information; gray for stale; amber/danger only for genuine warnings.
 - **Price formatting:** `K68.50` or `PGK 68.50` depending on product context. Preserve existing currency formatting in application code. Use tabular numerals on comparisons.
@@ -115,7 +115,7 @@ Apply first to the navbar and top user journeys (home search/map, product/busine
 
 ## Gradual rollout
 
-This PR changes the global UI font, defines tokens/styles, and applies the new type roles to representative high-traffic surfaces (header, homepage, product directory, product detail and guide title). Existing domain colors and component behavior are preserved. Future pages should adopt these same roles rather than inventing per-template styles.
+The October 2026 typography rollout established the common font and color tokens. This follow-up applies semantic accent roles across shared navigation, discovery, contribution, Guides, Specials, help, transport, and selected supporting pages. Account and editing controls deliberately keep purple. Existing application data and authorization behavior are unchanged. Future pages should adopt these roles rather than inventing per-template styles.
 
 ## QA checklist before merge
 
