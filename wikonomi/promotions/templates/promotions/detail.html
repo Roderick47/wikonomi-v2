@@ -22,7 +22,7 @@
                         {% if promotion.status == 'expired' %}<span class="rounded-full bg-gray-200 px-3 py-1 text-sm font-bold text-gray-600">Expired</span>{% elif promotion.status == 'scheduled' %}<span class="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-blue-800">Starts soon</span>{% endif %}
                     </div>
                     <h1 class="mt-4 text-3xl font-extrabold tracking-tight text-gray-950 sm:text-4xl">{{ promotion.title }}</h1>
-                    <a href="{% url 'business_detail' promotion.business.pk %}" class="mt-2 inline-flex text-base font-bold text-brand-purple hover:underline">{{ promotion.business.name }}{% if promotion.business_branch %} · {{ promotion.business_branch.name }}{% endif %}</a>
+                    <a href="{% url 'business_detail' promotion.business.pk %}" class="mt-2 inline-flex text-base font-bold text-brand-blueDark hover:underline">{{ promotion.business.name }}{% if promotion.business_branch %} · {{ promotion.business_branch.name }}{% endif %}</a>
                 </div>
                 <div class="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
                     {% if promotion.status == 'active' %}<strong>Active now</strong>{% elif promotion.status == 'scheduled' %}<strong>Scheduled</strong>{% else %}<strong>No longer active</strong>{% endif %}
