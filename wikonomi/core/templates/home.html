@@ -109,16 +109,22 @@
     }
     .wk-home-shortcut:hover,
     .wk-home-shortcut:focus-visible {
-        border-color: rgba(75, 39, 152, .35);
-        background: rgba(75, 39, 152, .06);
-        color: #4B2798;
+        border-color: rgba(7, 91, 133, .35);
+        background: rgba(77, 184, 255, .08);
+        color: #075B85;
         outline: none;
     }
     .wk-home-shortcut:active { transform: translateY(1px); }
     .wk-home-shortcut--primary {
-        border-color: rgba(75, 39, 152, .28);
-        background: rgba(75, 39, 152, .08);
-        color: #4B2798;
+        border-color: rgba(23, 104, 63, .3);
+        background: var(--wk-green-tint);
+        color: var(--wk-green-dark);
+    }
+    .wk-home-shortcut--primary:hover,
+    .wk-home-shortcut--primary:focus-visible {
+        border-color: var(--wk-green-dark);
+        background: var(--wk-green-tint);
+        color: var(--wk-green-dark);
     }
 
     .wk-mobile-nav {
@@ -172,9 +178,9 @@
     }
     .wk-mobile-nav__link:hover,
     .wk-mobile-nav__link:focus-visible {
-        border-color: rgba(75, 39, 152, .35);
-        background: rgba(75, 39, 152, .06);
-        color: #4B2798;
+        border-color: rgba(7, 91, 133, .35);
+        background: rgba(77, 184, 255, .08);
+        color: #075B85;
         outline: none;
     }
     .wk-mobile-nav__link--map {
@@ -228,7 +234,7 @@
 {% static 'img/default-profile.svg' as default_profile_picture_url %}
 
 <!-- Hero Search Hub -->
-<section class="relative wk-home-hero">
+<section class="relative wk-home-hero wk-spectrum-edge">
     <div class="max-w-3xl mx-auto text-center">
         <h1 class="wk-display text-gray-900">
             Find better prices. See where to shop.
@@ -243,8 +249,8 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
                 <input type="text" name="q" value="{{ request.GET.q }}" aria-label="Search products and prices" placeholder="What are you shopping for?"
-                    class="block w-full rounded-xl border border-slate-200 bg-white py-4 pl-12 pr-28 text-base sm:text-lg shadow-sm focus:ring-2 focus:ring-brand-purple/30 focus:border-brand-blue">
-                <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-purple hover:bg-brand-purple/90 transition-colors">
+                    class="block w-full rounded-xl border border-slate-200 bg-white py-4 pl-12 pr-28 text-base sm:text-lg shadow-sm focus:ring-2 focus:ring-brand-blueDark/30 focus:border-brand-blueDark">
+                <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-blueDark hover:bg-brand-blueDark/90 transition-colors">
                     Search
                 </button>
             </div>
@@ -252,7 +258,7 @@
             <div class="mt-3 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
                 <label for="sort" class="sr-only">Sort by</label>
                 <select name="sort" id="sort" onchange="handleSortChange(this.value)"
-                    class="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-gray-700 shadow-sm focus:ring-brand-purple/30 focus:border-brand-blue">
+                    class="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-gray-700 shadow-sm focus:ring-brand-blueDark/30 focus:border-brand-blueDark">
                     <option value="recent" {% if current_sort == 'recent' %}selected{% endif %}>Most recent</option>
                     <option value="price_asc" {% if current_sort == 'price_asc' %}selected{% endif %}>Price: low to high</option>
                     <option value="price_desc" {% if current_sort == 'price_desc' %}selected{% endif %}>Price: high to low</option>
@@ -282,14 +288,14 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <form method="GET" action="{% url 'home' %}" class="flex items-center gap-2 sm:gap-3">
             <input type="text" name="q" value="{{ request.GET.q }}" aria-label="Search products and prices" placeholder="Search prices…"
-                class="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-brand-purple/30 focus:border-brand-blue">
+                class="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-brand-blueDark/30 focus:border-brand-blueDark">
             <input type="hidden" name="sort" value="{{ current_sort }}">
             <input type="hidden" name="lat" value="{{ request.GET.lat }}">
             <input type="hidden" name="lng" value="{{ request.GET.lng }}">
-            <button type="submit" class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-purple hover:bg-brand-purple/90 transition-colors">Search</button>
-            <a href="{% url 'product_list' %}" class="hidden sm:inline-flex shrink-0 items-center px-3 py-2 text-sm font-semibold text-brand-purple hover:text-brand-purple/80">Products</a>
-            <a href="{% url 'business_list' %}" class="hidden sm:inline-flex shrink-0 items-center px-3 py-2 text-sm font-semibold text-brand-blue hover:text-brand-blue/80">Businesses</a>
-            <a href="{% url 'add_price' %}" class="shrink-0 inline-flex items-center px-3 py-2 text-sm font-semibold text-brand-purple hover:text-brand-purple/80">+ Add</a>
+            <button type="submit" class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-blueDark hover:bg-brand-blueDark/90 transition-colors">Search</button>
+            <a href="{% url 'product_list' %}" class="hidden sm:inline-flex shrink-0 items-center px-3 py-2 text-sm font-semibold text-brand-blueDark hover:text-brand-blueDark/80">Products</a>
+            <a href="{% url 'business_list' %}" class="hidden sm:inline-flex shrink-0 items-center px-3 py-2 text-sm font-semibold text-brand-blueDark hover:text-brand-blueDark/80">Businesses</a>
+            <a href="{% url 'add_price' %}" class="shrink-0 inline-flex items-center px-3 py-2 text-sm font-semibold text-brand-greenDark hover:text-brand-greenDark/80">+ Add</a>
         </form>
     </div>
 </div>
@@ -333,11 +339,11 @@
                 <div class="mt-4 rounded-2xl border border-brand-purple/15 bg-white p-4 shadow-sm">
                     <p class="text-sm font-semibold text-gray-900">Can’t find exactly what you searched for?</p>
                     <div class="mt-3 flex flex-wrap gap-2">
-                        <a href="{% url 'add_price' %}?product_name={{ request.GET.q|urlencode }}" class="inline-flex rounded-full bg-brand-purple px-4 py-2 text-sm font-semibold text-white hover:bg-brand-purple/90">Add product price</a>
-                        <a href="{% url 'add_business' %}?name={{ request.GET.q|urlencode }}" class="inline-flex rounded-full border border-brand-blue px-4 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-blue/10">Add business</a>
+                        <a href="{% url 'add_price' %}?product_name={{ request.GET.q|urlencode }}" class="inline-flex rounded-full bg-brand-greenDark px-4 py-2 text-sm font-semibold text-white hover:bg-brand-greenDark/90">Add product price</a>
+                        <a href="{% url 'add_business' %}?name={{ request.GET.q|urlencode }}" class="inline-flex rounded-full border border-brand-blue px-4 py-2 text-sm font-semibold text-brand-blueDark hover:bg-brand-blue/10">Add business</a>
                         <a href="{% url 'product_list' %}?q={{ request.GET.q|urlencode }}" class="inline-flex rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Search products</a>
                         <a href="{% url 'business_list' %}?q={{ request.GET.q|urlencode }}" class="inline-flex rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Search businesses</a>
-                        <a href="{% url 'guides:list' %}" class="inline-flex rounded-full border border-brand-purple px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/10">Browse guides</a>
+                        <a href="{% url 'guides:list' %}" class="inline-flex rounded-full border border-brand-blue px-4 py-2 text-sm font-semibold text-brand-blueDark hover:bg-brand-blue/10">Browse guides</a>
                     </div>
                 </div>
                 {% endif %}
@@ -381,11 +387,11 @@
                         {% if not guides and not businesses %}<h3 class="text-lg font-bold text-gray-900">No results for &ldquo;{{ request.GET.q }}&rdquo;</h3>{% else %}<h3 class="text-lg font-bold text-gray-900">No matching price reports</h3>{% endif %}
                         <p class="mt-2">Try another search, or add what you were looking for.</p>
                         <div class="mt-4 flex flex-wrap justify-center gap-2">
-                            <a href="{% url 'add_price' %}?product_name={{ request.GET.q|urlencode }}" class="inline-flex rounded-full bg-brand-purple px-4 py-2 text-sm font-semibold text-white hover:bg-brand-purple/90">Add product price</a>
-                            <a href="{% url 'add_business' %}?name={{ request.GET.q|urlencode }}" class="inline-flex rounded-full border border-brand-blue px-4 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-blue/10">Add business</a>
+                            <a href="{% url 'add_price' %}?product_name={{ request.GET.q|urlencode }}" class="inline-flex rounded-full bg-brand-greenDark px-4 py-2 text-sm font-semibold text-white hover:bg-brand-greenDark/90">Add product price</a>
+                            <a href="{% url 'add_business' %}?name={{ request.GET.q|urlencode }}" class="inline-flex rounded-full border border-brand-blue px-4 py-2 text-sm font-semibold text-brand-blueDark hover:bg-brand-blue/10">Add business</a>
                         </div>
                     {% else %}
-                        No price reports yet. <a href="{% url 'add_price' %}" class="text-brand-purple font-medium">Add the first one</a>
+                        No price reports yet. <a href="{% url 'add_price' %}" class="text-brand-greenDark font-medium">Add the first one</a>
                     {% endif %}
                 </div>
                 {% endfor %}
@@ -398,7 +404,7 @@
                         <h2 class="text-xl font-bold text-slate-900">{% if request.GET.q %}Guides{% else %}New guides{% endif %}</h2>
                         <p class="mt-1 text-sm text-slate-500">Practical, community-written instructions</p>
                     </div>
-                    <a href="{% url 'guides:list' %}{% if request.GET.q %}?q={{ request.GET.q|urlencode }}{% endif %}" class="text-sm font-bold text-brand-purple hover:underline">View all →</a>
+                    <a href="{% url 'guides:list' %}{% if request.GET.q %}?q={{ request.GET.q|urlencode }}{% endif %}" class="text-sm font-bold text-brand-blueDark hover:underline">View all →</a>
                 </div>
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {% for guide in guides %}{% include "guides/_guide_card.html" with guide=guide %}{% endfor %}
@@ -429,7 +435,7 @@
                     <div class="flex-1 min-h-0">
                         <div id="map" class="rounded-b-xl"></div>
                     </div>
-                    <div class="wk-map-help">Grey = outdated (not updated in 30 days). Tap a cluster to explore prices. Tap a price for the shop and report date. <a href="{% url 'product_list' %}" class="text-brand-purple font-semibold">Compare products →</a></div>
+                    <div class="wk-map-help">Grey = outdated (not updated in 30 days). Tap a cluster to explore prices. Tap a price for the shop and report date. <a href="{% url 'product_list' %}" class="text-brand-blueDark font-semibold">Compare products →</a></div>
                 </div>
             </div>
         </section>
@@ -467,7 +473,7 @@ function toggleLike(event, button) {
         .then(r => r.json())
         .then(data => {
             button.querySelector('[data-like-count]').textContent = data.likes_count;
-            button.className = `p-1.5 rounded-full text-xs ${data.liked ? 'text-brand-green bg-brand-green/10' : 'text-gray-400 hover:text-brand-blue hover:bg-brand-blue/10'}`;
+            button.className = `p-1.5 rounded-full text-xs ${data.liked ? 'text-brand-green bg-brand-green/10' : 'text-gray-400 hover:text-brand-blueDark hover:bg-brand-blue/10'}`;
         });
 }
 
