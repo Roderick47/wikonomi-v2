@@ -48,6 +48,42 @@ textarea {
   line-height: 1;
 }
 
+/* Only the navbar wordmark animates; other branded gradients remain static. */
+#site-navbar .wk-wordmark {
+  /* Each end of the 250%-wide gradient shows the familiar green → blue → purple. */
+  background-image: linear-gradient(
+    110deg,
+    var(--wk-green) 0%,
+    var(--wk-blue) 20%,
+    var(--wk-purple) 40%,
+    var(--wk-green) 60%,
+    #8FDBFF 76%,
+    var(--wk-blue) 80%,
+    var(--wk-purple) 100%
+  );
+  background-size: 250% 100%;
+  background-position: 0% 50%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: wk-navbar-wordmark-shimmer 6.5s ease-in-out 1s infinite;
+}
+
+@keyframes wk-navbar-wordmark-shimmer {
+  0%, 10%, 100% { background-position: 0% 50%; }
+  42%, 58% { background-position: 100% 50%; }
+  90% { background-position: 0% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #site-navbar .wk-wordmark {
+    animation: none;
+    background-image: linear-gradient(110deg, var(--wk-green), var(--wk-blue) 50%, var(--wk-purple));
+    background-size: 100% 100%;
+    background-position: center;
+  }
+}
+
 .wk-display {
   font-size: clamp(2.25rem, 4.8vw, 3.5rem);
   font-weight: 700;
