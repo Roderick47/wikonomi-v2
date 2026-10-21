@@ -10,7 +10,7 @@
         <form method="get" class="flex items-center gap-2">
             <label for="currency" class="text-sm font-semibold text-gray-700">Currency</label>
             <input id="currency" name="currency" maxlength="3" value="{{ currency }}" class="w-20 rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase">
-            <button class="rounded-lg bg-brand-purple px-3 py-2 text-sm font-semibold text-white">Apply</button>
+            <button class="rounded-lg bg-brand-blueDark px-3 py-2 text-sm font-semibold text-white">Apply</button>
         </form>
     </div>
 
@@ -107,7 +107,7 @@
                 <tbody class="divide-y divide-gray-100">
                     {% for line in comparison.split_lines %}
                     <tr>
-                        <td class="px-4 py-4"><a href="{% url 'product_detail' line.product.pk %}" class="font-bold text-gray-900 hover:text-brand-purple">{{ line.product.name }}</a></td>
+                        <td class="px-4 py-4"><a href="{% url 'product_detail' line.product.pk %}" class="font-bold text-gray-900 hover:text-brand-blueDark">{{ line.product.name }}</a></td>
                         <td class="px-4 py-4 text-gray-700">{{ line.quantity }}</td>
                         <td class="px-4 py-4 text-gray-700">{{ line.report.get_business_display }}</td>
                         <td class="px-4 py-4 font-semibold text-gray-900">{{ currency }} {{ line.unit_price|floatformat:2|intcomma }}</td>
