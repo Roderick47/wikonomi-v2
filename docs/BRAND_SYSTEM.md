@@ -86,6 +86,33 @@ These semantic shades are also exposed as CSS custom properties in `brand.css`.
 - **Line lengths:** break long guides into sections, paragraphs 60–75 characters where practical; don't squeeze body size below 14px.
 - **Voice:** specific, concise, locally understandable English. No exaggerated savings claims or false freshness.
 
+
+## Three-color design philosophy — October 2026
+
+Our signature gradient is **green → blue → purple**. Preserve the literal brand hexes and make color meaningful across the entire experience, not just the wordmark:
+
+| Intent | Accent | Readable action/link | Where it belongs |
+| --- | --- | --- | --- |
+| **Discover / explore** | Sky blue `#4DB8FF` | Dark blue `#075B85` | Search, prices, map, product/business directory, comparisons, informational links |
+| **Contribute / participate** | Green `#66D17E` | Dark green `#17683F` | Post price, add business, write guide, report special, upload catalogue, community contribution |
+| **Organize / manage** | Purple `#4B2798` | Purple `#4B2798` | Account, sign-in, edit/manage controls, saved shopping tools, personal settings |
+
+### Rules for product surfaces
+
+1. Start with the neutral canvas and white cards. **Color indicates intent**, not general decoration. A practical target for large surfaces is mostly neutral with concentrated accent moments; do not try to split every page evenly into three colors.
+2. Use the full green → blue → purple spectrum on the logo, global nav underline, and occasional important hero/card top rule. Never put tiny white text directly on the vivid blue/green stops.
+3. Primary search and explore buttons use dark blue with white text. Submission actions use dark green with white text. Account/edit and organization actions use purple with white text. Only the action's purpose selects the color; don't choose based on page context alone.
+4. Links on white use the *dark* blue or green variants for readability, or purple where the link manages content. The bright sky/green stops are for lines, gradients, tints and decorative accents.
+5. Use tinted backgrounds (`blueTint`, `greenTint`, `purpleTint`) for chips and category cues. State/timeliness/validation always gets its own explicit text label: do not confuse a green contribution button with an already-verified price.
+6. Preserve red for destructive/error, amber for warning or dated promotional context, grey for stale/inactive prices. Keep the status label regardless of color. Accessibility: check WCAG AA contrast, visible keyboard focus, 200% zoom and reduced-motion preference.
+7. Keep the guide step's thin left accent blue, including the active step. Progress, social/voting, editing, and special states may retain separate semantic colors. Do not replace every existing purple literal without inspecting what it means.
+
+### Component and rollout strategy
+
+Shared CSS in `wikonomi/core/static/css/brand.css` exposes `--wk-discover`, `--wk-contribute`, `--wk-organize`, and `--wk-spectrum` plus `.wk-action-*`, `.wk-link-*`, `.wk-accent-*`, and `.wk-spectrum-edge`. New templates should use these before inventing new hex codes; Tailwind's `brand.blueDark` and `brand.greenDark` remain valid for utility-heavy pages.
+
+Apply first to the navbar and top user journeys (home search/map, product/business discovery, reporting, Guides and Specials), then to deeper authoring/management, profile, transport and supporting pages. Preserve underlying model status colors and never change data/authorization logic to achieve visual consistency. Validate visually across desktop and 320px/375px phones, including text on gradient backgrounds. An initial style-only rollout cannot substitute for browser screenshot checks.
+
 ## Gradual rollout
 
 This PR changes the global UI font, defines tokens/styles, and applies the new type roles to representative high-traffic surfaces (header, homepage, product directory, product detail and guide title). Existing domain colors and component behavior are preserved. Future pages should adopt these same roles rather than inventing per-template styles.
