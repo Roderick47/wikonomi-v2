@@ -17,7 +17,7 @@
         <h1 class="text-3xl font-bold text-gray-900">Find verified cabs nearby</h1>
         <p class="text-gray-600 mt-2">Browse verified drivers, check live status, then contact them through the protected WhatsApp proxy.</p>
       </div>
-      <button id="sort-near-me" type="button" class="rounded-lg bg-brand-purple px-4 py-2 text-white font-semibold hover:bg-brand-purple/90">Sort by my location</button>
+      <button id="sort-near-me" type="button" class="rounded-lg bg-brand-blueDark px-4 py-2 text-white font-semibold hover:bg-brand-blueDark/90">Sort by my location</button>
     </div>
   </div>
 
@@ -37,7 +37,7 @@
       <input type="checkbox" name="available" value="1"{% if request.GET.available == '1' %} checked{% endif %}>
       <span class="text-sm font-semibold text-gray-700">Available now</span>
     </label>
-    <button class="rounded-lg bg-brand-blue px-4 py-2 text-white font-semibold hover:bg-brand-blue/90">Search</button>
+    <button class="rounded-lg bg-brand-blueDark px-4 py-2 text-white font-semibold hover:bg-brand-blueDark/90">Search</button>
   </form>
 
   <div id="cab-results" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -45,7 +45,7 @@
       <article class="cab-card bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex flex-col gap-3"{% if driver.status and driver.status.latitude and driver.status.longitude %} data-lat="{{ driver.status.latitude }}" data-lng="{{ driver.status.longitude }}"{% endif %}>
         <div class="flex items-start justify-between gap-3">
           <div>
-            <h2 class="text-xl font-bold text-gray-900"><a class="hover:text-brand-purple" href="{% url 'transport_index:cab_profile' driver.slug %}">{{ driver.display_name }}</a></h2>
+            <h2 class="text-xl font-bold text-gray-900"><a class="hover:text-brand-blueDark" href="{% url 'transport_index:cab_profile' driver.slug %}">{{ driver.display_name }}</a></h2>
             <p class="text-sm text-green-700 font-semibold">✓ Verified</p>
           </div>
           <span class="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-700">{{ driver.get_vehicle_type_display }}</span>
@@ -53,7 +53,7 @@
         <p class="text-gray-600">{% if driver.vehicle_make_model %}{{ driver.vehicle_make_model }} • {% endif %}Home area: {{ driver.home_area|default:'Not listed' }}</p>
         {% if driver.status %}<p class="text-sm text-gray-500">Status: {{ driver.status.get_availability_display }} • last seen {{ driver.status.last_seen_minutes }} min ago <span class="distance-label"></span></p>{% endif %}
         <div class="mt-auto flex gap-2">
-          <a class="rounded-lg border border-brand-purple px-3 py-2 font-semibold text-brand-purple hover:bg-brand-purple/10" href="{% url 'transport_index:cab_profile' driver.slug %}">Profile</a>
+          <a class="rounded-lg border border-brand-blue px-3 py-2 font-semibold text-brand-blueDark hover:bg-brand-blue/10" href="{% url 'transport_index:cab_profile' driver.slug %}">Profile</a>
           <a class="rounded-lg bg-brand-green px-3 py-2 font-semibold text-gray-900 hover:bg-brand-green/90" href="{% url 'transport_index:cab_contact' driver.slug %}" rel="nofollow">Chat on WhatsApp</a>
         </div>
       </article>

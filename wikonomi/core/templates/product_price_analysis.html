@@ -7,7 +7,7 @@
 <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
     <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div class="flex flex-wrap items-center gap-3">
-            <a href="{% url 'product_detail' product.pk %}" class="inline-flex items-center text-sm font-semibold text-brand-purple hover:text-brand-purple/80">← Back to product page</a>
+            <a href="{% url 'product_detail' product.pk %}" class="inline-flex items-center text-sm font-semibold text-brand-blueDark hover:text-brand-blueDark/80">← Back to product page</a>
             <a href="{% url 'product_value_analysis' product.pk %}?currency={{ currency }}" class="inline-flex items-center rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green hover:bg-brand-green/10">Compare unit value</a>
         </div>
         <form method="get" class="flex items-center gap-2">

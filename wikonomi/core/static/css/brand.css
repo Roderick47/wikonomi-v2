@@ -184,6 +184,54 @@ textarea {
   background-image: linear-gradient(110deg, var(--wk-green), var(--wk-blue) 50%, var(--wk-purple));
 }
 
+/* Semantic color grammar: discover = blue, contribute = green, organize = purple.
+ * Bright logo accents decorate; darker companion shades carry readable controls.
+ * Keep status/error/success styling semantically separate from these product roles.
+ */
+:root {
+  --wk-discover: var(--wk-blue-dark);
+  --wk-contribute: var(--wk-green-dark);
+  --wk-organize: var(--wk-purple);
+  --wk-spectrum: linear-gradient(90deg, var(--wk-green), var(--wk-blue) 50%, var(--wk-purple));
+}
+
+#site-navbar::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  background: var(--wk-spectrum);
+  pointer-events: none;
+}
+
+.wk-spectrum-edge {
+  position: relative;
+  overflow: hidden;
+}
+.wk-spectrum-edge::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--wk-spectrum);
+  pointer-events: none;
+}
+
+.wk-accent-discover { border-left: 4px solid var(--wk-blue); }
+.wk-accent-contribute { border-left: 4px solid var(--wk-green); }
+.wk-accent-organize { border-left: 4px solid var(--wk-purple); }
+
+/* Accessible semantic actions. Do not use raw sky/green with white text. */
+.wk-action-discover { background-color: var(--wk-discover); color: #fff; }
+.wk-action-discover:hover { background-color: #064b6f; }
+.wk-action-contribute { background-color: var(--wk-contribute); color: #fff; }
+.wk-action-contribute:hover { background-color: #115230; }
+.wk-action-organize { background-color: var(--wk-organize); color: #fff; }
+.wk-action-organize:hover { background-color: var(--wk-purple-dark); }
+.wk-link-discover { color: var(--wk-discover); }
+.wk-link-contribute { color: var(--wk-contribute); }
+.wk-link-organize { color: var(--wk-organize); }
+
 /* Semantic colors distinguish functional meaning from the brighter brand accents. */
 .wk-info {
   color: var(--wk-blue-dark);
