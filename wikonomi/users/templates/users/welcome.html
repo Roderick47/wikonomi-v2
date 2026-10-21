@@ -63,7 +63,7 @@ I’ve joined early, while the map is still being drawn. If you believe PNG shou
         </div>
 
         <div class="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <button type="button" data-share-platform="native" class="share-wikonomi-btn rounded-xl bg-brand-purple px-4 py-3 text-sm font-semibold text-white hover:bg-brand-purple/90">Share</button>
+          <button type="button" data-share-platform="native" class="share-wikonomi-btn rounded-xl bg-brand-greenDark px-4 py-3 text-sm font-semibold text-white hover:bg-brand-greenDark/90">Share</button>
           <button type="button" data-share-platform="whatsapp" class="share-wikonomi-btn rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50">WhatsApp</button>
           <button type="button" data-share-platform="facebook" class="share-wikonomi-btn rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50">Facebook</button>
           <button type="button" data-share-platform="x" class="share-wikonomi-btn rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50">X</button>
@@ -74,7 +74,7 @@ I’ve joined early, while the map is still being drawn. If you believe PNG shou
       </section>
 
       <div class="pt-6 flex flex-col sm:flex-row gap-3">
-        <a href="{% url 'welcome_continue' %}" class="flex-1 text-center rounded-xl bg-brand-purple px-6 py-3 font-semibold text-white hover:bg-brand-purple/90">{% if has_return_destination %}Continue where I left off →{% else %}Start exploring Wikonomi →{% endif %}</a>
+        <a href="{% url 'welcome_continue' %}" class="flex-1 text-center rounded-xl bg-brand-blueDark px-6 py-3 font-semibold text-white hover:bg-brand-blueDark/90">{% if has_return_destination %}Continue where I left off →{% else %}Start exploring Wikonomi →{% endif %}</a>
         {% if has_return_destination %}<a href="{% url 'welcome_explore' %}" class="flex-1 text-center rounded-xl border border-gray-300 px-6 py-3 font-semibold text-gray-700 hover:bg-gray-50">Explore Wikonomi</a>{% endif %}
       </div>
     </div>
