@@ -55,6 +55,9 @@ jobs:
 
       - name: Security regression tests
         working-directory: wikonomi
+        env:
+          DJANGO_SETTINGS_MODULE: wikonomi.test_settings
+          DEBUG: 'True'
         run: python manage.py test transport_index.tests.WhatsAppWebhookTests --verbosity 2
 
       - name: Audit Python dependencies
