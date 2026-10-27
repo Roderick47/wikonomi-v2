@@ -11,6 +11,6 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'wikonomi.settings')
+default_settings = (\n    'wikonomi.production'\n    if 'RENDER' in os.environ or 'DATABASE_URL' in os.environ\n    else 'wikonomi.settings'\n)\nos.environ.setdefault('DJANGO_SETTINGS_MODULE', default_settings)
 
 application = get_wsgi_application()
