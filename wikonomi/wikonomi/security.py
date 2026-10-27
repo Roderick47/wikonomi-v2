@@ -35,6 +35,7 @@ class SecurityHeadersMiddleware:
             'WIKONOMI_CSP_REPORT_ONLY_POLICY',
             DEFAULT_CSP_REPORT_ONLY,
         )
+        policy = policy.strip() if policy else ''
         if policy and 'Content-Security-Policy' not in response:
             response.setdefault('Content-Security-Policy-Report-Only', policy)
         response.setdefault(
