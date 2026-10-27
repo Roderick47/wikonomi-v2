@@ -100,7 +100,7 @@ def _parse_inbound_messages(payload):
 def _valid_meta_signature(request):
     app_secret = get_whatsapp_setting('WHATSAPP_APP_SECRET', '')
     if not app_secret:
-        if settings.DEBUG or 'test' in sys.argv:
+        if settings.DEBUG:
             return True
         logger.error('WHATSAPP_APP_SECRET is missing; rejecting webhook POST')
         return False
