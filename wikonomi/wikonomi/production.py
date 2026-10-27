@@ -30,9 +30,7 @@ if 'DATABASE_URL' in os.environ:
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = '/static/'
 
-# Media files configuration
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-MEDIA_URL = '/media/'
+# Media storage/URL come from base settings so R2 remains authoritative.
 
 # Security settings
 # SECURE_SSL_REDIRECT is disabled because Render handles SSL termination at the proxy level
@@ -43,6 +41,20 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 TRUST_PROXY_HEADERS = True
+
+# Browser transport hardening. Start HSTS conservatively; increase after observing
+# production for a full release cycle. Do not preload or cover subdomains yet.
+SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', '86400'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+
+# CSP is report-only initially so existing pages cannot be broken by rollout.
+MIDDLEWARE.insert(1, 'wikonomi.security.SecurityHeadersMiddleware')
 
 # Google OAuth2 settings
 SOCIALACCOUNT_PROVIDERS = {

@@ -221,7 +221,7 @@ MEDIA_ROOT = os.environ.get('MEDIA_ROOT', '/var/data/media')
 
 
 # Add this for Render deployment
-CSRF_TRUSTED_ORIGINS = ['https://www.wikonomi.com']
+CSRF_TRUSTED_ORIGINS = ['https://wikonomi.com', 'https://www.wikonomi.com']
 
 # Static files storage - use default for now
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'

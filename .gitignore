@@ -4,8 +4,12 @@
 *.pyc
 __pycache__/
 local_settings.py
-db.sqlite3
-db.sqlite3-journal
+# Never commit local SQLite databases or backup variants
+db.sqlite3*
+*.sqlite3
+*.sqlite3-*
+*.sqlite3.bak
+*.sqlite3.*.bak
 
 # Virtual environment
 .venv/

@@ -1,4 +1,6 @@
 import csv
+import logging
+import uuid
 from datetime import timedelta
 from pathlib import Path
 
@@ -30,6 +32,9 @@ from core.services.image_processor import (
 )
 from core.services.inventory_importer import process_import_batch
 from core.services.spreadsheet_parser import parse_inventory_session
+
+
+logger = logging.getLogger(__name__)
 
 
 INVENTORY_MIMES = {
@@ -478,9 +483,18 @@ def process_batch(request, session_id):
                 user=request.user,
             )
             payload = process_import_batch(import_session)
-    except Exception as exc:
+    except Exception:
+        error_id = uuid.uuid4().hex[:12]
         import_session = _owned_session(request, session_id)
-        import_session.last_error = str(exc)
+        logger.exception(
+            'Bulk import batch failed',
+            extra={
+                'error_id': error_id,
+                'bulk_import_session_id': str(import_session.pk),
+                'user_id': request.user.pk,
+            },
+        )
+        import_session.last_error = f'Internal processing error (reference {error_id})'
         import_session.current_stage = 'Paused — retrying is safe'
         import_session.save(update_fields=[
             'last_error',
@@ -491,7 +505,11 @@ def process_batch(request, session_id):
             'status': import_session.status,
             'stage': import_session.current_stage,
             'progress_percent': import_session.progress_percent,
-            'error': str(exc),
+            'error': (
+                'Import processing failed. Retry the operation. '
+                f'If it continues, contact support with reference {error_id}.'
+            ),
+            'error_reference': error_id,
             'retryable': True,
         }, status=500)
     return JsonResponse(payload)
