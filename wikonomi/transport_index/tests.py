@@ -351,6 +351,19 @@ class WhatsAppWebhookTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, b'challenge-123')
 
+    @override_settings(DEBUG=False, WHATSAPP_APP_SECRET='')
+    @patch('transport_index.views.dispatch_inbound_message')
+    def test_webhook_rejects_unsigned_post_when_secret_missing_in_production(self, dispatch):
+        body = json.dumps(self._payload()).encode('utf-8')
+        response = self.client.post(
+            reverse('transport_index:whatsapp_webhook'),
+            data=body,
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 403)
+        dispatch.assert_not_called()
+
     @override_settings(WHATSAPP_APP_SECRET='secret')
     @patch('transport_index.views.dispatch_inbound_message')
     def test_webhook_rejects_invalid_signature(self, dispatch):
