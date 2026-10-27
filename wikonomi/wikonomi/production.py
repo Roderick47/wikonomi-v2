@@ -30,9 +30,7 @@ if 'DATABASE_URL' in os.environ:
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = '/static/'
 
-# Media files configuration
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-MEDIA_URL = '/media/'
+# Media storage/URL come from base settings so R2 remains authoritative.
 
 # Security settings
 # SECURE_SSL_REDIRECT is disabled because Render handles SSL termination at the proxy level
