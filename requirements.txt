@@ -1,7 +1,7 @@
 Django==5.2.18
 djangorestframework==3.18.3
 bleach==6.4.0
-certifi==2026.10.19
+certifi==2026.10.23
 psycopg2-binary==2.9.13
 django-ratelimit==4.1.0
 django-taggit==6.1.0
