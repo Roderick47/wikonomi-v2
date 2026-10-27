@@ -58,7 +58,7 @@ jobs:
         env:
           DJANGO_SETTINGS_MODULE: wikonomi.test_settings
           DEBUG: 'True'
-        run: python manage.py test transport_index.tests.WhatsAppWebhookTests --verbosity 2
+        run: python manage.py test transport_index.tests.WhatsAppWebhookTests wikonomi.test_security_headers --verbosity 2
 
       - name: Audit Python dependencies
         run: pip-audit -r requirements.txt

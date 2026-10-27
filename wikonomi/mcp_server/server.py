@@ -49,6 +49,7 @@ mcp = MCPServer(
     auth=AuthSettings(
         issuer_url=public_base_url(),
         resource_server_url=resource_url(),
+        validate_token_resource=True,
         required_scopes=[READ_SCOPE],
         client_registration_options=ClientRegistrationOptions(
             enabled=True,
