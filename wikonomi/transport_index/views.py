@@ -99,7 +99,12 @@ def _parse_inbound_messages(payload):
 
 def _valid_meta_signature(request):
     app_secret = get_whatsapp_setting('WHATSAPP_APP_SECRET', '')
-    if not app_secret:\n        if settings.DEBUG or 'test' in sys.argv:\n            return True\n        logger.error('WHATSAPP_APP_SECRET is missing; rejecting webhook POST')\n        return False\n    signature = request.META.get('HTTP_X_HUB_SIGNATURE_256', '')
+    if not app_secret:
+        if settings.DEBUG or 'test' in sys.argv:
+            return True
+        logger.error('WHATSAPP_APP_SECRET is missing; rejecting webhook POST')
+        return False
+    signature = request.META.get('HTTP_X_HUB_SIGNATURE_256', '')
     if not signature.startswith('sha256='):
         return False
     expected = hmac.new(
