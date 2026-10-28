@@ -402,7 +402,9 @@ def _get_prices_queryset(request, for_map=False):
     sort = request.GET.get('sort', 'discover')
     user_lat = request.GET.get('lat')
     user_lng = request.GET.get('lng')
-    
+    if sort not in ('discover', 'recent', 'nearest', 'price_asc', 'price_desc'):
+        sort = 'discover'
+
     if for_map:
         qs = PriceReport.objects.select_related('product', 'business')
     else:
@@ -456,7 +458,7 @@ def _get_prices_queryset(request, for_map=False):
         sort = 'discover'
 
     if sort in ('discover', 'recent'):
-        if sort == 'discover' and not query:
+        if sort == 'discover':
             # Interleave reports from different shops before showing a shop's
             # second, third, ... reports. This avoids bulk uploads taking over
             # the first screen and works for all pages of infinite scrolling.
