@@ -3,6 +3,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
@@ -114,3 +115,30 @@ class QuickPriceCaptureTests(TestCase):
         self.assertContains(response, 'Please set a location for this price')
         self.assertFalse(PriceReport.objects.filter(business=unlocated).exists())
         self.assertContains(response, 'value="New Local Shop"')
+
+    def test_non_image_upload_is_rejected_before_saving(self):
+        fake_image = SimpleUploadedFile('shelf.jpg', b'not actually an image', content_type='image/jpeg')
+        response = self.client.post(reverse('add_price'), {
+            'product_name': 'Quick Rice',
+            'price': '9.50',
+            'currency': 'PGK',
+            'photos': [fake_image],
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'One of the photos could not be read as an image')
+        self.assertFalse(PriceReport.objects.filter(price=Decimal('9.50')).exists())
+
+    def test_more_than_five_photos_are_rejected(self):
+        images = [
+            SimpleUploadedFile(f'shelf-{i}.png', b'sample', content_type='image/png')
+            for i in range(6)
+        ]
+        response = self.client.post(reverse('add_price'), {
+            'product_name': 'Quick Rice',
+            'price': '9.75',
+            'currency': 'PGK',
+            'photos': images,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Choose no more than 5 photos')
+        self.assertFalse(PriceReport.objects.filter(price=Decimal('9.75')).exists())
