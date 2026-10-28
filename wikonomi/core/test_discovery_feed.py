@@ -3,6 +3,7 @@ import re
 from decimal import Decimal
 
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 
@@ -10,6 +11,9 @@ from .models import Business, PriceReport, Product
 
 
 class DiscoveryFeedTests(TestCase):
+    def setUp(self):
+        cache.clear()
+
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create_user(username='discovery-tester')
@@ -40,6 +44,12 @@ class DiscoveryFeedTests(TestCase):
         self.assertEqual(len({r.business_id for r in cards[:3]}), 3)
         self.assertContains(response, 'Explore reported prices')
         self.assertContains(response, 'Explore different shops')
+
+    def test_default_search_diversifies_stores_too(self):
+        response = self.client.get(reverse('home'), {'q': 'Discovery Rice'})
+        cards = response.context['latest_prices']
+        self.assertEqual(len({row.business_id for row in cards[:3]}), 3)
+        self.assertEqual(response.context['current_sort'], 'discover')
 
     def test_latest_sort_remains_strictly_chronological(self):
         response = self.client.get(reverse('home'), {'sort': 'recent'})
