@@ -399,7 +399,7 @@ price_report_duplicate = PriceReportDuplicateView.as_view()
 def _get_prices_queryset(request, for_map=False):
     """Helper to get and sort prices uniformly across feed and map endpoints."""
     query = request.GET.get('q', '').strip()
-    sort = request.GET.get('sort', 'recent')
+    sort = request.GET.get('sort', 'discover')
     user_lat = request.GET.get('lat')
     user_lng = request.GET.get('lng')
     
@@ -449,14 +449,14 @@ def _get_prices_queryset(request, for_map=False):
             if nearby.exists():
                 qs = nearby
             else:
-                sort = 'recent'
+                sort = 'discover'
         except (ValueError, TypeError, OverflowError):
-            sort = 'recent'
+            sort = 'discover'
     elif sort == 'nearest':
-        sort = 'recent'
+        sort = 'discover'
 
-    if sort == 'recent':
-        if not query:
+    if sort in ('discover', 'recent'):
+        if sort == 'discover' and not query:
             # Interleave reports from different shops before showing a shop's
             # second, third, ... reports. This avoids bulk uploads taking over
             # the first screen and works for all pages of infinite scrolling.
@@ -517,7 +517,7 @@ def home(request):
     from guides.models import Guide
 
     query = request.GET.get('q', '').strip()
-    sort = request.GET.get('sort', 'recent')
+    sort = request.GET.get('sort', 'discover')
     user_lat = request.GET.get('lat')
     user_lng = request.GET.get('lng')
     
@@ -527,7 +527,7 @@ def home(request):
         request.GET.get('sort') == 'nearest'
         and bool(request.GET.get('lat'))
         and bool(request.GET.get('lng'))
-        and sort == 'recent'
+        and sort == 'discover'
     )
     latest_prices = list(latest_prices[:20])
     if request.user.is_authenticated:
@@ -627,7 +627,7 @@ def api_map_prices(request):
 def load_more_prices(request):
     page = request.GET.get('page', 1)
     query = request.GET.get('q', '').strip()
-    sort = request.GET.get('sort', 'recent')
+    sort = request.GET.get('sort', 'discover')
     user_lat = request.GET.get('lat')
     user_lng = request.GET.get('lng')
     
