@@ -4,7 +4,7 @@
 {% block page_title %}Wikonomi — PNG Price Comparison{% endblock %}
 
 {% block og_tags %}
-{% with base_url="https://www.wikonomi.com" og_title="Wikonomi — Compare Prices Across PNG" og_description="Papua New Guinea's community-driven price comparison platform. See what shops near you are charging today." og_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
+{% with base_url="https://www.wikonomi.com" og_title="Wikonomi — Compare Prices Across PNG" og_description="Explore reported prices across PNG, record what you find in shops, and track how prices change over time." og_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
 <link rel="canonical" href="{{ base_url }}/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Wikonomi">
@@ -52,9 +52,6 @@
         #home-split.map-hidden #price-feed { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     .wk-map-cluster { background: #4B2798; color: white; border: 2px solid white; border-radius: 12px; text-align: center; padding: 5px; box-shadow: 0 2px 8px #0003; font-size: 11px; line-height: 1.2; }
-    .wk-map-cluster--stale { background: #6b7280; }
-    #price-feed .price-card--stale { background: #f3f4f6; border-color: #d1d5db; }
-    #price-feed .price-card--stale .text-brand-green { color: #6b7280; }
     .wk-map-cluster strong { display: block; font-size: 13px; }
     .wk-price-marker {
         background: transparent;
@@ -116,15 +113,15 @@
     }
     .wk-home-shortcut:active { transform: translateY(1px); }
     .wk-home-shortcut--primary {
-        border-color: rgba(23, 104, 63, .3);
-        background: var(--wk-green-tint);
-        color: var(--wk-green-dark);
+        border-color: var(--wk-green-dark);
+        background: var(--wk-green-dark);
+        color: #fff;
     }
     .wk-home-shortcut--primary:hover,
     .wk-home-shortcut--primary:focus-visible {
         border-color: var(--wk-green-dark);
-        background: var(--wk-green-tint);
-        color: var(--wk-green-dark);
+        background: #14532d;
+        color: #fff;
     }
 
     .wk-mobile-nav {
@@ -237,10 +234,10 @@
 <section class="relative wk-home-hero">
     <div class="max-w-3xl mx-auto text-center">
         <h1 class="wk-display text-gray-900">
-            Find better prices. See where to shop.
+            Find, compare and record prices across PNG.
         </h1>
         <p class="mt-2 text-base sm:text-lg text-gray-600">
-            Explore reported prices across PNG. Search a product to compare your options.
+            See what shops charge, share prices you find, and track changes over time.
         </p>
 
         <form method="GET" action="{% url 'home' %}" id="search-form" class="mt-4 text-left">
@@ -267,9 +264,9 @@
                 <input type="hidden" name="lat" id="user-lat" value="{{ request.GET.lat }}">
                 <input type="hidden" name="lng" id="user-lng" value="{{ request.GET.lng }}">
 
+                <a href="{% url 'add_price' %}" class="wk-home-shortcut wk-home-shortcut--primary">+ Record a price</a>
                 <button type="button" id="map-toggle-btn-desktop" onclick="toggleMapView()" aria-controls="map-panel" aria-expanded="true" class="wk-home-shortcut">List only</button>
-                <a href="#feed-column" class="wk-home-shortcut">See prices ↓</a>
-                <a href="{% url 'add_price' %}" class="wk-home-shortcut wk-home-shortcut--primary">+ Add price</a>
+                <a href="#feed-column" class="wk-home-shortcut">Browse price reports ↓</a>
 
                 <span id="location-status" class="text-xs text-gray-500 hidden items-center">
                     <svg class="inline h-3.5 w-3.5 mr-1 text-brand-green" fill="currentColor" viewBox="0 0 20 20">
@@ -435,7 +432,7 @@
                     <div class="flex-1 min-h-0">
                         <div id="map" class="rounded-b-xl"></div>
                     </div>
-                    <div class="wk-map-help">Grey = outdated (not updated in 30 days). Tap a cluster to explore prices. Tap a price for the shop and report date. <a href="{% url 'product_list' %}" class="text-brand-blueDark font-semibold">Compare products →</a></div>
+                    <div class="wk-map-help">Tap a cluster to explore prices. Tap a report to see the shop and reported date. <a href="{% url 'product_list' %}" class="text-brand-blueDark font-semibold">Compare products →</a></div>
                 </div>
             </div>
         </section>
@@ -521,7 +518,6 @@ function tierColor(tier) {
         mid: '#4DB8FF',
         expensive: '#ef4444',
         other: '#4B2798',
-        stale: '#6b7280',
     }[tier] || '#4B2798';
 }
 
@@ -595,8 +591,7 @@ function initPriceMap() {
             chunkedLoading: true,
             maxClusterRadius: 55,
             iconCreateFunction: function(cluster) {
-                const allStale = cluster.getAllChildMarkers().every(marker => marker.options.isStale);
-                return L.divIcon({className: 'wk-map-cluster' + (allStale ? ' wk-map-cluster--stale' : ''), iconSize: [76, 42],
+                return L.divIcon({className: 'wk-map-cluster', iconSize: [76, 42],
                     html: `<strong>${cluster.getChildCount()}</strong> price reports`});
             },
             spiderfyOnMaxZoom: true,
@@ -629,19 +624,16 @@ function initPriceMap() {
                     const data = await response.json();
                     const markers = [];
                     data.items.forEach(price => {
-                        const tier = price.is_stale ? 'stale' : 'other';
                         const marker = L.marker([price.lat, price.lng], {
-                            isStale: price.is_stale,
-                            icon: createPriceMarkerIcon(shortPriceLabel(price.price), tier, price.product),
+                            icon: createPriceMarkerIcon(shortPriceLabel(price.price), 'other', price.product),
                         });
                         const popup = document.createElement('div');
                         for (const [value, className] of [
                             [price.product, 'font-semibold text-sm text-gray-900'],
-                            [price.price, price.is_stale ? 'text-gray-500 font-bold' : 'text-brand-purple font-bold'],
-                            [price.is_stale ? 'Outdated · Check the current price with the shop' : 'Recently updated', 'text-xs text-gray-600'],
+                            [price.price, 'text-brand-purple font-bold'],
+                            [`Reported ${price.date}`, 'text-xs text-gray-500'],
                             [`Last updated ${price.updated_date || price.date}`, 'text-xs text-gray-500'],
                             [price.business, 'text-xs text-gray-600 mt-1'],
-                            [`Reported ${price.date}`, 'text-xs text-gray-500'],
                         ]) {
                             const line = document.createElement('p');
                             line.className = className;
@@ -666,7 +658,7 @@ function initPriceMap() {
                     }
                     cursor = data.next_cursor;
                     status.textContent = loaded
-                        ? `${loaded} mapped reports${cursor ? ' · Loading more…' : ' · Includes outdated prices'}`
+                        ? `${loaded} mapped price reports${cursor ? ' · Loading more…' : ''}`
                         : 'No mapped prices for this search. Try another product or browse the list.';
                     // Yield between batches so map gestures remain responsive.
                     if (cursor) await new Promise(resolve => setTimeout(resolve, 50));
