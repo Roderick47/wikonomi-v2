@@ -62,7 +62,7 @@
                     {% if product.description %}
                     <p class="mt-4 max-w-3xl text-gray-600">{{ product.description }}</p>
                     {% else %}
-                    <p class="mt-4 max-w-3xl text-gray-600">Compare the latest known price from each store or branch. Older observations are kept separately as price history, and stale store prices do not determine the current winner.</p>
+                    <p class="mt-4 max-w-3xl text-gray-600">Compare the latest known price from each store or branch. Older observations remain available as price history. Only prices reported within the comparison window determine the current ranking.</p>
                     {% endif %}
 
                     <div class="mt-5 flex flex-wrap gap-2">
@@ -87,7 +87,7 @@
         <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
             <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Comparable stores / branches</p>
             <p class="mt-2 text-3xl font-extrabold text-gray-900">{{ comparable_store_count|intcomma }}</p>
-            {% if comparison_store_count > comparable_store_count %}<p class="mt-1 text-xs text-gray-500">{{ comparison_store_count }} latest-known including stale</p>{% endif %}
+            {% if comparison_store_count > comparable_store_count %}<p class="mt-1 text-xs text-gray-500">{{ comparison_store_count }} latest-known stores, including earlier reports</p>{% endif %}
         </div>
         <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
             <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Historical reports</p>
@@ -130,7 +130,7 @@
             </div>
         </form>
         {% if user_lat and user_lng %}
-        <p class="mt-3 text-xs text-gray-500">Location mode is active. Distances use mapped non-stale store prices where coordinates are available.</p>
+        <p class="mt-3 text-xs text-gray-500">Location mode is active. Distances use store prices reported within the last {{ comparison_stale_after_days }} days where coordinates are available.</p>
         {% else %}
         <p class="mt-3 text-xs text-gray-500">Use your location to add distance context to the current store comparison.</p>
         {% endif %}
@@ -152,11 +152,11 @@
                 </div>
                 {% elif comparable_store_count == 1 %}
                 <div class="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    Only one non-stale store price is known. Add another store to create a real comparison.
+                    Only one store has a price report within the last {{ comparison_stale_after_days }} days. Add another to compare.
                 </div>
                 {% elif comparable_store_count == 0 and comparison_reports %}
                 <div class="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    All latest-known prices are stale. Add a newer observation before treating any store as cheapest now.
+                    The latest known reports are older than {{ comparison_stale_after_days }} days. Add a recent report to compare stores.
                 </div>
                 {% endif %}
             </div>
@@ -173,7 +173,7 @@
             </div>
             {% else %}
             <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-                <p class="text-sm font-bold text-amber-900">No current winner</p>
+                <p class="text-sm font-bold text-amber-900">No recent comparable prices</p>
                 <p class="mt-1 text-sm text-amber-800">The latest-known store prices are older than {{ comparison_stale_after_days }} days.</p>
                 <a href="{% url 'add_price' %}?product_name={{ product.name|urlencode }}" class="mt-3 inline-flex rounded-full bg-brand-greenDark px-4 py-2 text-sm font-semibold text-white hover:bg-brand-greenDark/90">Report a newer price</a>
             </div>
@@ -194,7 +194,7 @@
             </div>
             {% else %}
             <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-5">
-                <p class="text-sm font-bold text-gray-900">Fresh data needed</p>
+                <p class="text-sm font-bold text-gray-900">New reports welcome</p>
                 <p class="mt-1 text-sm text-gray-600">Old price observations are still useful as history, but a shopping decision needs a newer check.</p>
             </div>
             {% endif %}
@@ -206,7 +206,7 @@
                     <tr>
                         <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Store / branch</th>
                         <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Latest-known price</th>
-                        <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Freshness</th>
+                        <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Reported on</th>
                         {% if user_lat and user_lng %}<th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Distance</th>{% endif %}
                         <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Compared with best</th>
                         <th class="px-5 py-3 text-right text-xs font-bold uppercase tracking-wide text-gray-500">Evidence</th>
@@ -214,29 +214,19 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100 bg-white">
                     {% for report in comparison_reports %}
-                    <tr {% if report.freshness_key == 'stale' %}class="bg-gray-50 text-gray-500"{% endif %}>
+                    <tr>
                         <td class="whitespace-nowrap px-5 py-4">
                             <p class="font-bold text-gray-900">{{ report.get_business_display }}</p>
                             <p class="text-xs text-gray-500">Checked {{ report.observed_at|rounded_timesince }}</p>
                         </td>
                         <td class="wk-price-sm whitespace-nowrap px-5 py-4 text-gray-900">{{ report.currency }} {{ report.price|floatformat:2|intcomma }}</td>
-                        <td class="whitespace-nowrap px-5 py-4">
-                            {% if report.freshness_key == 'fresh' %}
-                            <span class="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-800">Fresh</span>
-                            {% elif report.freshness_key == 'recent' %}
-                            <span class="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-800">Recent</span>
-                            {% elif report.freshness_key == 'old' %}
-                            <span class="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">Old</span>
-                            {% else %}
-                            <span class="rounded-full bg-gray-200 px-2.5 py-1 text-xs font-bold text-gray-700">Stale</span>
-                            {% endif %}
-                        </td>
+                        <td class="whitespace-nowrap px-5 py-4 text-sm text-gray-700">{{ report.observed_at|date:'j M Y' }}</td>
                         {% if user_lat and user_lng %}
                         <td class="whitespace-nowrap px-5 py-4 text-gray-700">{% if report.distance_km != None %}{{ report.distance_km|floatformat:1 }} km{% else %}Not mapped{% endif %}</td>
                         {% endif %}
                         <td class="whitespace-nowrap px-5 py-4">
                             {% if report.freshness_key == 'stale' %}
-                            <span class="font-semibold text-gray-500">Excluded — stale</span>
+                            <span class="text-sm text-gray-600">Outside the {{ comparison_stale_after_days }}-day comparison window</span>
                             {% elif cheapest_report and report.id == cheapest_report.id %}
                             <span class="font-bold text-brand-green">Best comparable</span>
                             {% elif report.price_gap %}
@@ -263,7 +253,7 @@
     {% if currency_stats %}
     <section class="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 class="text-lg font-bold text-gray-900">Latest-known prices by currency</h2>
-        <p class="text-sm text-gray-600">These statistics use one latest valid price per store. Stale rows remain visible for context but do not determine the current winner above.</p>
+        <p class="text-sm text-gray-600">These statistics use one latest valid price per store. Earlier reports remain visible for context but do not determine the current winner above.</p>
         <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {% for stat in currency_stats %}
             <div class="rounded-xl bg-gray-50 px-4 py-3 text-sm">
@@ -304,7 +294,7 @@
     {% if reports_with_location %}
     <section class="mt-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 class="text-2xl font-bold text-gray-900">Current price map</h2>
-        <p class="text-sm text-gray-600">Mapped non-stale latest store prices for {{ product.name }}.</p>
+        <p class="text-sm text-gray-600">Mapped store prices reported within the last {{ comparison_stale_after_days }} days for {{ product.name }}.</p>
         <div id="product-map" class="mt-4 h-96 rounded-xl border border-gray-200"></div>
     </section>
     {% endif %}
@@ -313,7 +303,7 @@
         <div class="mb-4 flex items-center justify-between gap-3">
             <div>
                 <h2 class="text-2xl font-bold text-gray-900">Nearest current prices</h2>
-                <p class="text-sm text-gray-600">Closest mapped non-stale latest store prices for {{ product.name }}.</p>
+                <p class="text-sm text-gray-600">Closest mapped store prices reported within the last {{ comparison_stale_after_days }} days for {{ product.name }}.</p>
             </div>
         </div>
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
