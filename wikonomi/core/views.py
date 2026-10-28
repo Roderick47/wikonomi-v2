@@ -667,6 +667,7 @@ def load_more_prices(request):
             {
                 'report': price,
                 'show_like_button': True,
+                'show_map_action': True,
                 'price_card_current_user_rating': user_ratings.get(price.id),
                 'default_profile_picture_url': static('img/default-profile.svg'),
             },
