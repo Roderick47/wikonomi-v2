@@ -1,0 +1,47 @@
+name: Discovery checks
+
+on:
+  pull_request:
+    paths:
+      - 'wikonomi/core/views.py'
+      - 'wikonomi/core/utils.py'
+      - 'wikonomi/core/templates/home.html'
+      - 'wikonomi/core/templates/includes/_price_report_card.html'
+      - 'wikonomi/core/test_discovery_feed.py'
+      - 'wikonomi/core/test_views.py'
+      - 'wikonomi/core/test_map_history.py'
+      - '.github/workflows/discovery-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  django-discovery:
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: wikonomi.test_settings
+      DEBUG: 'True'
+      SECRET_KEY: ci-discovery-check-only
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Django system check
+        working-directory: wikonomi
+        run: python manage.py check
+      - name: Run discovery, homepage, map and existing sorting tests
+        working-directory: wikonomi
+        run: |
+          python manage.py test \
+            core.test_discovery_feed \
+            core.test_map_history \
+            core.test_views.SearchFunctionalityTest \
+            core.test_views.HomeViewTest \
+            core.test_views.APIEndpointsTest \
+            --verbosity 2
