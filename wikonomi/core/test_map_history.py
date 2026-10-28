@@ -38,8 +38,14 @@ class MapHistoryTests(TestCase):
     def test_old_report_stays_in_feed_and_reconfirmation_clears_stale(self):
         PriceReport.objects.exclude(pk=self.old.pk).delete()
         response = self.client.get('/')
-        self.assertContains(response, 'Outdated · Check current price')
-        self.assertContains(response, 'price-card--stale')
+        # Old observations remain visible without a warning-style badge or grey styling.
+        self.assertTrue(self.old.is_stale)
+        self.assertContains(response, 'Map Rice')
+        self.assertContains(response, 'Reported ')
+        self.assertNotContains(response, 'Outdated · Check current price')
+        self.assertNotContains(response, 'price-card--stale')
+        self.assertNotContains(response, 'wk-map-cluster--stale')
+        self.assertContains(response, 'Find, compare and record prices across PNG.')
         PriceReport.objects.filter(pk=self.old.pk).update(updated_at=timezone.now())
         self.old.refresh_from_db()
         self.assertFalse(self.old.is_stale)
