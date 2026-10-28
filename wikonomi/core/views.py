@@ -10,8 +10,8 @@ from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, DetailView, UpdateView
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
-from django.db.models import Avg, Min, Max, Count, Q
-from django.db.models.functions import Lower
+from django.db.models import Avg, Min, Max, Count, Q, F, Case, When, BigIntegerField, Window
+from django.db.models.functions import Lower, RowNumber
 from django.utils import timezone
 from datetime import timedelta
 from django.http import JsonResponse, HttpResponse
@@ -396,13 +396,25 @@ class PriceReportDuplicateView(PriceReportCreateView):
 price_report_duplicate = PriceReportDuplicateView.as_view()
 
 
+NEARBY_RADIUS_OPTIONS_KM = (1, 5, 10, 25)
+DEFAULT_NEARBY_RADIUS_KM = 25
+
+
+def _nearby_radius_km(request):
+    """Only allow the four supported discovery radii (never an unbounded user radius)."""
+    supplied = str(request.GET.get('radius', DEFAULT_NEARBY_RADIUS_KM)).strip()
+    return int(supplied) if supplied in ('1', '5', '10', '25') else DEFAULT_NEARBY_RADIUS_KM
+
+
 def _get_prices_queryset(request, for_map=False):
     """Helper to get and sort prices uniformly across feed and map endpoints."""
     query = request.GET.get('q', '').strip()
-    sort = request.GET.get('sort', 'recent')
+    sort = request.GET.get('sort', 'discover')
     user_lat = request.GET.get('lat')
     user_lng = request.GET.get('lng')
-    
+    if sort not in ('discover', 'recent', 'nearest', 'price_asc', 'price_desc'):
+        sort = 'discover'
+
     if for_map:
         qs = PriceReport.objects.select_related('product', 'business')
     else:
@@ -441,12 +453,42 @@ def _get_prices_queryset(request, for_map=False):
         try:
             user_lat = float(user_lat)
             user_lng = float(user_lng)
-            qs = annotate_with_distance(qs, user_lat, user_lng)
-        except (ValueError, TypeError):
-            qs = qs.order_by('-observed_at')
-    else:
-        qs = qs.order_by('-updated_at', '-observed_at')
-        
+            if not (-90 <= user_lat <= 90 and -180 <= user_lng <= 180):
+                raise ValueError('Invalid coordinates')
+            # Use the selected radius for the feed; the map still loads all reports.
+            # When there are no local matches, retain nationwide discovery.
+            nearby = annotate_with_distance(qs, user_lat, user_lng, radius_km=_nearby_radius_km(request))
+            if nearby.exists():
+                qs = nearby
+            else:
+                sort = 'discover'
+        except (ValueError, TypeError, OverflowError):
+            sort = 'discover'
+    elif sort == 'nearest':
+        sort = 'discover'
+
+    if sort in ('discover', 'recent'):
+        if sort == 'discover':
+            # Interleave reports from different shops before showing a shop's
+            # second, third, ... reports. This avoids bulk uploads taking over
+            # the first screen and works for all pages of infinite scrolling.
+            # Business-less reports get individual negative grouping keys.
+            qs = qs.annotate(
+                discovery_shop=Case(
+                    When(business_id__isnull=True, then=-F('pk')),
+                    default=F('business_id'),
+                    output_field=BigIntegerField(),
+                ),
+            ).annotate(
+                discovery_round=Window(
+                    expression=RowNumber(),
+                    partition_by=[F('discovery_shop')],
+                    order_by=[F('observed_at').desc(), F('pk').desc()],
+                ),
+            ).order_by('discovery_round', '-observed_at', '-pk')
+        else:
+            qs = qs.order_by('-observed_at', '-pk')
+
     return qs, sort, user_lat, user_lng
 
 def _get_business_queryset(request):
@@ -487,13 +529,22 @@ def home(request):
     from guides.models import Guide
 
     query = request.GET.get('q', '').strip()
-    sort = request.GET.get('sort', 'recent')
+    sort = request.GET.get('sort', 'discover')
     user_lat = request.GET.get('lat')
     user_lng = request.GET.get('lng')
     
-    # Get price reports
+    # Get price reports using the same ranking as infinite scroll.
     latest_prices, sort, user_lat, user_lng = _get_prices_queryset(request)
-    latest_prices = latest_prices[:20]
+    requested_sort = request.GET.get('sort', 'discover')
+    if requested_sort not in ('discover', 'recent', 'nearest', 'price_asc', 'price_desc'):
+        requested_sort = 'discover'
+    location_fallback = (
+        requested_sort == 'nearest'
+        and bool(request.GET.get('lat'))
+        and bool(request.GET.get('lng'))
+        and sort == 'discover'
+    )
+    latest_prices = list(latest_prices[:20])
     if request.user.is_authenticated:
         liked_ids = set(PriceLike.objects.filter(user=request.user, price_report__in=latest_prices).values_list('price_report_id', flat=True))
         for report in latest_prices:
@@ -535,6 +586,9 @@ def home(request):
         'latest_prices': latest_prices,
         'businesses': businesses,
         'current_sort': sort,
+        'requested_sort': requested_sort,
+        'nearby_radius_km': _nearby_radius_km(request),
+        'location_fallback': location_fallback,
         'search_query': query,
         'fuel_summary': fuel_summary,
         'guides': guides,
@@ -590,7 +644,7 @@ def api_map_prices(request):
 def load_more_prices(request):
     page = request.GET.get('page', 1)
     query = request.GET.get('q', '').strip()
-    sort = request.GET.get('sort', 'recent')
+    sort = request.GET.get('sort', 'discover')
     user_lat = request.GET.get('lat')
     user_lng = request.GET.get('lng')
     
@@ -630,6 +684,7 @@ def load_more_prices(request):
             {
                 'report': price,
                 'show_like_button': True,
+                'show_map_action': True,
                 'price_card_current_user_rating': user_ratings.get(price.id),
                 'default_profile_picture_url': static('img/default-profile.svg'),
             },

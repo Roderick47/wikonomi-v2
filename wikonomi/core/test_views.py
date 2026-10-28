@@ -420,7 +420,7 @@ class SearchFunctionalityTest(TestCase):
         request.GET = {}
         qs, sort, lat, lng = views._get_prices_queryset(request)
         self.assertEqual(qs.count(), 2)
-        self.assertEqual(sort, 'recent')
+        self.assertEqual(sort, 'discover')
 
     def test_get_prices_queryset_with_query(self):
         """Test queryset with search query"""
@@ -576,7 +576,8 @@ class APIEndpointsTest(TestCase):
         
         self.assertEqual(len(data['items']), 1)
         self.assertIn('price-card', data['items'][0])
-        self.assertIn('data-rating-menu-root', data['items'][0])
+        self.assertIn('data-rating-widget', data['items'][0])
+        self.assertIn('data-map-report-id', data['items'][0])
         self.assertIn('Test Product', data['items'][0])
         self.assertFalse(data['has_more'])
 

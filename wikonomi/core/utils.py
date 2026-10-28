@@ -13,7 +13,7 @@ def get_nearby_prices(product, lat, lng, radius_hexes=2):
         h3_res9__in=neighbors
     ).select_related('user').order_by('-observed_at')
 
-def annotate_with_distance(queryset, user_lat, user_lng, radius_hexes=3):
+def annotate_with_distance(queryset, user_lat, user_lng, radius_hexes=3, radius_km=None):
     """
     Annotate queryset with distance from user's location using DB-level Haversine formula.
     Uses H3 pre-filtering to avoid calculating distance for distant results.
@@ -23,16 +23,24 @@ def annotate_with_distance(queryset, user_lat, user_lng, radius_hexes=3):
     from django.db.models import F, FloatField, ExpressionWrapper
     from django.db.models.functions import ASin, Cos, Radians, Sin, Sqrt
 
-    # Step 1: Use H3 to pre-filter to nearby hexagons (fast index-level filter)
-    # This avoids calculating distance for reports that are completely outside the user's city/radius
-    center = h3.latlng_to_cell(user_lat, user_lng, 9)
-    nearby_hexes = list(h3.grid_disk(center, radius_hexes))
-    
-    queryset = queryset.filter(
-        latitude__isnull=False, 
-        longitude__isnull=False,
-        h3_res9__in=nearby_hexes
-    )
+    # Step 1: Bound candidates before the expensive distance expression.
+    # Existing H3 callers keep their narrow hex filter. Discovery can opt into
+    # a city-scale radius without enumerating thousands of H3 cells.
+    if radius_km is None:
+        center = h3.latlng_to_cell(user_lat, user_lng, 9)
+        nearby_hexes = list(h3.grid_disk(center, radius_hexes))
+        queryset = queryset.filter(
+            latitude__isnull=False,
+            longitude__isnull=False,
+            h3_res9__in=nearby_hexes,
+        )
+    else:
+        latitude_delta = radius_km / 111.32
+        longitude_delta = radius_km / (111.32 * max(abs(math.cos(math.radians(user_lat))), 0.01))
+        queryset = queryset.filter(
+            latitude__range=(max(-90, user_lat - latitude_delta), min(90, user_lat + latitude_delta)),
+            longitude__range=(max(-180, user_lng - longitude_delta), min(180, user_lng + longitude_delta)),
+        )
     
     # Step 2: Database-level exact distance calculation (Haversine)
     # Allows pagination (OFFSET/LIMIT) to happen in Postgres, preventing memory exhaustion
@@ -57,4 +65,7 @@ def annotate_with_distance(queryset, user_lat, user_lng, radius_hexes=3):
     distance_expr = ExpressionWrapper(R * c, output_field=FloatField())
     
     # Annotate and sort via database engine
-    return queryset.annotate(distance_km=distance_expr).order_by('distance_km')
+    nearby = queryset.annotate(distance_km=distance_expr)
+    if radius_km is not None:
+        nearby = nearby.filter(distance_km__lte=radius_km)
+    return nearby.order_by('distance_km', '-observed_at', '-pk')

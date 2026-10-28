@@ -20,6 +20,7 @@ class MapHistoryTests(TestCase):
         ])
         self.old = PriceReport.objects.order_by('pk').first()
         PriceReport.objects.filter(pk=self.old.pk).update(updated_at=timezone.now()-timedelta(days=60))
+        self.old.refresh_from_db()
 
     def test_all_batches_include_old_prices_without_duplicates(self):
         first = self.client.get('/api/map-prices/').json()
