@@ -172,7 +172,7 @@ def build_price_share_context(report, *, base_url=''):
                 f"at {_store_name(cheapest)}."
             )
     else:
-        comparison_line = 'No non-stale current store comparison is available yet.'
+        comparison_line = f'No store prices reported within the last {COMPARISON_STALE_AFTER_DAYS} days are available for a current comparison.'
 
     title = f"{product.name} — {report_money} at {store_name}"
     text_lines = [
