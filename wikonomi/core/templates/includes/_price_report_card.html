@@ -119,10 +119,16 @@
                 Reported {{ report.observed_at|date:'j M Y' }}{% if report.is_updated %} · updated {{ report.updated_at|date:'j M Y' }}{% endif %}
             </span>
             {% if report.latitude and report.longitude %}
-            <span class="inline-flex items-center gap-1">
-                <svg class="h-3.5 w-3.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>
-                On map
-            </span>
+                {% if show_map_action %}
+                <button type="button" class="inline-flex items-center gap-1 font-semibold text-brand-blueDark hover:underline"
+                        data-map-report-id="{{ report.pk }}" data-map-lat="{{ report.latitude }}" data-map-lng="{{ report.longitude }}"
+                        onclick="focusPriceOnMap(event, this)">View on map ↗</button>
+                {% else %}
+                <span class="inline-flex items-center gap-1">
+                    <svg class="h-3.5 w-3.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>
+                    On map
+                </span>
+                {% endif %}
             {% endif %}
             {% if price_card_show_detail_actions and user.is_authenticated %}
             <span class="ml-auto inline-flex items-center gap-1">
