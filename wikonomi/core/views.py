@@ -222,6 +222,33 @@ class PriceReportCreateView(CreateView):
             return f"{reverse('add_price')}?{urlencode(params)}" if params else reverse('add_price')
         return super().get_success_url()
 
+    def _validate_uploaded_photos(self, form):
+        """Reject invalid or oversized photos before any report is saved."""
+        photos = self.request.FILES.getlist('photos')
+        if len(photos) > 5:
+            form.add_error(None, 'Choose no more than 5 photos per price.')
+            return False
+
+        image_field = forms.ImageField(required=False)
+        allowed_types = {'image/jpeg', 'image/png', 'image/webp'}
+        allowed_formats = {'JPEG', 'PNG', 'WEBP'}
+        for photo in photos:
+            if photo.size > 10 * 1024 * 1024:
+                form.add_error(None, 'Each photo must be 10 MB or smaller.')
+                return False
+            if photo.content_type not in allowed_types:
+                form.add_error(None, 'Photos must be JPEG, PNG, or WebP images.')
+                return False
+            try:
+                image_field.clean(photo)
+            except forms.ValidationError:
+                form.add_error(None, 'One of the photos could not be read as an image.')
+                return False
+            if getattr(getattr(photo, 'image', None), 'format', None) not in allowed_formats:
+                form.add_error(None, 'Photos must be JPEG, PNG, or WebP images.')
+                return False
+        return True
+
     def _get_business_default_locations(self, businesses):
         locations = {}
         for business in businesses:
@@ -249,7 +276,10 @@ class PriceReportCreateView(CreateView):
         
     def form_valid(self, form):
         from django.contrib.auth.models import User
-        
+
+        if not self._validate_uploaded_photos(form):
+            return self.form_invalid(form)
+
         try:
             # 1. Handle user
             if not self.request.user.is_authenticated:
