@@ -114,6 +114,91 @@ class DiscoveryFeedTests(TestCase):
         self.assertEqual(response.context['current_sort'], 'nearest')
         self.assertEqual([report.pk for report in response.context['latest_prices']], [nearby.pk])
 
+    def test_nearest_radius_filters_at_1_5_10_and_25_km(self):
+        # Reference location -6.73, 146.99. Latitude differences correspond
+        # approximately to 3, 7, 18 and 31 km.
+        near = PriceReport.objects.create(
+            user=self.user, product=self.product, business=self.second,
+            price=Decimal('5.00'), currency='PGK',
+            latitude=-6.729, longitude=146.99,
+        )
+        reports = [near]
+        for lat in (-6.703, -6.667, -6.568, -6.451):
+            reports.append(PriceReport.objects.create(
+                user=self.user, product=self.product, business=self.third,
+                price=Decimal('6.00'), currency='PGK',
+                latitude=lat, longitude=146.99,
+            ))
+
+        for radius, count in ((1, 1), (5, 2), (10, 3), (25, 4)):
+            with self.subTest(radius=radius):
+                response = self.client.get(reverse('home'), {
+                    'sort': 'nearest', 'lat': '-6.73', 'lng': '146.99',
+                    'radius': str(radius),
+                })
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.context['requested_sort'], 'nearest')
+                self.assertEqual(response.context['current_sort'], 'nearest')
+                self.assertEqual(response.context['nearby_radius_km'], radius)
+                self.assertFalse(response.context['location_fallback'])
+                ids = [report.pk for report in response.context['latest_prices']]
+                self.assertEqual(ids, [report.pk for report in reports[:count]])
+                self.assertContains(response, f'Prices within {radius} km')
+                self.assertContains(response, f'<option value="{radius}" selected>', html=False)
+
+    def test_invalid_or_unbounded_radii_use_default_25_km(self):
+        for radius in (None, '0', '-5', '2', '1000', '5.5', 'abc'):
+            with self.subTest(radius=radius):
+                params = {'sort': 'nearest', 'lat': '-6.73', 'lng': '146.99'}
+                if radius is not None:
+                    params['radius'] = radius
+                response = self.client.get(reverse('home'), params)
+                self.assertEqual(response.context['nearby_radius_km'], 25)
+                self.assertContains(response, 'within 25 km')
+
+    def test_empty_radius_shows_selected_range_and_fallback(self):
+        response = self.client.get(reverse('home'), {
+            'sort': 'nearest', 'lat': '-6.73', 'lng': '146.99',
+            'radius': '1',
+        })
+        self.assertTrue(response.context['location_fallback'])
+        self.assertEqual(response.context['requested_sort'], 'nearest')
+        self.assertEqual(response.context['nearby_radius_km'], 1)
+        self.assertContains(response, 'within 1 km of this location')
+        self.assertContains(response, '<option value="nearest" selected>', html=False)
+        self.assertContains(response, 'name="radius" value="1"')
+
+    def test_infinite_scroll_uses_same_selected_nearby_range(self):
+        # 23 reports inside 5 km, plus one beyond 25 km.
+        for i in range(23):
+            PriceReport.objects.create(
+                user=self.user, product=self.product, business=self.busy,
+                price=Decimal('6.00'), currency='PGK',
+                latitude=-6.73 + 0.001 * (i % 5), longitude=146.99,
+            )
+        outside = PriceReport.objects.create(
+            user=self.user, product=self.product, business=self.third,
+            price=Decimal('6.00'), currency='PGK',
+            latitude=-6.4, longitude=146.99,
+        )
+        params = {'sort': 'nearest', 'lat': '-6.73', 'lng': '146.99', 'radius': '5'}
+        first = self.client.get(reverse('home'), params)
+        params['page'] = '2'
+        second = self.client.get(reverse('load_more_prices'), params).json()
+        first_ids = {report.pk for report in first.context['latest_prices']}
+        second_ids = set()
+        for card in second['items']:
+            match = re.search(r'data-object-id="(\d+)"', card)
+            self.assertIsNotNone(match)
+            second_ids.add(int(match.group(1)))
+
+        self.assertEqual(len(first_ids), 20)
+        self.assertEqual(len(second_ids), 3)
+        self.assertEqual(len(first_ids | second_ids), 23)
+        self.assertNotIn(outside.pk, first_ids | second_ids)
+        self.assertFalse(second['has_more'])
+        self.assertContains(first, "radius-control")
+
     def test_invalid_coordinates_do_not_break_discovery(self):
         response = self.client.get(reverse('home'), {
             'sort': 'nearest', 'lat': '999', 'lng': '147.18',
