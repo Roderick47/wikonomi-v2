@@ -576,7 +576,8 @@ class APIEndpointsTest(TestCase):
         
         self.assertEqual(len(data['items']), 1)
         self.assertIn('price-card', data['items'][0])
-        self.assertIn('data-rating-menu-root', data['items'][0])
+        self.assertIn('data-rating-widget', data['items'][0])
+        self.assertIn('data-map-report-id', data['items'][0])
         self.assertIn('Test Product', data['items'][0])
         self.assertFalse(data['has_more'])
 
