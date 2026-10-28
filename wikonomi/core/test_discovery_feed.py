@@ -58,7 +58,7 @@ class DiscoveryFeedTests(TestCase):
         more = self.client.get(reverse('load_more_prices'), {'page': 2}).json()
         second_ids = []
         for card in more['items']:
-            match = re.search(r'data-object-id="(\\d+)"', card)
+            match = re.search(r'data-object-id="(\d+)"', card)
             self.assertIsNotNone(match)
             second_ids.append(int(match.group(1)))
 
@@ -67,9 +67,16 @@ class DiscoveryFeedTests(TestCase):
         self.assertEqual(len(set(first_ids + second_ids)), 26)
         self.assertEqual(set(first_ids + second_ids), set(PriceReport.objects.values_list('id', flat=True)))
         self.assertFalse(more['has_more'])
-        self.assertIn('View on map', homepage.content.decode('utf-8')) if any(
-            row.latitude is not None for row in homepage.context['latest_prices']
-        ) else None
+
+    def test_mapped_home_cards_link_back_to_the_map(self):
+        mapped = PriceReport.objects.create(
+            user=self.user, product=self.product, business=self.second,
+            price=Decimal('8.00'), currency='PGK',
+            latitude=-9.443, longitude=147.18,
+        )
+        response = self.client.get(reverse('home'))
+        self.assertContains(response, 'View on map')
+        self.assertContains(response, f'data-map-report-id="{mapped.pk}"')
 
     def test_nearest_with_no_local_reports_falls_back_to_discovery(self):
         # The prices in this fixture have no coordinates. An empty 'nearest'
