@@ -115,6 +115,11 @@ class ProductPageViewsTest(TestCase):
             if report.pk == self.stale_report.pk
         )
         self.assertEqual(stale_row.freshness_key, 'stale')
+        # Keep the comparison restriction but display the report date, not a stale badge.
+        self.assertContains(response, 'Reported on')
+        self.assertContains(response, 'Outside the 90-day comparison window')
+        self.assertNotContains(response, '>Stale</span>')
+        self.assertNotContains(response, 'Excluded — stale')
         self.assertNotEqual(response.context['cheapest_report'], self.stale_report)
         self.assertNotIn(
             self.stale_report.pk,

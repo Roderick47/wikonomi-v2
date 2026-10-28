@@ -94,6 +94,22 @@ class EnrichedPriceSharingTests(TestCase):
         self.assertIn('excluded from the current cheapest ranking', data['status_line'])
         self.assertIn('Only one current store price is available: PGK 10.00 at Store B.', data['comparison_line'])
 
+    def test_old_reports_share_as_history_without_suggesting_a_current_winner(self):
+        shared = self.make_report(store=self.store_a, price='7.00', days_old=120)
+
+        data = build_price_share_context(shared)
+
+        self.assertFalse(data['is_current_comparable'])
+        self.assertIsNone(data['best_current_price'])
+        self.assertIn(
+            'No store prices reported within the last 90 days are available',
+            data['comparison_line'],
+        )
+        response = self.client.get(reverse('price_share', args=[shared.pk]))
+        self.assertContains(response, 'Observed ')
+        self.assertContains(response, 'No store prices reported within the last 90 days')
+        self.assertNotContains(response, 'No non-stale current store comparison')
+
     def test_single_current_store_says_there_is_no_store_to_store_comparison(self):
         shared = self.make_report(store=self.store_a, price='11.50')
 

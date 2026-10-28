@@ -17,7 +17,7 @@
     <section class="rounded-3xl border border-brand-blue/20 bg-gradient-to-br from-brand-blue/10 via-white to-brand-green/10 p-6 shadow-sm sm:p-8">
         <p class="text-xs font-bold uppercase tracking-wide text-brand-blue">Basket comparison</p>
         <h1 class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">Where should you buy {{ active_list.name|default:'your shopping list' }}?</h1>
-        <p class="mt-3 max-w-4xl text-gray-600">Wikonomi compares the exact products in your unchecked shopping list using one latest non-stale price per store or branch. It does not silently swap products for alternatives.</p>
+        <p class="mt-3 max-w-4xl text-gray-600">Wikonomi compares the exact products in your unchecked shopping list using one latest reported price per store or branch, within the last {{ comparison.stale_after_days }} days. It does not silently swap products for alternatives.</p>
     </section>
 
     <section class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

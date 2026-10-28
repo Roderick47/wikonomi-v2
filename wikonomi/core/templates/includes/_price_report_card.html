@@ -2,10 +2,10 @@
 {% static 'img/default-profile.svg' as fallback_profile_picture_url %}
 {% effective_promotion_price report as promo_price %}
 {% if price_card_static %}
-<div class="price-card {% if report.is_stale %}price-card--stale{% endif %} group block bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+<div class="price-card group block bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
 {% else %}
 <a href="{% url 'price_detail' report.pk %}"
-   class="price-card {% if report.is_stale %}price-card--stale{% endif %} group block bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+   class="price-card group block bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
 {% endif %}
    data-product-card
    data-name="{{ report.product.name|lower|escape }}"
@@ -15,10 +15,11 @@
    data-rating-target="price-report"
    data-object-id="{{ report.id }}">
     <div class="p-4">
+        {% if promo_price %}
         <div class="mb-2 flex flex-wrap gap-1.5">
-            {% if report.is_stale %}<span class="inline-flex rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">Outdated · Check current price</span>{% endif %}
-            {% if promo_price %}<span class="inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-extrabold text-amber-800">🔥 {{ promo_price.promotion.display_deal }}</span>{% endif %}
+            <span class="inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-extrabold text-amber-800">🔥 {{ promo_price.promotion.display_deal }}</span>
         </div>
+        {% endif %}
         <div class="flex gap-3">
             <div class="h-20 w-20 shrink-0 rounded-lg bg-gray-50 border border-slate-100 overflow-hidden flex items-center justify-center">
                 {% if report.primary_photo %}
@@ -57,7 +58,7 @@
                         <p class="mt-1 text-xs text-gray-500">
                             <span class="line-through">{{ report.currency }} {{ report.price|intcomma }}</span>
                             · <span class="font-semibold text-amber-700">{{ promo_price.promotion.title }}</span>
-                            {% if promo_price.based_on_stale_price %} · estimate uses an outdated base price{% elif promo_price.is_estimate %} · calculated estimate{% endif %}
+                            {% if promo_price.based_on_stale_price %} · estimate based on a previous report ({{ report.observed_at|date:'j M Y' }}){% elif promo_price.is_estimate %} · calculated estimate{% endif %}
                         </p>
                         {% else %}
                         <p class="mt-1 text-2xl font-extrabold text-brand-green leading-none"{% if price_card_editable %} id="wk-price-badge"{% endif %}>
@@ -115,7 +116,7 @@
             </span>
             <span class="inline-flex items-center gap-1">
                 <svg class="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                {% if report.is_updated %}<span class="text-brand-purple font-medium">Updated</span> {{ report.updated_at|rounded_timesince }}{% else %}{{ report.observed_at|rounded_timesince }}{% endif %}
+                Reported {{ report.observed_at|date:'j M Y' }}{% if report.is_updated %} · updated {{ report.updated_at|date:'j M Y' }}{% endif %}
             </span>
             {% if report.latitude and report.longitude %}
             <span class="inline-flex items-center gap-1">
