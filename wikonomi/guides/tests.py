@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from core.models import Business
-from .models import Guide, GuideAnswer, GuideQuestion, GuideRating, GuideVersion, Step, StepPhoto, StepTip, StepTipPhoto, StepTipVote
+from .models import Guide, GuideAnswer, GuideQuestion, GuideRating, GuideReference, GuideVersion, Step, StepPhoto, StepTip, StepTipPhoto, StepTipVote
 from .templatetags.guide_markup import guide_markdown
 
 
@@ -200,6 +200,110 @@ class GuideBackendTests(TestCase):
         self.assertEqual(list(self.guide.current_version.steps.values_list('title', flat=True)), ['Prepare documents', 'Submit application'])
         tip.refresh_from_db()
         self.assertEqual(tip.step.version, self.guide.current_version)
+
+    def test_edit_prefills_existing_sources(self):
+        GuideReference.objects.create(
+            version=self.version,
+            title='PNG ICA Passport Renewal Checklist',
+            url='https://ica.gov.pg/passport/renewal',
+            publisher='PNG ICA',
+            accessed_at='2026-09-23',
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('guides:edit', args=[self.guide.slug]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Add your sources')
+        self.assertContains(response, 'PNG ICA Passport Renewal Checklist')
+        self.assertContains(response, 'https://ica.gov.pg/passport/renewal')
+        self.assertContains(response, 'PNG ICA')
+        self.assertContains(response, '2026-09-23')
+
+    def test_edit_without_reference_formset_preserves_existing_sources(self):
+        reference = GuideReference.objects.create(
+            version=self.version,
+            title='Official source',
+            url='https://example.com/source',
+            publisher='Example Office',
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.post(reverse('guides:edit', args=[self.guide.slug]), {
+            'steps_json': json.dumps([
+                {'id': str(self.step.id), 'title': self.step.title, 'instruction': self.step.instruction, 'position': self.step.position},
+            ]),
+            'deleted_step_ids': json.dumps([]),
+            'edit_summary': 'Minor wording update',
+        })
+
+        self.assertRedirects(response, reverse('guides:detail', args=[self.guide.slug]))
+        self.guide.refresh_from_db()
+        copied = self.guide.current_version.references.get()
+        self.assertNotEqual(copied.pk, reference.pk)
+        self.assertEqual(copied.title, reference.title)
+        self.assertEqual(copied.url, reference.url)
+        self.assertEqual(copied.publisher, reference.publisher)
+
+    def test_edit_can_replace_sources(self):
+        GuideReference.objects.create(
+            version=self.version,
+            title='Old source',
+            url='https://example.com/old',
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.post(reverse('guides:edit', args=[self.guide.slug]), {
+            'steps_json': json.dumps([
+                {'id': str(self.step.id), 'title': self.step.title, 'instruction': self.step.instruction, 'position': self.step.position},
+            ]),
+            'deleted_step_ids': json.dumps([]),
+            'edit_summary': 'Updated official source',
+            'references-TOTAL_FORMS': '1',
+            'references-INITIAL_FORMS': '1',
+            'references-MIN_NUM_FORMS': '0',
+            'references-MAX_NUM_FORMS': '1000',
+            'references-0-title': 'Current official source',
+            'references-0-url': 'https://example.com/current',
+            'references-0-publisher': 'Current Office',
+            'references-0-accessed_at': '2026-09-23',
+        })
+
+        self.assertRedirects(response, reverse('guides:detail', args=[self.guide.slug]))
+        self.guide.refresh_from_db()
+        references = list(self.guide.current_version.references.all())
+        self.assertEqual(len(references), 1)
+        self.assertEqual(references[0].title, 'Current official source')
+        self.assertEqual(references[0].url, 'https://example.com/current')
+        self.assertEqual(references[0].publisher, 'Current Office')
+        self.assertEqual(str(references[0].accessed_at), '2026-09-23')
+
+    def test_create_can_save_sources(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(reverse('guides:create'), {
+            'title': 'How to renew a passport',
+            'summary': 'Renew a PNG passport.',
+            'organization_name': '',
+            'category_name': '',
+            'steps_json': json.dumps([
+                {'id': None, 'title': 'Prepare documents', 'instruction': 'Gather the required documents.', 'position': 1},
+            ]),
+            'references-TOTAL_FORMS': '1',
+            'references-INITIAL_FORMS': '0',
+            'references-MIN_NUM_FORMS': '0',
+            'references-MAX_NUM_FORMS': '1000',
+            'references-0-title': 'PNG ICA',
+            'references-0-url': 'https://ica.gov.pg/passport',
+            'references-0-publisher': 'PNG Immigration & Citizenship Authority',
+            'references-0-accessed_at': '2026-09-23',
+        })
+
+        guide = Guide.objects.get(title='How to renew a passport')
+        self.assertRedirects(response, reverse('guides:detail', args=[guide.slug]))
+        reference = guide.current_version.references.get()
+        self.assertEqual(reference.title, 'PNG ICA')
+        self.assertEqual(reference.publisher, 'PNG Immigration & Citizenship Authority')
 
     def test_fork_copies_steps_without_tips(self):
         StepTip.objects.create(step=self.step, body='Local tip', submitted_by=self.user)
