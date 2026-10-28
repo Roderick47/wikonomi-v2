@@ -28,3 +28,6 @@ STORAGES = {
 USE_R2_STORAGE = False
 MEDIA_URL = '/media/'
 PROMOTIONS_ENABLED = True
+
+# Enable routes only in ephemeral isolated Django test environments.
+MOBILE_CONTRIBUTOR_ENABLED = True
