@@ -93,6 +93,7 @@
                             </div>
                         </div>
                         <p id="photo-count" class="mt-2 text-xs text-gray-500">0/5 photos selected</p>
+                        <p id="photo-feedback" class="mt-1 hidden text-sm font-medium text-amber-700" role="status" aria-live="polite"></p>
                     </div>
                     <div class="sm:col-span-6">
                         <label for="product_search" class="block text-sm font-medium text-gray-700">2. Product name <span class="text-red-600" aria-hidden="true">*</span></label>
@@ -235,6 +236,14 @@
         const lngInput = document.getElementById('{{ form.longitude.id_for_label }}');
         const businessInput = document.getElementById('business_search');
         const businessLocationHint = document.getElementById('business_location_hint');
+        const locationDetails = document.getElementById('location-details');
+        function revealLocationDetails() {
+            locationDetails.open = true;
+            window.requestAnimationFrame(() => map.invalidateSize());
+        }
+        locationDetails.addEventListener('toggle', function() {
+            if (this.open) window.requestAnimationFrame(() => map.invalidateSize());
+        });
 
         function setMapLocation(lat, lng, zoom = 15) {
             const latlng = [lat, lng];
@@ -271,8 +280,20 @@
                 setMapLocation(defaultLocation.latitude, defaultLocation.longitude);
                 showBusinessLocationHint(`Using ${businessName}'s default location from ${defaultLocation.source}.`, 'success');
             } else {
-                showBusinessLocationHint(`${businessName} does not have a default location yet. Please set this price's location on the map so future prices can use it automatically.`, 'warning');
+                showBusinessLocationHint(`${businessName} does not have a default location yet. Pin the shop on the map once so future prices can reuse it.`, 'warning');
+                revealLocationDetails();
             }
+        }
+
+        // Expose the map if the server returned validation errors.
+        const entryForm = document.querySelector('form[data-form-kind="price"]');
+        if (entryForm) {
+            entryForm.addEventListener('submit', function() {
+                const shopName = businessInput ? businessInput.value.trim() : '';
+                if (shopName && (!latInput.value || !lngInput.value)) {
+                    revealLocationDetails();
+                }
+            }, true);
         }
 
         // If there's already a value (e.g. form validation failed), load the marker
@@ -391,8 +412,33 @@
     const photosUploadContent = document.getElementById('photos-upload-content');
     const photosPreviewContainer = document.getElementById('photos-preview-container');
     const photoCount = document.getElementById('photo-count');
+    const photoFeedback = document.getElementById('photo-feedback');
     const maxPhotos = 5;
+    const maxPhotoSize = 10 * 1024 * 1024;
+    const allowedPhotoTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
     let selectedPhotos = [];
+
+    function reportPhotoIssue(message) {
+        photoFeedback.textContent = message;
+        photoFeedback.classList.toggle('hidden', !message);
+    }
+
+    function appendSelectedPhotos(files) {
+        const incoming = Array.from(files);
+        const permitted = incoming.filter(file => allowedPhotoTypes.has(file.type) && file.size <= maxPhotoSize);
+        const accepted = permitted.slice(0, maxPhotos - selectedPhotos.length);
+        selectedPhotos = selectedPhotos.concat(accepted);
+        const invalid = incoming.length - permitted.length;
+        if (invalid) {
+            reportPhotoIssue('Some photos were skipped. Use JPEG, PNG or WebP files under 10 MB each.');
+        } else if (accepted.length < incoming.length) {
+            reportPhotoIssue('You can attach up to 5 photos per price.');
+        } else {
+            reportPhotoIssue('');
+        }
+        renderPhotoPreviews();
+        updatePhotoCount();
+    }
 
     window.openPhotosFilePicker = function(useCamera) {
         if (photosInput) {
@@ -431,7 +477,7 @@
 
             const removeButton = document.createElement('button');
             removeButton.type = 'button';
-            removeButton.className = 'absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity';
+            removeButton.className = 'absolute top-1 right-1 bg-red-600 text-white rounded-full p-2 opacity-100 focus-visible:ring-2 focus-visible:ring-white';
             removeButton.setAttribute('aria-label', 'Remove photo');
             removeButton.addEventListener('click', function() {
                 removePhoto(index);
@@ -465,13 +511,7 @@
 
     if (photosInput) {
         photosInput.addEventListener('change', function(e) {
-            const files = Array.from(e.target.files);
-            const availableSlots = maxPhotos - selectedPhotos.length;
-            const filesToAdd = files.slice(0, availableSlots);
-
-            selectedPhotos = selectedPhotos.concat(filesToAdd);
-            renderPhotoPreviews();
-            updatePhotoCount();
+            appendSelectedPhotos(e.target.files);
 
             // Reset input so same files can be selected again if needed
             photosInput.value = '';
@@ -501,30 +541,19 @@
         });
 
         photosDropZone.addEventListener('drop', function(e) {
-            const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
-            const availableSlots = maxPhotos - selectedPhotos.length;
-            const filesToAdd = files.slice(0, availableSlots);
-
-            selectedPhotos = selectedPhotos.concat(filesToAdd);
-            renderPhotoPreviews();
-            updatePhotoCount();
+            appendSelectedPhotos(e.dataTransfer.files);
         }, false);
     }
 
-    // Handle form submission to include selected photos
-    const form = document.querySelector('form[method="POST"]');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            // Clear existing photos input
-            photosInput.value = '';
-
-            // Add selected photos to the input
+    // Keep selected images in the original multipart input on submit.
+    // File objects are never sent until the user explicitly saves the form.
+    const form = document.querySelector('form[data-form-kind="price"]');
+    if (form && photosInput) {
+        form.addEventListener('submit', function() {
             const dataTransfer = new DataTransfer();
-            selectedPhotos.forEach(file => {
-                dataTransfer.items.add(file);
-            });
+            selectedPhotos.forEach(file => dataTransfer.items.add(file));
             photosInput.files = dataTransfer.files;
-        });
+        }, true);
     }
 
 </script>
