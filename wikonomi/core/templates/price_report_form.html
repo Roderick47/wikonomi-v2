@@ -2,22 +2,19 @@
 
 {% block extra_head %}
 <style>
-    /* Ensure the map is 400px high */
-    #map {
-        height: 400px;
-        z-index: 10;
-    }
+    /* Keep the optional map usable on a narrow screen. */
+    #map { height: clamp(260px, 48vh, 400px); z-index: 10; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto mt-8">
+<div class="max-w-3xl mx-auto mt-4 sm:mt-8">
     <div class="bg-white shadow sm:rounded-lg">
         <div class="px-4 py-5 sm:p-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
                     <h3 class="text-lg leading-6 font-medium text-gray-900">
-                        {{ form_title|default:"Add a New Price" }}
+                        {{ form_title|default:"Record a Price" }}
                     </h3>
                     <div class="mt-2 text-sm text-gray-500">
                         <p>{{ form_intro|default:"Help the community by sharing the price you found." }}</p>
@@ -59,9 +56,16 @@
                 </div>
                 {% endif %}
 
-                <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+
+                <div class="space-y-5">
+                    <section aria-labelledby="quick-price-heading">
+                        <div class="mb-4 rounded-xl border border-brand-blue/20 bg-brand-blue/5 p-4 sm:p-5">
+                            <h4 id="quick-price-heading" class="text-base font-bold text-gray-900">Record what you found</h4>
+                            <p class="mt-1 text-sm text-gray-600">Take a photo, then enter the product and its price. The photo is optional, and you can add more details below.</p>
+                        </div>
+                        <div class="grid grid-cols-1 gap-y-5 gap-x-4 sm:grid-cols-6">
                     <div class="sm:col-span-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Upload Photos (Optional, Max 5)</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">1. Capture a price photo (optional)</label>
                         <input type="file" name="photos" id="photos-input" accept="image/jpeg,image/png,image/webp" multiple class="hidden" data-max-files="5" data-max-file-size="10485760" data-allowed-types="image/jpeg,image/png,image/webp" data-validation-anchor="#photos-drop-zone" data-validation-label="Photos">
 
                         <div class="mt-1 border-2 border-gray-300 border-dashed rounded-md relative hover:bg-gray-50 transition-colors duration-200" id="photos-drop-zone">
@@ -73,26 +77,26 @@
                                 <div class="flex flex-col sm:flex-row justify-center gap-3 mt-2">
                                     <button type="button" onclick="openPhotosFilePicker(false)" class="inline-flex items-center justify-center px-4 py-2 border border-brand-green text-sm font-medium rounded-md text-brand-greenDark bg-white hover:bg-brand-greenDark hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-greenDark">
                                         <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                                        Choose from Files
+                                        Choose photo
                                     </button>
 
                                     <button type="button" onclick="openPhotosFilePicker(true)" class="inline-flex items-center justify-center px-4 py-2 border border-brand-green text-sm font-medium rounded-md text-white bg-brand-greenDark hover:bg-brand-greenDark/90 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-greenDark">
                                         <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                        Take Photo
+                                        Take photo
                                     </button>
                                 </div>
-                                <p class="mt-4 text-xs text-gray-500">JPEG, PNG or WebP up to 10 MB each (max 5 photos)</p>
-                                <p class="mt-1 text-xs text-gray-400">or drag and drop here</p>
+                                <p class="mt-4 text-xs text-gray-500">Add a shelf label, product or receipt photo. Up to 5 images, 10 MB each.</p>
+                                <p class="mt-1 text-xs text-gray-400">Or drag and drop images here on a computer</p>
                             </div>
 
                             <div id="photos-preview-container" class="hidden w-full p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
                             </div>
                         </div>
                         <p id="photo-count" class="mt-2 text-xs text-gray-500">0/5 photos selected</p>
+                        <p id="photo-feedback" class="mt-1 hidden text-sm font-medium text-amber-700" role="status" aria-live="polite"></p>
                     </div>
-
                     <div class="sm:col-span-6">
-                        <label for="product_search" class="block text-sm font-medium text-gray-700">Product</label>
+                        <label for="product_search" class="block text-sm font-medium text-gray-700">2. Product name <span class="text-red-600" aria-hidden="true">*</span></label>
                         <div class="mt-1 flex rounded-md shadow-sm">
                             <input type="text" name="product_name" id="product_search" list="product_list" value="{{ initial_product_name|default:'' }}" required maxlength="255" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="Type a product name...">
                             <datalist id="product_list">
@@ -101,11 +105,22 @@
                                 {% endfor %}
                             </datalist>
                         </div>
-                        <p class="mt-2 text-sm text-gray-500">Select an existing product or type a new name to add it.</p>
+                        <p class="mt-2 text-sm text-gray-500">Start typing to select an existing product, or enter a new one.</p>
                     </div>
-
+                    <div class="sm:col-span-3">
+                        <label for="{{ form.price.id_for_label }}" class="block text-sm font-medium text-gray-700">3. Price <span class="text-red-600" aria-hidden="true">*</span></label>
+                        <div class="mt-1">
+                            {{ form.price }}
+                        </div>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label for="{{ form.currency.id_for_label }}" class="block text-sm font-medium text-gray-700">Currency</label>
+                        <div class="mt-1">
+                            {{ form.currency }}
+                        </div>
+                    </div>
                     <div class="sm:col-span-6">
-                        <label for="business_search" class="block text-sm font-medium text-gray-700">Business (Optional)</label>
+                        <label for="business_search" class="block text-sm font-medium text-gray-700">4. Where did you see it? (optional)</label>
                         <div class="mt-1 flex rounded-md shadow-sm">
                             <input type="text" name="business_name" id="business_search" list="business_list" value="{{ initial_business_name|default:'' }}" maxlength="255" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="Type a business name...">
                             <datalist id="business_list">
@@ -114,49 +129,20 @@
                                 {% endfor %}
                             </datalist>
                         </div>
-                        <p class="mt-2 text-sm text-gray-500">Select an existing business where you found this price or type a new name to add it.</p>
+                        <p class="mt-2 text-sm text-gray-500">Start typing a shop name. If it has a saved location, Wikonomi uses it automatically.</p>
                     </div>
-
-                    <div class="sm:col-span-3">
-                        <label for="id_category" class="block text-sm font-medium text-gray-700">Category</label>
-                        <div class="mt-1">
-                            {{ form.category }}
                         </div>
-                    </div>
-
-                    <div class="sm:col-span-3">
-                        <label for="id_subcategory" class="block text-sm font-medium text-gray-700">Subcategory</label>
-                        <div class="mt-1">
-                            {{ form.subcategory }}
-                        </div>
-                        <small id="subcategory-hint" class="mt-1 block text-sm text-gray-500"></small>
-                    </div>
-
-                    <div class="sm:col-span-3">
-                        <label for="{{ form.price.id_for_label }}" class="block text-sm font-medium text-gray-700">Price</label>
-                        <div class="mt-1">
-                            {{ form.price }}
-                        </div>
-                    </div>
-
-                    <div class="sm:col-span-3">
-                        <label for="{{ form.currency.id_for_label }}" class="block text-sm font-medium text-gray-700">Currency</label>
-                        <div class="mt-1">
-                            {{ form.currency }}
-                        </div>
-                    </div>
-
-                    <div class="sm:col-span-6">
-                        <label for="tags" class="block text-sm font-medium text-gray-700">Tags (Optional)</label>
-                        <div class="mt-1">
-                            <input type="text" name="tags" id="tags" value="{{ initial_tags|default:'' }}" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="e.g. sale, supermarket, wholesale (comma separated)">
-                        </div>
-                        <p class="mt-2 text-sm text-gray-500">Add some tags to help categorize this price.</p>
-                    </div>
-
+                    </section>
+                    <details id="location-details" class="rounded-xl border border-slate-200 bg-white overflow-hidden" {% if form.errors %}open{% endif %}>
+                        <summary class="cursor-pointer px-4 py-4 sm:px-5 flex items-center justify-between gap-3 text-sm font-bold text-gray-900 focus-visible:outline-brand-blueDark">
+                            <span>Shop location <span class="font-normal text-gray-500">— required when a shop has no saved location</span></span>
+                            <span class="text-brand-blueDark text-xs">Choose on map</span>
+                        </summary>
+                        <div class="border-t border-slate-100 p-4 sm:p-5">
+                            <div class="grid grid-cols-1 gap-5 sm:grid-cols-6">
                     <div class="sm:col-span-6">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                        <p class="text-sm text-gray-500 mb-2">Select a business to use its default location automatically. If the business has no default yet, set the exact location where you saw this price.</p>
+                        <p class="text-sm text-gray-500 mb-2">Existing shops use their saved location. For a new shop, pin where you found the price. You can also add a location to a report without a shop.</p>
                         <p id="business_location_hint" class="hidden text-sm rounded-md border px-3 py-2 mb-3"></p>
                         
                         <div class="mb-3 flex items-start">
@@ -178,21 +164,52 @@
                         {% if form.latitude.errors %}<p class="mt-1 text-red-500 text-xs italic">{{ form.latitude.errors.0 }}</p>{% endif %}
                         {% if form.longitude.errors %}<p class="mt-1 text-red-500 text-xs italic">{{ form.longitude.errors.0 }}</p>{% endif %}
                     </div>
-                    
+                            </div>
+                        </div>
+                    </details>
+                    <details id="advanced-details" class="rounded-xl border border-slate-200 bg-white overflow-hidden" {% if form.errors %}open{% endif %}>
+                        <summary class="cursor-pointer px-4 py-4 sm:px-5 flex items-center justify-between gap-3 text-sm font-bold text-gray-900 focus-visible:outline-brand-blueDark">
+                            <span>More details <span class="font-normal text-gray-500">(optional)</span></span>
+                            <span class="text-brand-blueDark text-xs">Categories, tags &amp; notes</span>
+                        </summary>
+                        <div class="grid grid-cols-1 gap-y-5 gap-x-4 sm:grid-cols-6 border-t border-slate-100 p-4 sm:p-5">
+                    <div class="sm:col-span-3">
+                        <label for="id_category" class="block text-sm font-medium text-gray-700">Category</label>
+                        <div class="mt-1">
+                            {{ form.category }}
+                        </div>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label for="id_subcategory" class="block text-sm font-medium text-gray-700">Subcategory</label>
+                        <div class="mt-1">
+                            {{ form.subcategory }}
+                        </div>
+                        <small id="subcategory-hint" class="mt-1 block text-sm text-gray-500"></small>
+                    </div>
+                    <div class="sm:col-span-6">
+                        <label for="tags" class="block text-sm font-medium text-gray-700">Tags (Optional)</label>
+                        <div class="mt-1">
+                            <input type="text" name="tags" id="tags" value="{{ initial_tags|default:'' }}" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-purple/50 focus:border-brand-blue sm:text-sm" placeholder="e.g. sale, supermarket, wholesale (comma separated)">
+                        </div>
+                        <p class="mt-2 text-sm text-gray-500">Add some tags to help categorize this price.</p>
+                    </div>
                     <div class="sm:col-span-6">
                         <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700">Notes (Optional)</label>
                         <div class="mt-1">
                             {{ form.notes }}
                         </div>
                     </div>
+                        </div>
+                    </details>
                 </div>
 
-                <div class="pt-5 flex justify-end">
-                    <a href="{{ cancel_url|default:'/' }}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple/50">
-                        Cancel
-                    </a>
-                    <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-greenDark hover:bg-brand-greenDark/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-greenDark/50">
-                        {{ submit_label|default:"Save" }}
+                <div class="sticky bottom-0 z-20 -mx-4 sm:mx-0 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-white/95 p-3 shadow-[0_-6px_20px_rgba(0,0,0,0.05)] backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+                    <a href="{{ cancel_url|default:'/' }}" class="mr-auto py-2 px-3 text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</a>
+                    <button type="submit" name="save_action" value="another" class="inline-flex justify-center rounded-lg border border-brand-greenDark px-3 py-2.5 text-sm font-semibold text-brand-greenDark hover:bg-brand-green/10">
+                        Save &amp; add another
+                    </button>
+                    <button type="submit" name="save_action" value="finish" class="inline-flex justify-center rounded-lg bg-brand-greenDark px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-greenDark/90">
+                        {{ submit_label|default:"Save price" }}
                     </button>
                 </div>
             </form>
@@ -219,6 +236,14 @@
         const lngInput = document.getElementById('{{ form.longitude.id_for_label }}');
         const businessInput = document.getElementById('business_search');
         const businessLocationHint = document.getElementById('business_location_hint');
+        const locationDetails = document.getElementById('location-details');
+        function revealLocationDetails() {
+            locationDetails.open = true;
+            window.requestAnimationFrame(() => map.invalidateSize());
+        }
+        locationDetails.addEventListener('toggle', function() {
+            if (this.open) window.requestAnimationFrame(() => map.invalidateSize());
+        });
 
         function setMapLocation(lat, lng, zoom = 15) {
             const latlng = [lat, lng];
@@ -255,8 +280,20 @@
                 setMapLocation(defaultLocation.latitude, defaultLocation.longitude);
                 showBusinessLocationHint(`Using ${businessName}'s default location from ${defaultLocation.source}.`, 'success');
             } else {
-                showBusinessLocationHint(`${businessName} does not have a default location yet. Please set this price's location on the map so future prices can use it automatically.`, 'warning');
+                showBusinessLocationHint(`${businessName} does not have a default location yet. Pin the shop on the map once so future prices can reuse it.`, 'warning');
+                revealLocationDetails();
             }
+        }
+
+        // Expose the map if the server returned validation errors.
+        const entryForm = document.querySelector('form[data-form-kind="price"]');
+        if (entryForm) {
+            entryForm.addEventListener('submit', function() {
+                const shopName = businessInput ? businessInput.value.trim() : '';
+                if (shopName && (!latInput.value || !lngInput.value)) {
+                    revealLocationDetails();
+                }
+            }, true);
         }
 
         // If there's already a value (e.g. form validation failed), load the marker
@@ -375,8 +412,33 @@
     const photosUploadContent = document.getElementById('photos-upload-content');
     const photosPreviewContainer = document.getElementById('photos-preview-container');
     const photoCount = document.getElementById('photo-count');
+    const photoFeedback = document.getElementById('photo-feedback');
     const maxPhotos = 5;
+    const maxPhotoSize = 10 * 1024 * 1024;
+    const allowedPhotoTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
     let selectedPhotos = [];
+
+    function reportPhotoIssue(message) {
+        photoFeedback.textContent = message;
+        photoFeedback.classList.toggle('hidden', !message);
+    }
+
+    function appendSelectedPhotos(files) {
+        const incoming = Array.from(files);
+        const permitted = incoming.filter(file => allowedPhotoTypes.has(file.type) && file.size <= maxPhotoSize);
+        const accepted = permitted.slice(0, maxPhotos - selectedPhotos.length);
+        selectedPhotos = selectedPhotos.concat(accepted);
+        const invalid = incoming.length - permitted.length;
+        if (invalid) {
+            reportPhotoIssue('Some photos were skipped. Use JPEG, PNG or WebP files under 10 MB each.');
+        } else if (accepted.length < incoming.length) {
+            reportPhotoIssue('You can attach up to 5 photos per price.');
+        } else {
+            reportPhotoIssue('');
+        }
+        renderPhotoPreviews();
+        updatePhotoCount();
+    }
 
     window.openPhotosFilePicker = function(useCamera) {
         if (photosInput) {
@@ -415,7 +477,7 @@
 
             const removeButton = document.createElement('button');
             removeButton.type = 'button';
-            removeButton.className = 'absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity';
+            removeButton.className = 'absolute top-1 right-1 bg-red-600 text-white rounded-full p-2 opacity-100 focus-visible:ring-2 focus-visible:ring-white';
             removeButton.setAttribute('aria-label', 'Remove photo');
             removeButton.addEventListener('click', function() {
                 removePhoto(index);
@@ -449,13 +511,7 @@
 
     if (photosInput) {
         photosInput.addEventListener('change', function(e) {
-            const files = Array.from(e.target.files);
-            const availableSlots = maxPhotos - selectedPhotos.length;
-            const filesToAdd = files.slice(0, availableSlots);
-
-            selectedPhotos = selectedPhotos.concat(filesToAdd);
-            renderPhotoPreviews();
-            updatePhotoCount();
+            appendSelectedPhotos(e.target.files);
 
             // Reset input so same files can be selected again if needed
             photosInput.value = '';
@@ -485,30 +541,19 @@
         });
 
         photosDropZone.addEventListener('drop', function(e) {
-            const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
-            const availableSlots = maxPhotos - selectedPhotos.length;
-            const filesToAdd = files.slice(0, availableSlots);
-
-            selectedPhotos = selectedPhotos.concat(filesToAdd);
-            renderPhotoPreviews();
-            updatePhotoCount();
+            appendSelectedPhotos(e.dataTransfer.files);
         }, false);
     }
 
-    // Handle form submission to include selected photos
-    const form = document.querySelector('form[method="POST"]');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            // Clear existing photos input
-            photosInput.value = '';
-
-            // Add selected photos to the input
+    // Keep selected images in the original multipart input on submit.
+    // File objects are never sent until the user explicitly saves the form.
+    const form = document.querySelector('form[data-form-kind="price"]');
+    if (form && photosInput) {
+        form.addEventListener('submit', function() {
             const dataTransfer = new DataTransfer();
-            selectedPhotos.forEach(file => {
-                dataTransfer.items.add(file);
-            });
+            selectedPhotos.forEach(file => dataTransfer.items.add(file));
             photosInput.files = dataTransfer.files;
-        });
+        }, true);
     }
 
 </script>

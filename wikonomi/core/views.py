@@ -199,13 +199,55 @@ class PriceReportCreateView(CreateView):
             self._get_business_default_locations(businesses),
             cls=DjangoJSONEncoder,
         )
-        context.setdefault('form_title', 'Add a New Price')
-        context.setdefault('form_intro', 'Help the community by sharing the price you found.')
-        context.setdefault('submit_label', 'Save')
+        context.setdefault('form_title', 'Record a Price')
+        context.setdefault('form_intro', 'Take a photo and record what you found at the shop.')
+        context.setdefault('submit_label', 'Save price')
         context.setdefault('cancel_url', reverse('home'))
-        context.setdefault('initial_product_name', self.request.GET.get('product_name', ''))
-        context.setdefault('initial_business_name', self.request.GET.get('business_name', ''))
+        # Keep manually entered names on server-side validation errors.
+        # These fields are intentionally outside the ModelForm.
+        source = self.request.POST if self.request.method == 'POST' else self.request.GET
+        context.setdefault('initial_product_name', source.get('product_name', ''))
+        context.setdefault('initial_business_name', source.get('business_name', ''))
+        context.setdefault('initial_tags', source.get('tags', ''))
         return context
+
+    def get_success_url(self):
+        # Allow rapid consecutive observations at the same shop, without
+        # changing the normal save-and-finish redirect.
+        if self.request.POST.get('save_action') == 'another':
+            params = {}
+            business_name = self.request.POST.get('business_name', '').strip()
+            if business_name:
+                params['business_name'] = business_name
+            return f"{reverse('add_price')}?{urlencode(params)}" if params else reverse('add_price')
+        return super().get_success_url()
+
+    def _validate_uploaded_photos(self, form):
+        """Reject invalid or oversized photos before any report is saved."""
+        photos = self.request.FILES.getlist('photos')
+        if len(photos) > 5:
+            form.add_error(None, 'Choose no more than 5 photos per price.')
+            return False
+
+        image_field = forms.ImageField(required=False)
+        allowed_types = {'image/jpeg', 'image/png', 'image/webp'}
+        allowed_formats = {'JPEG', 'PNG', 'WEBP'}
+        for photo in photos:
+            if photo.size > 10 * 1024 * 1024:
+                form.add_error(None, 'Each photo must be 10 MB or smaller.')
+                return False
+            if photo.content_type not in allowed_types:
+                form.add_error(None, 'Photos must be JPEG, PNG, or WebP images.')
+                return False
+            try:
+                image_field.clean(photo)
+            except forms.ValidationError:
+                form.add_error(None, 'One of the photos could not be read as an image.')
+                return False
+            if getattr(getattr(photo, 'image', None), 'format', None) not in allowed_formats:
+                form.add_error(None, 'Photos must be JPEG, PNG, or WebP images.')
+                return False
+        return True
 
     def _get_business_default_locations(self, businesses):
         locations = {}
@@ -234,7 +276,10 @@ class PriceReportCreateView(CreateView):
         
     def form_valid(self, form):
         from django.contrib.auth.models import User
-        
+
+        if not self._validate_uploaded_photos(form):
+            return self.form_invalid(form)
+
         try:
             # 1. Handle user
             if not self.request.user.is_authenticated:
@@ -382,9 +427,15 @@ class PriceReportDuplicateView(PriceReportCreateView):
             'submit_label': 'Save duplicate report',
             'cancel_url': reverse('price_detail', args=[self.source_report.pk]),
             'duplicate_source': self.source_report,
-            'initial_product_name': self.source_report.product.name,
-            'initial_business_name': '',
-            'initial_tags': ', '.join(self.source_report.product.tags.names()),
+            'initial_product_name': (
+                self.request.POST.get('product_name', '') if self.request.method == 'POST'
+                else self.source_report.product.name
+            ),
+            'initial_business_name': self.request.POST.get('business_name', '') if self.request.method == 'POST' else '',
+            'initial_tags': (
+                self.request.POST.get('tags', '') if self.request.method == 'POST'
+                else ', '.join(self.source_report.product.tags.names())
+            ),
         })
         return context
 

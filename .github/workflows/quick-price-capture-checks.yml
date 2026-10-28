@@ -1,0 +1,42 @@
+name: Quick price capture checks
+
+on:
+  pull_request:
+    paths:
+      - 'wikonomi/core/views.py'
+      - 'wikonomi/core/templates/price_report_form.html'
+      - 'wikonomi/core/test_quick_price_capture.py'
+      - 'wikonomi/core/test_views.py'
+      - '.github/workflows/quick-price-capture-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  django-price-capture:
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: wikonomi.test_settings
+      DEBUG: 'True'
+      SECRET_KEY: ci-price-capture-check-only
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Django checks
+        working-directory: wikonomi
+        run: python manage.py check
+      - name: Test quick recording and existing price submission
+        working-directory: wikonomi
+        run: |
+          python manage.py test \
+            core.test_quick_price_capture \
+            core.test_views.PriceReportCreateViewTest \
+            core.test_views.APIEndpointsTest \
+            --verbosity 2
