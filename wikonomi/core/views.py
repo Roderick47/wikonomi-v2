@@ -199,13 +199,28 @@ class PriceReportCreateView(CreateView):
             self._get_business_default_locations(businesses),
             cls=DjangoJSONEncoder,
         )
-        context.setdefault('form_title', 'Add a New Price')
-        context.setdefault('form_intro', 'Help the community by sharing the price you found.')
-        context.setdefault('submit_label', 'Save')
+        context.setdefault('form_title', 'Record a Price')
+        context.setdefault('form_intro', 'Take a photo and record what you found at the shop.')
+        context.setdefault('submit_label', 'Save price')
         context.setdefault('cancel_url', reverse('home'))
-        context.setdefault('initial_product_name', self.request.GET.get('product_name', ''))
-        context.setdefault('initial_business_name', self.request.GET.get('business_name', ''))
+        # Keep manually entered names on server-side validation errors.
+        # These fields are intentionally outside the ModelForm.
+        source = self.request.POST if self.request.method == 'POST' else self.request.GET
+        context.setdefault('initial_product_name', source.get('product_name', ''))
+        context.setdefault('initial_business_name', source.get('business_name', ''))
+        context.setdefault('initial_tags', source.get('tags', ''))
         return context
+
+    def get_success_url(self):
+        # Allow rapid consecutive observations at the same shop, without
+        # changing the normal save-and-finish redirect.
+        if self.request.POST.get('save_action') == 'another':
+            params = {}
+            business_name = self.request.POST.get('business_name', '').strip()
+            if business_name:
+                params['business_name'] = business_name
+            return f"{reverse('add_price')}?{urlencode(params)}" if params else reverse('add_price')
+        return super().get_success_url()
 
     def _get_business_default_locations(self, businesses):
         locations = {}
@@ -382,9 +397,15 @@ class PriceReportDuplicateView(PriceReportCreateView):
             'submit_label': 'Save duplicate report',
             'cancel_url': reverse('price_detail', args=[self.source_report.pk]),
             'duplicate_source': self.source_report,
-            'initial_product_name': self.source_report.product.name,
-            'initial_business_name': '',
-            'initial_tags': ', '.join(self.source_report.product.tags.names()),
+            'initial_product_name': (
+                self.request.POST.get('product_name', '') if self.request.method == 'POST'
+                else self.source_report.product.name
+            ),
+            'initial_business_name': self.request.POST.get('business_name', '') if self.request.method == 'POST' else '',
+            'initial_tags': (
+                self.request.POST.get('tags', '') if self.request.method == 'POST'
+                else ', '.join(self.source_report.product.tags.names())
+            ),
         })
         return context
 
