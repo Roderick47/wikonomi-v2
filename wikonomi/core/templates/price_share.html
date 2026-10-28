@@ -68,8 +68,8 @@
         </div>
 
         <div class="space-y-4 px-5 py-6 sm:px-8">
-            <div class="rounded-2xl border px-4 py-4 {% if share.freshness_key == 'stale' or not share.is_latest_store_observation %}border-amber-200 bg-amber-50{% else %}border-brand-green/30 bg-brand-green/10{% endif %}">
-                <p class="text-sm font-semibold {% if share.freshness_key == 'stale' or not share.is_latest_store_observation %}text-amber-900{% else %}text-green-900{% endif %}">{{ share.status_line }}</p>
+            <div class="rounded-2xl border px-4 py-4 {% if report.marked_for_deletion %}border-amber-200 bg-amber-50{% else %}border-slate-200 bg-slate-50{% endif %}">
+                <p class="text-sm font-semibold {% if report.marked_for_deletion %}text-amber-900{% else %}text-slate-700{% endif %}">{{ share.status_line }}</p>
             </div>
 
             <div class="rounded-2xl border border-brand-purple/15 bg-brand-purple/5 px-4 py-5">
