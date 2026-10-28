@@ -595,6 +595,7 @@ function initPriceMap() {
         const userLng = document.getElementById('user-lng').value;
         const searchQuery = new URLSearchParams(window.location.search).get('q') || '';
         const currentSort = new URLSearchParams(window.location.search).get('sort') || 'discover';
+        const locationFallback = {% if location_fallback %}true{% else %}false{% endif %};
         const hasUserLocation = userLat !== '' && userLng !== '' && Number.isFinite(Number(userLat)) && Number.isFinite(Number(userLng)) && Math.abs(Number(userLat)) <= 90 && Math.abs(Number(userLng)) <= 180;
 
         let centerLat = -9.4438;
@@ -632,6 +633,7 @@ function initPriceMap() {
         });
 
         const bounds = [];
+        const reportBounds = [];
         if (hasUserLocation) {
             const uLat = Number(userLat);
             const uLng = Number(userLng);
@@ -693,6 +695,7 @@ function initPriceMap() {
                         mapPriceMarkers.set(Number(price.id), marker);
                         markers.push(marker);
                         bounds.push([price.lat, price.lng]);
+                        reportBounds.push([price.lat, price.lng]);
                     });
 
                     mapClusterGroup.addLayers(markers);
@@ -701,18 +704,19 @@ function initPriceMap() {
                         const selected = mapPriceMarkers.get(pendingMapReportId);
                         mapClusterGroup.zoomToShowLayer(selected, () => selected.openPopup());
                         pendingMapReportId = null;
+                        fitted = true;
                     }
                     if (!fitted && bounds.length) {
                         // A user who opted into location should first see their area,
                         // not be zoomed out across PNG by the first batch of pins.
-                        if (!hasUserLocation) {
-                            mapInstance.fitBounds(bounds, {padding: [40, 40], maxZoom: 14});
+                        if (!hasUserLocation || locationFallback) {
+                            mapInstance.fitBounds(locationFallback ? reportBounds : bounds, {padding: [40, 40], maxZoom: 14});
                         }
                         fitted = true;
                     }
                     cursor = data.next_cursor;
                     status.textContent = loaded
-                        ? `${loaded} mapped price reports${cursor ? ' · Loading more…' : ''}${hasUserLocation ? ' · Map centered near you' : ''}`
+                        ? `${loaded} mapped price reports${cursor ? ' · Loading more…' : ''}${locationFallback ? ' · Showing available locations' : hasUserLocation ? ' · Map centered near you' : ''}`
                         : 'No mapped prices for this search. Try another product or browse the list.';
                     // Yield between batches so map gestures remain responsive.
                     if (cursor) await new Promise(resolve => setTimeout(resolve, 50));
