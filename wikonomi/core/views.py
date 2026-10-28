@@ -396,6 +396,16 @@ class PriceReportDuplicateView(PriceReportCreateView):
 price_report_duplicate = PriceReportDuplicateView.as_view()
 
 
+NEARBY_RADIUS_OPTIONS_KM = (1, 5, 10, 25)
+DEFAULT_NEARBY_RADIUS_KM = 25
+
+
+def _nearby_radius_km(request):
+    """Only allow the four supported discovery radii (never an unbounded user radius)."""
+    supplied = str(request.GET.get('radius', DEFAULT_NEARBY_RADIUS_KM)).strip()
+    return int(supplied) if supplied in ('1', '5', '10', '25') else DEFAULT_NEARBY_RADIUS_KM
+
+
 def _get_prices_queryset(request, for_map=False):
     """Helper to get and sort prices uniformly across feed and map endpoints."""
     query = request.GET.get('q', '').strip()
@@ -445,9 +455,9 @@ def _get_prices_queryset(request, for_map=False):
             user_lng = float(user_lng)
             if not (-90 <= user_lat <= 90 and -180 <= user_lng <= 180):
                 raise ValueError('Invalid coordinates')
-            # Near me should cover a city, not only a few neighbouring blocks.
-            # If no matching reports are nearby, retain nationwide discovery.
-            nearby = annotate_with_distance(qs, user_lat, user_lng, radius_km=25)
+            # Use the selected radius for the feed; the map still loads all reports.
+            # When there are no local matches, retain nationwide discovery.
+            nearby = annotate_with_distance(qs, user_lat, user_lng, radius_km=_nearby_radius_km(request))
             if nearby.exists():
                 qs = nearby
             else:
@@ -525,8 +535,11 @@ def home(request):
     
     # Get price reports using the same ranking as infinite scroll.
     latest_prices, sort, user_lat, user_lng = _get_prices_queryset(request)
+    requested_sort = request.GET.get('sort', 'discover')
+    if requested_sort not in ('discover', 'recent', 'nearest', 'price_asc', 'price_desc'):
+        requested_sort = 'discover'
     location_fallback = (
-        request.GET.get('sort') == 'nearest'
+        requested_sort == 'nearest'
         and bool(request.GET.get('lat'))
         and bool(request.GET.get('lng'))
         and sort == 'discover'
@@ -573,6 +586,8 @@ def home(request):
         'latest_prices': latest_prices,
         'businesses': businesses,
         'current_sort': sort,
+        'requested_sort': requested_sort,
+        'nearby_radius_km': _nearby_radius_km(request),
         'location_fallback': location_fallback,
         'search_query': query,
         'fuel_summary': fuel_summary,
