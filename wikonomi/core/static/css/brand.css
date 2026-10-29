@@ -254,3 +254,34 @@ textarea {
 }
 
 /* Respect browser zoom/font scaling: use rems and avoid fixed-height text containers. */
+
+/* Form validation: comfortable, below-field feedback rather than inline flex items.
+ * Match Django's server-rendered errorlist to client-side errors.
+ */
+form[data-wk-validate] .wk-field-error,
+form[data-wk-validate] ul.errorlist {
+  display: block;
+  width: 100%;
+  margin: 0.5rem 0 0;
+  padding: 0 0 0 0.75rem;
+  border-left: 2px solid var(--wk-danger);
+  color: var(--wk-danger);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.55;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+
+form[data-wk-validate] ul.errorlist li + li {
+  margin-top: 0.25rem;
+}
+
+form[data-wk-validate] .wk-field-counter {
+  display: block;
+  width: 100%;
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--wk-muted);
+}
