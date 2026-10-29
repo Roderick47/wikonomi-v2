@@ -16,8 +16,21 @@
         <form method="post" enctype="multipart/form-data" class="space-y-8 px-5 py-7 sm:px-8" novalidate>
             {% csrf_token %}
 
+            {% if form.errors %}
+            <div class="wk-form-alert" role="alert">
+                <p class="font-semibold">Please check the following fields:</p>
+                <ul class="mt-2 list-disc pl-5">
+                    {% for field in form %}
+                    {% for error in field.errors %}
+                    <li>{{ field.label }}: {{ error }}</li>
+                    {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
             {% if form.non_field_errors %}
-            <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ form.non_field_errors }}</div>
+            <div class="wk-form-alert" role="alert">{{ form.non_field_errors }}</div>
             {% endif %}
 
             <section>
@@ -38,12 +51,12 @@
                             {% endfor %}
                         </datalist>
                         <p class="mt-1 text-xs text-gray-500">Select an existing business or keep typing a new name to add it.</p>
-                        {% if form.business_name.errors %}<p class="mt-1 text-xs text-red-600">{{ form.business_name.errors|join:", " }}</p>{% endif %}
+                        {% if form.business_name.errors %}<p class="wk-field-error">{{ form.business_name.errors|join:", " }}</p>{% endif %}
                     </div>
                     <div>
                         <label for="{{ form.business_branch.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Specific branch <span class="font-normal text-gray-400">optional</span></label>
                         {{ form.business_branch }}
-                        {% if form.business_branch.errors %}<p class="mt-1 text-xs text-red-600">{{ form.business_branch.errors|join:", " }}</p>{% endif %}
+                        {% if form.business_branch.errors %}<p class="wk-field-error">{{ form.business_branch.errors|join:", " }}</p>{% endif %}
                     </div>
                 </div>
             </section>
@@ -60,32 +73,34 @@
                     <div>
                         <label for="{{ form.title.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Name of the special</label>
                         {{ form.title }}
-                        {% if form.title.errors %}<p class="mt-1 text-xs text-red-600">{{ form.title.errors|join:", " }}</p>{% endif %}
+                        {% if form.title.errors %}<p class="wk-field-error">{{ form.title.errors|join:", " }}</p>{% endif %}
                     </div>
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
                             <label for="{{ form.kind.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">What kind of promotion?</label>
                             {{ form.kind }}
+                        {% if form.kind.errors %}<p class="wk-field-error">{{ form.kind.errors|join:", " }}</p>{% endif %}
                         </div>
                         <div>
                             <label for="{{ form.deal_type.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">What kind of deal?</label>
                             {{ form.deal_type }}
+                        {% if form.deal_type.errors %}<p class="wk-field-error">{{ form.deal_type.errors|join:", " }}</p>{% endif %}
                         </div>
                     </div>
                     <div data-discount-value>
                         <label for="{{ form.discount_value.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800"><span data-discount-label>Discount</span></label>
                         {{ form.discount_value }}
-                        {% if form.discount_value.errors %}<p class="mt-1 text-xs text-red-600">{{ form.discount_value.errors|join:", " }}</p>{% endif %}
+                        {% if form.discount_value.errors %}<p class="wk-field-error">{{ form.discount_value.errors|join:", " }}</p>{% endif %}
                     </div>
                     <div data-special-price>
                         <label for="{{ form.special_price.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Advertised special price (K)</label>
                         {{ form.special_price }}
-                        {% if form.special_price.errors %}<p class="mt-1 text-xs text-red-600">{{ form.special_price.errors|join:", " }}</p>{% endif %}
+                        {% if form.special_price.errors %}<p class="wk-field-error">{{ form.special_price.errors|join:", " }}</p>{% endif %}
                     </div>
                     <div>
                         <label for="{{ form.description.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Details <span class="font-normal text-gray-400">optional for simple discounts</span></label>
                         {{ form.description }}
-                        {% if form.description.errors %}<p class="mt-1 text-xs text-red-600">{{ form.description.errors|join:", " }}</p>{% endif %}
+                        {% if form.description.errors %}<p class="wk-field-error">{{ form.description.errors|join:", " }}</p>{% endif %}
                     </div>
                 </div>
             </section>
@@ -102,20 +117,24 @@
                     <div>
                         <label for="{{ form.scope.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Applies to</label>
                         {{ form.scope }}
+                        {% if form.scope.errors %}<p class="wk-field-error">{{ form.scope.errors|join:", " }}</p>{% endif %}
                     </div>
                     <div class="grid gap-4 sm:grid-cols-2" data-category-target>
                         <div>
                             <label for="{{ form.category.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Category</label>
                             {{ form.category }}
+                        {% if form.category.errors %}<p class="wk-field-error">{{ form.category.errors|join:", " }}</p>{% endif %}
                         </div>
                         <div>
                             <label for="{{ form.subcategory.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Subcategory <span class="font-normal text-gray-400">optional</span></label>
                             {{ form.subcategory }}
+                        {% if form.subcategory.errors %}<p class="wk-field-error">{{ form.subcategory.errors|join:", " }}</p>{% endif %}
                         </div>
                     </div>
                     <div data-product-target>
                         <label for="{{ form.product.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Product</label>
                         {{ form.product }}
+                        {% if form.product.errors %}<p class="wk-field-error">{{ form.product.errors|join:", " }}</p>{% endif %}
                     </div>
                 </div>
             </section>
@@ -132,17 +151,19 @@
                     <div>
                         <label for="{{ form.start_at.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Starts</label>
                         {{ form.start_at }}
+                        {% if form.start_at.errors %}<p class="wk-field-error">{{ form.start_at.errors|join:", " }}</p>{% endif %}
                     </div>
                     <div>
                         <label for="{{ form.duration.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Duration</label>
                         {{ form.duration }}
+                        {% if form.duration.errors %}<p class="wk-field-error">{{ form.duration.errors|join:", " }}</p>{% endif %}
                         <p class="mt-1 text-xs text-gray-500">{{ form.duration.help_text }}</p>
                     </div>
                 </div>
                 <div class="mt-4" data-custom-end-wrap>
                     <label for="{{ form.end_at.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Ends</label>
                     {{ form.end_at }}
-                    {% if form.end_at.errors %}<p class="mt-1 text-xs text-red-600">{{ form.end_at.errors|join:", " }}</p>{% endif %}
+                    {% if form.end_at.errors %}<p class="wk-field-error">{{ form.end_at.errors|join:", " }}</p>{% endif %}
                 </div>
             </section>
 
@@ -158,10 +179,12 @@
                     <div>
                         <label for="{{ form.evidence.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Photo evidence <span class="font-normal text-gray-400">optional</span></label>
                         {{ form.evidence }}
+                        {% if form.evidence.errors %}<p class="wk-field-error">{{ form.evidence.errors|join:", " }}</p>{% endif %}
                     </div>
                     <div>
                         <label for="{{ form.terms.id_for_label }}" class="mb-1.5 block text-sm font-bold text-gray-800">Exclusions or conditions <span class="font-normal text-gray-400">optional</span></label>
                         {{ form.terms }}
+                        {% if form.terms.errors %}<p class="wk-field-error">{{ form.terms.errors|join:", " }}</p>{% endif %}
                     </div>
                 </div>
             </section>
