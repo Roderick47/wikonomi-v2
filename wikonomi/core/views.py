@@ -10,7 +10,7 @@ from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, DetailView, UpdateView
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
-from django.db.models import Avg, Min, Max, Count, Q, F, Case, When, BigIntegerField, Window
+from django.db.models import Avg, Min, Max, Count, Q, F, Case, When, BigIntegerField, Window, OuterRef, Subquery
 from django.db.models.functions import Lower, RowNumber
 from django.utils import timezone
 from datetime import timedelta
@@ -1301,6 +1301,12 @@ def toggle_watchlist(request, product_id):
     else:
         watching = True
 
+    # HTML forms on product/track pages get a normal redirect. Existing API and
+    # JavaScript callers keep the same JSON response contract.
+    if request.POST.get('return_to') == 'product':
+        return redirect('product_detail', pk=product.pk)
+    if request.POST.get('return_to') == 'tracked':
+        return redirect(f"{reverse('my_prices')}?view=tracked")
     return JsonResponse({'watching': watching})
 
 @login_required
@@ -1683,8 +1689,74 @@ def my_prices(request):
             grouped.append(current_group)
         current_group['reports'].append(report)
 
+    active_view = 'tracked' if request.GET.get('view') == 'tracked' else 'reports'
+    tracked_count = ProductWatchlist.objects.filter(user=request.user).count()
+    tracked_page = None
+    if active_view == 'tracked':
+        # Query a bounded page and get each product's latest non-flagged
+        # report. Do not load the full history for every watched product.
+        latest_report = PriceReport.objects.filter(
+            product_id=OuterRef('product_id'),
+            marked_for_deletion=False,
+        ).order_by('-observed_at', '-pk')
+        watched = ProductWatchlist.objects.filter(user=request.user).select_related(
+            'product',
+        ).annotate(
+            latest_report_id=Subquery(latest_report.values('pk')[:1]),
+        ).order_by('-created_at', '-pk')
+        tracked_page = Paginator(watched, 12).get_page(request.GET.get('page'))
+        latest_ids = [row.latest_report_id for row in tracked_page.object_list if row.latest_report_id]
+        latest_reports = PriceReport.objects.filter(pk__in=latest_ids).select_related(
+            'business', 'business_branch',
+        ).in_bulk()
+        for row in tracked_page.object_list:
+            row.latest_report = latest_reports.get(row.latest_report_id)
+            row.previous_report = None
+            row.price_delta = None
+            row.price_drop_amount = None
+            row.price_direction = None
+            latest = row.latest_report
+            if not latest or latest.business_id is None:
+                continue
+
+            # Only compare the same store/branch and currency. A cheaper
+            # report from a *different* shop is not a price drop.
+            prior_qs = PriceReport.objects.filter(
+                product_id=latest.product_id,
+                business_id=latest.business_id,
+                currency=latest.currency,
+                marked_for_deletion=False,
+            ).filter(
+                Q(observed_at__lt=latest.observed_at)
+                | Q(observed_at=latest.observed_at, pk__lt=latest.pk)
+            )
+            if latest.business_branch_id is not None:
+                prior_qs = prior_qs.filter(business_branch_id=latest.business_branch_id)
+            else:
+                prior_qs = prior_qs.filter(business_branch__isnull=True)
+            previous = prior_qs.order_by('-observed_at', '-pk').first()
+            if previous is not None:
+                row.previous_report = previous
+                row.price_delta = latest.price - previous.price
+                if row.price_delta > 0:
+                    row.price_direction = 'up'
+                elif row.price_delta < 0:
+                    row.price_direction = 'down'
+                    row.price_drop_amount = -row.price_delta
+                else:
+                    row.price_direction = 'unchanged'
+
+    recent_contributions = (
+        base_qs.order_by('-observed_at', '-pk')[:5]
+        if active_view == 'reports' else []
+    )
+
     context = {
         'total_count': total_count,
+        'active_view': active_view,
+        'tracked_count': tracked_count,
+        'tracked_page': tracked_page,
+        'recent_contributions': recent_contributions,
         'business_count': business_count,
         'product_count': product_count,
         'needs_attention_count': needs_attention_count,

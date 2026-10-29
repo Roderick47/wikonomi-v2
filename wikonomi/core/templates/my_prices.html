@@ -21,6 +21,88 @@
         </div>
     </div>
 
+    <nav class="mb-6 flex flex-wrap gap-2 border-b border-gray-200 pb-3" aria-label="My price dashboard">
+        <a href="{% url 'my_prices' %}" {% if active_view == 'reports' %}aria-current="page"{% endif %}
+           class="rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors {% if active_view == 'reports' %}bg-brand-purple text-white{% else %}bg-white text-gray-700 border border-gray-200 hover:border-brand-purple{% endif %}">
+            My price reports <span class="ml-1 opacity-80">({{ total_count }})</span>
+        </a>
+        <a href="{% url 'my_prices' %}?view=tracked" {% if active_view == 'tracked' %}aria-current="page"{% endif %}
+           class="rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors {% if active_view == 'tracked' %}bg-brand-blueDark text-white{% else %}bg-white text-gray-700 border border-gray-200 hover:border-brand-blueDark{% endif %}">
+            Tracked products <span class="ml-1 opacity-80">({{ tracked_count }})</span>
+        </a>
+    </nav>
+
+    {% if active_view == 'tracked' %}
+    <section aria-label="Tracked products" class="mb-8">
+        <div class="mb-5">
+            <h2 class="text-xl font-bold text-gray-900">Prices you're following</h2>
+            <p class="mt-1 max-w-3xl text-sm text-gray-600">
+                Revisit prices you care about. These are community observations, not guaranteed current shop prices.
+                Changes compare two reports for the same shop and branch in the same currency.
+            </p>
+        </div>
+        {% if tracked_count == 0 %}
+        <div class="rounded-2xl border border-dashed border-brand-blue/30 bg-white px-6 py-12 text-center">
+            <h3 class="text-lg font-bold text-gray-900">You haven't tracked a product yet</h3>
+            <p class="mt-2 text-sm text-gray-600">Open a product and select “Track this product” to find it here again and check its reported prices.</p>
+            <a href="{% url 'product_list' %}" class="mt-5 inline-flex rounded-xl bg-brand-blueDark px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-blueDark/90">Browse products</a>
+        </div>
+        {% else %}
+        <div class="grid gap-4 md:grid-cols-2">
+            {% for tracked in tracked_page.object_list %}
+            <article class="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">
+                            <a href="{% url 'product_detail' tracked.product.pk %}" class="hover:text-brand-purple">{{ tracked.product.name }}</a>
+                        </h3>
+                        <p class="mt-1 text-xs text-gray-500">Tracked since {{ tracked.created_at|date:"j M Y" }}</p>
+                    </div>
+                    <form method="post" action="{% url 'toggle_watchlist' tracked.product.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="return_to" value="tracked">
+                        <button type="submit" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-red-50 hover:text-red-700">Stop tracking</button>
+                    </form>
+                </div>
+                {% if tracked.latest_report %}
+                <div class="rounded-xl bg-brand-blue/5 px-4 py-3">
+                    <p class="text-xs font-semibold text-gray-500">Latest community-reported price</p>
+                    <p class="mt-1 text-2xl font-extrabold text-brand-greenDark">{{ tracked.latest_report.currency }} {{ tracked.latest_report.price|floatformat:2|intcomma }}</p>
+                    <p class="mt-1 text-sm text-gray-600">{{ tracked.latest_report.get_business_display }}</p>
+                    <p class="text-xs text-gray-500">Reported {{ tracked.latest_report.observed_at|date:"j M Y" }}</p>
+                </div>
+                {% if tracked.previous_report %}
+                <p class="text-sm {% if tracked.price_direction == 'up' %}text-red-700{% elif tracked.price_direction == 'down' %}text-emerald-700{% else %}text-gray-600{% endif %}">
+                    {% if tracked.price_direction == 'up' %}↑ Increased by {{ tracked.latest_report.currency }} {{ tracked.price_delta|floatformat:2|intcomma }}
+                    {% elif tracked.price_direction == 'down' %}↓ Decreased by {{ tracked.latest_report.currency }} {{ tracked.price_drop_amount|floatformat:2|intcomma }}
+                    {% else %}No change since the previous same-shop report{% endif %}
+                    <span class="block mt-1 text-xs text-gray-500">Previous same-shop report: {{ tracked.previous_report.currency }} {{ tracked.previous_report.price|floatformat:2|intcomma }} on {{ tracked.previous_report.observed_at|date:"j M Y" }}.</span>
+                </p>
+                {% else %}
+                <p class="text-xs text-gray-500">No earlier comparable report from this same shop yet.</p>
+                {% endif %}
+                {% else %}
+                <p class="rounded-xl bg-gray-50 p-4 text-sm text-gray-600">No community prices reported for this product yet.</p>
+                {% endif %}
+                <div class="mt-auto flex flex-wrap gap-3 border-t border-slate-100 pt-3 text-sm font-semibold">
+                    <a href="{% url 'product_detail' tracked.product.pk %}" class="text-brand-blueDark hover:underline">Compare stores</a>
+                    <a href="{% url 'product_price_analysis' tracked.product.pk %}" class="text-brand-purple hover:underline">View price history</a>
+                    <a href="{% url 'add_price' %}?product_name={{ tracked.product.name|urlencode }}" class="text-brand-greenDark hover:underline">Record a price</a>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% if tracked_page.has_other_pages %}
+        <nav aria-label="Tracked products pagination" class="mt-6 flex items-center justify-center gap-3 text-sm">
+            {% if tracked_page.has_previous %}<a href="?view=tracked&page={{ tracked_page.previous_page_number }}" class="rounded-lg border border-gray-200 px-3 py-2 hover:bg-gray-50">Previous</a>{% endif %}
+            <span class="text-gray-600">Page {{ tracked_page.number }} of {{ tracked_page.paginator.num_pages }}</span>
+            {% if tracked_page.has_next %}<a href="?view=tracked&page={{ tracked_page.next_page_number }}" class="rounded-lg border border-gray-200 px-3 py-2 hover:bg-gray-50">Next</a>{% endif %}
+        </nav>
+        {% endif %}
+        {% endif %}
+    </section>
+    {% else %}
+
     {% if total_count == 0 %}
     <!-- Empty state -->
     <div class="bg-white shadow sm:rounded-lg text-center py-16 px-6">
@@ -29,6 +111,25 @@
         <p class="mt-1 text-sm text-gray-500">Once you add a price — one at a time or as a bulk upload — it'll show up here.</p>
     </div>
     {% else %}
+
+    {% if recent_contributions %}
+    <section class="mb-7" aria-labelledby="recent-contributions-heading">
+        <div class="mb-3 flex items-center justify-between gap-3">
+            <h2 id="recent-contributions-heading" class="text-lg font-bold text-gray-900">Your latest price reports</h2>
+            <a href="{% url 'add_price' %}" class="text-sm font-semibold text-brand-greenDark hover:underline">Record another price</a>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {% for report in recent_contributions %}
+            <a href="{% url 'price_detail' report.pk %}" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-brand-blue hover:shadow">
+                <p class="truncate text-sm font-semibold text-gray-900">{{ report.product.name }}</p>
+                <p class="mt-1 text-xl font-extrabold text-brand-greenDark">{{ report.currency }} {{ report.price|floatformat:2|intcomma }}</p>
+                <p class="mt-1 truncate text-xs text-gray-600">{{ report.get_business_display }}</p>
+                <p class="mt-1 text-xs text-gray-500">Reported {{ report.observed_at|date:"j M Y" }}</p>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
 
     <!-- Stats strip -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -219,6 +320,7 @@
     </div>
     {% endif %}
 
+    {% endif %}
     {% endif %}
 </div>
 
