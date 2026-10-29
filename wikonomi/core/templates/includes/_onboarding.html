@@ -5,6 +5,7 @@
      data-invite-eligible="{% if request.resolver_match.url_name == 'home' %}{% if user.is_authenticated %}{% if not user.profile.onboarding_completed_at and not user.profile.onboarding_dismissed_at %}true{% else %}false{% endif %}{% else %}true{% endif %}{% else %}false{% endif %}"
      data-home-url="{% url 'home' %}"
      data-price-url="{% url 'add_price' %}">
+    <form hidden aria-hidden="true">{% csrf_token %}</form>
     <div class="wk-tour-invite" data-tour-invite hidden role="region" aria-label="Wikonomi introduction">
         <button type="button" class="wk-tour-dismiss" data-tour-dismiss aria-label="Dismiss walkthrough invitation">×</button>
         <p class="wk-tour-eyebrow">New to Wikonomi?</p>
@@ -46,7 +47,7 @@
             <button type="button" class="wk-tour-guide-close" data-tour-stop aria-label="End walkthrough">End tour ×</button>
         </div>
         <h2 data-tour-title></h2>
-        <p data-tour-description></p>
+        <p id="wk-tour-guide-description" data-tour-description></p>
         <div class="wk-tour-guide-footer">
             <button type="button" class="wk-tour-secondary" data-tour-back>Back</button>
             <span class="wk-tour-guide-spacer"></span>
