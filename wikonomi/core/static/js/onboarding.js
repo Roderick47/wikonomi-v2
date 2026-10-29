@@ -21,6 +21,7 @@
         const isAuthenticated = root.dataset.authenticated === 'true';
         const page = document.querySelector('#search-form') ? 'search'
             : document.querySelector('form[data-form-kind="price"]') ? 'record' : 'other';
+        root.classList.toggle('wk-tour-home', page === 'search');
         let active = null;
         let highlighted = null;
         let previousDescription = null;
@@ -85,7 +86,8 @@
         function getCookie(name) {
             const value = '; ' + document.cookie;
             const sections = value.split('; ' + name + '=');
-            return sections.length === 2 ? sections.pop().split(';').shift() : '';
+            return sections.length === 2 ? sections.pop().split(';').shift()
+                : (root.querySelector('[name="csrfmiddlewaretoken"]') || {}).value || '';
         }
 
         function guestHasSeen() {
@@ -256,6 +258,12 @@
         }
 
         function openChooser() {
+            if (active) {
+                clearHighlight();
+                active = null;
+                saveProgress();
+                guide.hidden = true;
+            }
             returnFocus = document.activeElement;
             invite.hidden = true;
             clearTimeout(invitationTimer);
@@ -311,6 +319,18 @@
         back.addEventListener('click', retreat);
 
         document.addEventListener('keydown', function (event) {
+            if (event.key === 'Tab' && !chooser.hidden) {
+                const controls = Array.from(chooser.querySelectorAll('button:not([disabled])'));
+                if (controls.length) {
+                    const first = controls[0];
+                    const last = controls[controls.length - 1];
+                    if (event.shiftKey && document.activeElement === first) {
+                        event.preventDefault(); last.focus();
+                    } else if (!event.shiftKey && document.activeElement === last) {
+                        event.preventDefault(); first.focus();
+                    }
+                }
+            }
             if (event.key !== 'Escape') return;
             if (!chooser.hidden) {
                 closeChooser();
