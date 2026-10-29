@@ -258,8 +258,8 @@ textarea {
 /* Form validation: comfortable, below-field feedback rather than inline flex items.
  * Match Django's server-rendered errorlist to client-side errors.
  */
-form[data-wk-validate] .wk-field-error,
-form[data-wk-validate] ul.errorlist {
+.wk-field-error,
+form ul.errorlist {
   display: block;
   width: 100%;
   margin: 0.5rem 0 0;
@@ -273,7 +273,7 @@ form[data-wk-validate] ul.errorlist {
   overflow-wrap: anywhere;
 }
 
-form[data-wk-validate] ul.errorlist li + li {
+form ul.errorlist li + li {
   margin-top: 0.25rem;
 }
 
@@ -285,3 +285,24 @@ form[data-wk-validate] .wk-field-counter {
   line-height: 1.5;
   color: var(--wk-muted);
 }
+
+/* Error feedback must occupy its own row in both JS-enhanced and Django forms. */
+.wk-form-alert {
+  margin: 0 0 1.25rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid #fecaca;
+  border-radius: 0.75rem;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.wk-form-alert p + p { margin-top: 0.375rem; }
+.wk-form-alert ul.errorlist {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+}
+.wk-form-alert ul.errorlist li + li { margin-top: 0.375rem; }
