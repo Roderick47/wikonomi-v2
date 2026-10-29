@@ -215,7 +215,10 @@
                 target.setAttribute('aria-describedby',
                     [previousDescription, 'wk-tour-guide-description'].filter(Boolean).join(' '));
                 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-                target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
+                target.scrollIntoView({
+                    behavior: reducedMotion ? 'auto' : 'smooth',
+                    block: window.innerWidth < 850 ? 'start' : 'center'
+                });
             } else {
                 description.textContent += ' If the control is unavailable, select Next to continue.';
             }
