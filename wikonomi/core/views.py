@@ -1713,6 +1713,7 @@ def my_prices(request):
             row.latest_report = latest_reports.get(row.latest_report_id)
             row.previous_report = None
             row.price_delta = None
+            row.price_drop_amount = None
             row.price_direction = None
             latest = row.latest_report
             if not latest or latest.business_id is None:
@@ -1741,6 +1742,7 @@ def my_prices(request):
                     row.price_direction = 'up'
                 elif row.price_delta < 0:
                     row.price_direction = 'down'
+                    row.price_drop_amount = -row.price_delta
                 else:
                     row.price_direction = 'unchanged'
 
