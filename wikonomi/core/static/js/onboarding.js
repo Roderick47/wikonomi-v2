@@ -168,8 +168,10 @@
             if (window.innerWidth < 850) {
                 guide.style.removeProperty('left');
                 guide.style.removeProperty('top');
+                guide.style.removeProperty('bottom');
                 return;
             }
+            guide.style.bottom = 'auto';
             const target = highlighted.getBoundingClientRect();
             const width = Math.min(340, window.innerWidth - 32);
             const height = guide.offsetHeight;
