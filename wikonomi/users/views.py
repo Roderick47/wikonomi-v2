@@ -145,13 +145,19 @@ def edit_profile(request):
             max_size = 5 * 1024 * 1024  # 5MB
             if uploaded_file.size > max_size:
                 messages.error(request, 'Profile picture must be smaller than 5MB.')
-                return render(request, 'users/edit_profile.html', {'profile': profile})
+                return render(request, 'users/edit_profile.html', {
+                    'profile': profile,
+                    'profile_picture_error': 'Profile picture must be smaller than 5MB.',
+                })
             
             # Validate file type
             allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
             if uploaded_file.content_type not in allowed_types:
                 messages.error(request, 'Profile picture must be a valid image file (JPEG, PNG, GIF, or WebP).')
-                return render(request, 'users/edit_profile.html', {'profile': profile})
+                return render(request, 'users/edit_profile.html', {
+                    'profile': profile,
+                    'profile_picture_error': 'Profile picture must be a valid image file (JPEG, PNG, GIF, or WebP).',
+                })
             
             # Validate image content
             try:
@@ -194,10 +200,16 @@ def edit_profile(request):
                 
             except (IOError, ValidationError, Image.UnidentifiedImageError) as e:
                 messages.error(request, 'Invalid image file. Please upload a valid image.')
-                return render(request, 'users/edit_profile.html', {'profile': profile})
+                return render(request, 'users/edit_profile.html', {
+                    'profile': profile,
+                    'profile_picture_error': 'Invalid image file. Please upload a valid image.',
+                })
             except Exception as e:
                 messages.error(request, f'Error processing image: {str(e)}')
-                return render(request, 'users/edit_profile.html', {'profile': profile})
+                return render(request, 'users/edit_profile.html', {
+                    'profile': profile,
+                    'profile_picture_error': 'We could not process that photo. Try a different image.',
+                })
         
         # Update user profile information
         user = request.user
