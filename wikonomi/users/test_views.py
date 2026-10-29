@@ -180,15 +180,35 @@ class UserOnboardingTest(TestCase):
         self.assertIsNone(profile.onboarding_completed_at)
         self.assertIsNone(profile.onboarding_dismissed_at)
 
-    def test_new_signed_in_user_gets_automatic_welcome(self):
+    def test_new_signed_in_user_gets_optional_interactive_invitation(self):
         self.client.login(username=self.user.username, password='testpass123')
 
         response = self.client.get(reverse('home'))
 
         self.assertContains(response, 'Want me to show you the ropes?')
-        self.assertContains(response, 'data-auto-open="true"')
-        self.assertContains(response, 'Create a practical guide')
-        self.assertContains(response, 'Find local transport')
+        self.assertContains(response, 'data-invite-eligible="true"')
+        self.assertContains(response, 'data-tour-start="search"')
+        self.assertContains(response, 'data-tour-start="record"')
+        self.assertContains(response, 'data-tour-invite hidden')
+        self.assertNotContains(response, 'data-onboarding-slide')
+
+    def test_guest_can_start_tour_without_signing_in(self):
+        response = self.client.get(reverse('home'))
+
+        self.assertContains(response, 'data-authenticated="false"')
+        self.assertContains(response, 'data-invite-eligible="true"')
+        self.assertContains(response, 'data-tour-start="search"')
+        self.assertContains(response, 'data-tour-start="record"')
+
+    def test_tour_does_not_interrupt_on_unrelated_pages(self):
+        self.client.login(username=self.user.username, password='testpass123')
+
+        response = self.client.get(reverse('add_price'))
+
+        self.assertContains(response, 'data-invite-eligible="false"')
+        self.assertContains(response, 'id="photos-drop-zone"')
+        self.assertContains(response, 'id="product_search"')
+        self.assertContains(response, 'name="save_action" value="finish"')
 
     def test_dismiss_onboarding_persists_and_stops_auto_open(self):
         self.client.login(username=self.user.username, password='testpass123')
@@ -201,7 +221,7 @@ class UserOnboardingTest(TestCase):
         self.assertIsNone(self.user.profile.onboarding_completed_at)
 
         response = self.client.get(reverse('home'))
-        self.assertContains(response, 'data-auto-open="false"')
+        self.assertContains(response, 'data-invite-eligible="false"')
 
     def test_complete_onboarding_replaces_dismissed_state(self):
         profile = self.user.profile
@@ -215,6 +235,16 @@ class UserOnboardingTest(TestCase):
         profile.refresh_from_db()
         self.assertIsNotNone(profile.onboarding_completed_at)
         self.assertIsNone(profile.onboarding_dismissed_at)
+
+    def test_completed_onboarding_does_not_prompt_again(self):
+        self.client.login(username=self.user.username, password='testpass123')
+        self.client.post(reverse('update_onboarding'), {'action': 'complete'})
+
+        response = self.client.get(reverse('home'))
+
+        self.assertContains(response, 'data-invite-eligible="false"')
+        self.assertContains(response, 'data-tour-choose')
+        self.assertContains(response, 'data-tour-guide hidden')
 
     def test_onboarding_update_rejects_invalid_action(self):
         self.client.login(username=self.user.username, password='testpass123')

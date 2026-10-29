@@ -1,0 +1,48 @@
+name: Interactive onboarding checks
+
+on:
+  pull_request:
+    paths:
+      - 'wikonomi/core/static/js/onboarding.js'
+      - 'wikonomi/core/static/css/onboarding.css'
+      - 'wikonomi/core/templates/includes/_onboarding.html'
+      - 'wikonomi/core/test_interactive_onboarding.py'
+      - 'wikonomi/users/test_views.py'
+      - '.github/workflows/interactive-onboarding-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  interactive-onboarding:
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: wikonomi.test_settings
+      DEBUG: 'True'
+      SECRET_KEY: ci-interactive-onboarding-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify walkthrough JavaScript parses
+        run: node --check wikonomi/core/static/js/onboarding.js
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+      - name: Django system checks
+        working-directory: wikonomi
+        run: python manage.py check
+      - name: Verify onboarding, search and price capture
+        working-directory: wikonomi
+        run: |
+          python manage.py test \
+            users.test_views.UserOnboardingTest \
+            core.test_interactive_onboarding \
+            core.test_discovery_feed \
+            core.test_quick_price_capture \
+            --verbosity 2
