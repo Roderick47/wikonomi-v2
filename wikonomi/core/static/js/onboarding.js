@@ -1,321 +1,370 @@
+/* Wikonomi Stage 5: opt-in, on-page tutorials. No browser location calls or test submissions. */
 (function () {
     'use strict';
 
-    const HOME_LOCATION_KEY = 'wikonomi_home_location_v1';
-    const HOME_LOCATION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-    const HOME_LOCAL_RADIUS_KM = 75;
+    document.addEventListener('DOMContentLoaded', function () {
+        const root = document.getElementById('wikonomi-onboarding');
+        if (!root) return;
 
-    function validCoordinate(value, min, max) {
-        if (value === null || value === undefined || value === '') return false;
-        const number = Number(value);
-        return Number.isFinite(number) && number >= min && number <= max;
-    }
+        const invite = root.querySelector('[data-tour-invite]');
+        const chooser = root.querySelector('[data-tour-chooser-dialog]');
+        const guide = root.querySelector('[data-tour-guide]');
+        const title = root.querySelector('[data-tour-title]');
+        const description = root.querySelector('[data-tour-description]');
+        const counter = root.querySelector('[data-tour-step-count]');
+        const next = root.querySelector('[data-tour-next]');
+        const back = root.querySelector('[data-tour-back]');
+        const skip = root.querySelector('[data-tour-skip]');
+        const guestSeenKey = 'wikonomi_onboarding_seen_v2';
+        const legacySeenKey = 'wikonomi_onboarding_seen_v1';
+        const progressKey = 'wikonomi_interactive_tour_v1';
+        const isAuthenticated = root.dataset.authenticated === 'true';
+        const page = document.querySelector('#search-form') ? 'search'
+            : document.querySelector('form[data-form-kind="price"]') ? 'record' : 'other';
+        let active = null;
+        let highlighted = null;
+        let previousDescription = null;
+        let returnFocus = null;
+        let invitationTimer = null;
 
-    function readStoredHomeLocation() {
-        try {
-            const raw = localStorage.getItem(HOME_LOCATION_KEY);
-            if (!raw) return null;
-            const saved = JSON.parse(raw);
-            if (!saved || !validCoordinate(saved.lat, -90, 90) || !validCoordinate(saved.lng, -180, 180)) return null;
-            if (!saved.savedAt || Date.now() - saved.savedAt > HOME_LOCATION_MAX_AGE_MS) {
-                localStorage.removeItem(HOME_LOCATION_KEY);
-                return null;
-            }
-            return { lat: Number(saved.lat), lng: Number(saved.lng) };
-        } catch (error) {
-            return null;
-        }
-    }
-
-    function storeHomeLocation(lat, lng) {
-        try {
-            localStorage.setItem(HOME_LOCATION_KEY, JSON.stringify({
-                lat: Number(lat),
-                lng: Number(lng),
-                savedAt: Date.now()
-            }));
-        } catch (error) {
-            // Private browsing or storage restrictions should not block homepage use.
-        }
-    }
-
-    function redirectHomeWithLocation(lat, lng) {
-        const url = new URL(window.location.href);
-        const alreadyHasLocation = validCoordinate(url.searchParams.get('lat'), -90, 90)
-            && validCoordinate(url.searchParams.get('lng'), -180, 180);
-        if (alreadyHasLocation) return;
-
-        url.searchParams.set('lat', String(lat));
-        url.searchParams.set('lng', String(lng));
-        if (!url.searchParams.has('sort') || url.searchParams.get('sort') === 'recent') {
-            url.searchParams.set('sort', 'nearest');
-        }
-        window.location.replace(url.toString());
-    }
-
-    function distanceKm(lat1, lng1, lat2, lng2) {
-        const earthRadiusKm = 6371;
-        const toRadians = value => value * Math.PI / 180;
-        const dLat = toRadians(lat2 - lat1);
-        const dLng = toRadians(lng2 - lng1);
-        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-            + Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2))
-            * Math.sin(dLng / 2) * Math.sin(dLng / 2);
-        return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-
-    function prioritizeHomepageMap(lat, lng) {
-        const status = document.getElementById('map-status');
-        if (!status || status.dataset.locationPriorityApplied === 'true') return;
-
-        const applyWhenReady = function () {
-            if (status.dataset.locationPriorityApplied === 'true') return;
-            const text = status.textContent || '';
-            if (text.includes('Loading reported') || text.includes('Loading more')) return;
-
-            try {
-                if (typeof mapClusterGroup === 'undefined' || !mapClusterGroup || typeof mapInstance === 'undefined' || !mapInstance) {
-                    return;
+        const steps = {
+            search: [
+                {
+                    target: '#search-form input[name="q"]',
+                    title: 'Search for a price',
+                    body: 'Type a product, for example rice or cooking oil, and press Search. The next step follows your real search results.',
+                    hint: 'Try a search or select Next to explore without searching.'
+                },
+                {
+                    target: '#map-panel',
+                    title: 'Explore prices on the map',
+                    body: 'The map shows where community prices were reported. Tap a pin or cluster to explore. Nearby filtering is optional and only asks for location if you select it.',
+                    hint: 'Tap the map or select Next to continue.'
+                },
+                {
+                    target: '#price-feed .price-card, #price-feed',
+                    title: 'Open a reported price',
+                    body: 'Each report shows the product, shop and when a price was reported. Tap a price card to read more; past reports are useful history, not a guaranteed price today.',
+                    hint: 'Open a report or select Finish tour. Search again if there are no matching reports.'
                 }
-
-                const nearbyPoints = [];
-                mapClusterGroup.getLayers().forEach(function (layer) {
-                    if (typeof layer.getLatLng !== 'function') return;
-                    const point = layer.getLatLng();
-                    if (distanceKm(lat, lng, point.lat, point.lng) <= HOME_LOCAL_RADIUS_KM) {
-                        nearbyPoints.push([point.lat, point.lng]);
-                    }
-                });
-
-                status.dataset.locationPriorityApplied = 'true';
-                if (nearbyPoints.length) {
-                    nearbyPoints.push([lat, lng]);
-                    mapInstance.fitBounds(nearbyPoints, { padding: [40, 40], maxZoom: 14 });
-                    status.textContent = `${nearbyPoints.length - 1} nearby price report${nearbyPoints.length === 2 ? '' : 's'} prioritized · ${text}`;
-                } else if (typeof fitAllPrices === 'function') {
-                    fitAllPrices();
-                    status.textContent = `No nearby price reports yet · Showing all available locations · ${text}`;
+            ],
+            record: [
+                {
+                    target: '#photos-drop-zone',
+                    title: 'Take a photo, if you have one',
+                    body: 'Take a picture of a shelf label or choose one from your gallery. Photos help others check the reported price, but they are optional.',
+                    hint: 'Choose a photo or select Next to skip the photo.'
+                },
+                {
+                    target: '#product_search',
+                    title: 'Name the product',
+                    body: 'Choose an existing product or type the name you saw. Include a useful size or quantity so other shoppers can compare accurately.',
+                    hint: 'Enter a product name, then continue.'
+                },
+                {
+                    target: '#id_price',
+                    title: 'Enter the price',
+                    body: 'Enter the amount you actually saw. Check the currency, which normally defaults to PNG kina (PGK).',
+                    hint: 'Enter the price, then continue.'
+                },
+                {
+                    target: '#business_search',
+                    title: 'Choose the shop',
+                    body: 'Enter the shop where you found it. Existing shops can reuse their location. For a new shop, open Shop location and place a map pin. A shop is optional.',
+                    hint: 'Enter the shop if you know it, or select Next.'
+                },
+                {
+                    target: 'form[data-form-kind="price"] button[name="save_action"][value="finish"]',
+                    title: 'Save only when it is a real price',
+                    body: 'You can now save the report or save and add another. This walkthrough never posts sample data. Select Finish tour to exit without submitting anything.',
+                    hint: 'Submit a real price when ready, or finish the guide without saving.'
                 }
-            } catch (error) {
-                // Keep the normal map behavior if location prioritization cannot be applied.
-            }
+            ]
         };
 
-        const observer = new MutationObserver(applyWhenReady);
-        observer.observe(status, { childList: true, characterData: true, subtree: true });
-        window.setTimeout(applyWhenReady, 1200);
-    }
-
-    function initializeLocationFirstHomepage() {
-        if (!document.getElementById('price-feed') || !document.getElementById('map')) return;
-
-        const url = new URL(window.location.href);
-        const latParam = url.searchParams.get('lat');
-        const lngParam = url.searchParams.get('lng');
-        if (validCoordinate(latParam, -90, 90) && validCoordinate(lngParam, -180, 180)) {
-            const lat = Number(latParam);
-            const lng = Number(lngParam);
-            storeHomeLocation(lat, lng);
-            prioritizeHomepageMap(lat, lng);
-            return;
+        function getCookie(name) {
+            const value = '; ' + document.cookie;
+            const sections = value.split('; ' + name + '=');
+            return sections.length === 2 ? sections.pop().split(';').shift() : '';
         }
 
-        const stored = readStoredHomeLocation();
-        if (stored) {
-            redirectHomeWithLocation(stored.lat, stored.lng);
-            return;
-        }
-
-        if (!navigator.geolocation) return;
-        navigator.geolocation.getCurrentPosition(
-            function (position) {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                if (!validCoordinate(lat, -90, 90) || !validCoordinate(lng, -180, 180)) return;
-                storeHomeLocation(lat, lng);
-                redirectHomeWithLocation(lat, lng);
-            },
-            function () {
-                // Location is optional. The homepage keeps the existing global fallback.
-            },
-            {
-                enableHighAccuracy: false,
-                timeout: 5000,
-                maximumAge: 30 * 60 * 1000
-            }
-        );
-    }
-
-    document.addEventListener('DOMContentLoaded', initializeLocationFirstHomepage);
-
-    const root = document.getElementById('wikonomi-onboarding');
-    if (!root) return;
-
-    const slides = Array.from(root.querySelectorAll('[data-onboarding-slide]'));
-    const progress = root.querySelector('.wk-onboarding__progress');
-    const nextButton = root.querySelector('[data-onboarding-next]');
-    const backButton = root.querySelector('[data-onboarding-back]');
-    const dismissButtons = root.querySelectorAll('[data-onboarding-dismiss]');
-    const openButtons = document.querySelectorAll('[data-onboarding-open]');
-    const actionLinks = root.querySelectorAll('[data-onboarding-action]');
-    const dialog = root.querySelector('[role="dialog"]');
-    const isAuthenticated = root.dataset.authenticated === 'true';
-    const guestStorageKey = 'wikonomi_onboarding_seen_v1';
-    let activeIndex = 0;
-    let lastFocusedElement = null;
-
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        return parts.length === 2 ? parts.pop().split(';').shift() : '';
-    }
-
-    function record(action) {
-        if (!isAuthenticated) {
+        function guestHasSeen() {
             try {
-                localStorage.setItem(guestStorageKey, action);
-            } catch (error) {
-                // Storage can be unavailable in private browsing; the tour still works.
+                return Boolean(localStorage.getItem(guestSeenKey) || localStorage.getItem(legacySeenKey));
+            } catch (_) {
+                return false;
             }
-            return Promise.resolve();
         }
 
-        const updateUrl = root.dataset.updateUrl;
-        if (!updateUrl) return Promise.resolve();
-
-        const body = new URLSearchParams({ action });
-        return fetch(updateUrl, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
-                'X-Requested-With': 'XMLHttpRequest',
-                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-            },
-            keepalive: true,
-            body: body.toString()
-        }).catch(function () {
-            // Do not block or reopen the UI if persistence briefly fails.
-        });
-    }
-
-    function renderProgress() {
-        progress.replaceChildren();
-        slides.forEach(function (_, index) {
-            const dot = document.createElement('span');
-            dot.className = 'wk-onboarding__progress-dot';
-            if (index === activeIndex) dot.setAttribute('aria-current', 'step');
-            progress.appendChild(dot);
-        });
-    }
-
-    function showSlide(index) {
-        activeIndex = Math.max(0, Math.min(index, slides.length - 1));
-        slides.forEach(function (slide, slideIndex) {
-            slide.hidden = slideIndex !== activeIndex;
-        });
-        backButton.hidden = activeIndex === 0;
-        nextButton.textContent = activeIndex === 0
-            ? 'Show me around'
-            : activeIndex === slides.length - 1
-                ? 'Finish'
-                : 'Next';
-        renderProgress();
-        dialog.scrollTop = 0;
-        nextButton.focus();
-    }
-
-    function openTour() {
-        lastFocusedElement = document.activeElement;
-        root.hidden = false;
-        document.body.classList.add('wk-onboarding-open');
-        showSlide(0);
-    }
-
-    function closeTour(action) {
-        root.hidden = true;
-        document.body.classList.remove('wk-onboarding-open');
-        record(action || 'dismiss');
-        if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
-            lastFocusedElement.focus();
+        function markGuestSeen() {
+            if (isAuthenticated) return;
+            try { localStorage.setItem(guestSeenKey, 'seen'); } catch (_) { /* Storage may be unavailable. */ }
         }
-    }
 
-    nextButton.addEventListener('click', function () {
-        if (activeIndex === slides.length - 1) {
-            closeTour('complete');
-            if (typeof window.showToast === 'function') {
-                window.showToast('You are ready to use Wikonomi.', 'success');
+        function persist(action) {
+            if (!isAuthenticated || !root.dataset.updateUrl) return;
+            const body = new URLSearchParams({ action: action });
+            fetch(root.dataset.updateUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin',
+                keepalive: true,
+                body: body.toString()
+            }).catch(function () { /* Do not interrupt a real shopping session. */ });
+        }
+
+        function saveProgress() {
+            try {
+                if (active) sessionStorage.setItem(progressKey, JSON.stringify(active));
+                else sessionStorage.removeItem(progressKey);
+            } catch (_) { /* Continue in the current document. */ }
+        }
+
+        function readProgress() {
+            try {
+                const saved = JSON.parse(sessionStorage.getItem(progressKey) || 'null');
+                if (!saved || !Object.prototype.hasOwnProperty.call(steps, saved.path)) return null;
+                if (!Number.isInteger(saved.step) || saved.step < 0 || saved.step >= steps[saved.path].length) return null;
+                return { path: saved.path, step: saved.step };
+            } catch (_) {
+                return null;
             }
-            return;
         }
-        showSlide(activeIndex + 1);
-    });
 
-    backButton.addEventListener('click', function () {
-        showSlide(activeIndex - 1);
-    });
+        function emit(eventName) {
+            // Analytics can subscribe without collecting product names, prices or GPS.
+            document.dispatchEvent(new CustomEvent('wikonomi:onboarding', {
+                detail: { event: eventName, path: active ? active.path : null, step: active ? active.step : null }
+            }));
+        }
 
-    dismissButtons.forEach(function (button) {
-        button.addEventListener('click', function () {
-            closeTour('dismiss');
+        function clearHighlight() {
+            if (highlighted) {
+                highlighted.classList.remove('wk-tour-highlight');
+                if (previousDescription === null) highlighted.removeAttribute('aria-describedby');
+                else highlighted.setAttribute('aria-describedby', previousDescription);
+            }
+            highlighted = null;
+            previousDescription = null;
+        }
+
+        function findTarget(selector) {
+            const choices = selector.split(',').map(function (s) { return s.trim(); });
+            for (const choice of choices) {
+                const match = document.querySelector(choice);
+                if (match) return match;
+            }
+            return null;
+        }
+
+        function reposition() {
+            if (guide.hidden || !highlighted) return;
+            if (window.innerWidth < 850) {
+                guide.style.removeProperty('left');
+                guide.style.removeProperty('top');
+                return;
+            }
+            const target = highlighted.getBoundingClientRect();
+            const width = Math.min(340, window.innerWidth - 32);
+            const height = guide.offsetHeight;
+            let left = target.right + 16;
+            if (left + width > window.innerWidth - 12) left = target.left - width - 16;
+            if (left < 12) left = Math.max(12, Math.min(window.innerWidth - width - 12, target.left));
+            let top = target.top + Math.min(target.height / 2, 70) - height / 2;
+            top = Math.max(12, Math.min(window.innerHeight - height - 12, top));
+            guide.style.left = Math.round(left) + 'px';
+            guide.style.top = Math.round(top) + 'px';
+        }
+
+        function revealGuide() {
+            if (!active || active.path !== page) {
+                guide.hidden = true;
+                clearHighlight();
+                return;
+            }
+            const step = steps[active.path][active.step];
+            title.textContent = step.title;
+            description.textContent = step.body;
+            counter.textContent = (active.path === 'search' ? 'Find prices' : 'Record prices')
+                + ' · ' + (active.step + 1) + ' of ' + steps[active.path].length;
+            back.hidden = active.step === 0;
+            skip.hidden = active.step === steps[active.path].length - 1;
+            next.textContent = active.step === steps[active.path].length - 1 ? 'Finish tour' : 'Next';
+            next.setAttribute('aria-label', step.hint);
+            guide.hidden = false;
+            clearHighlight();
+
+            let target = findTarget(step.target);
+            if (active.path === 'search' && active.step === 1 && target
+                && target.classList.contains('map-panel--collapsed')
+                && typeof window.toggleMapView === 'function') {
+                window.toggleMapView();
+            }
+            if (target && target.getBoundingClientRect().width > 0) {
+                highlighted = target;
+                previousDescription = target.getAttribute('aria-describedby');
+                target.classList.add('wk-tour-highlight');
+                target.setAttribute('aria-describedby',
+                    [previousDescription, 'wk-tour-guide-description'].filter(Boolean).join(' '));
+                const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
+            } else {
+                description.textContent += ' If the control is unavailable, select Next to continue.';
+            }
+            window.requestAnimationFrame(reposition);
+            window.setTimeout(reposition, 350);
+            emit('step_view');
+        }
+
+        function finish(action) {
+            if (!active) return;
+            emit(action === 'complete' ? 'complete' : 'dismiss');
+            clearHighlight();
+            guide.hidden = true;
+            active = null;
+            saveProgress();
+            markGuestSeen();
+            persist(action);
+        }
+
+        function advance() {
+            if (!active) return;
+            if (active.step >= steps[active.path].length - 1) {
+                finish('complete');
+                return;
+            }
+            active.step += 1;
+            saveProgress();
+            revealGuide();
+        }
+
+        function retreat() {
+            if (!active || active.step === 0) return;
+            active.step -= 1;
+            saveProgress();
+            revealGuide();
+        }
+
+        function closeChooser() {
+            chooser.hidden = true;
+            document.body.classList.remove('wk-tour-modal-open');
+            if (returnFocus && returnFocus.isConnected) returnFocus.focus();
+        }
+
+        function openChooser() {
+            returnFocus = document.activeElement;
+            invite.hidden = true;
+            clearTimeout(invitationTimer);
+            chooser.hidden = false;
+            document.body.classList.add('wk-tour-modal-open');
+            chooser.querySelector('[data-tour-start="search"]').focus();
+            emit('choose');
+        }
+
+        function startPath(path) {
+            if (!Object.prototype.hasOwnProperty.call(steps, path)) return;
+            closeChooser();
+            markGuestSeen();
+            active = { path: path, step: 0 };
+            saveProgress();
+            emit('start');
+            if (page !== path) {
+                window.location.assign(path === 'search' ? root.dataset.homeUrl : root.dataset.priceUrl);
+                return;
+            }
+            revealGuide();
+        }
+
+        root.querySelectorAll('[data-tour-start]').forEach(function (button) {
+            button.addEventListener('click', function () { startPath(button.dataset.tourStart); });
         });
-    });
-
-    openButtons.forEach(function (button) {
-        button.addEventListener('click', function (event) {
-            event.preventDefault();
-            openTour();
-        });
-    });
-
-    actionLinks.forEach(function (link) {
-        link.addEventListener('click', function () {
-            record('complete');
-        });
-    });
-
-    document.addEventListener('keydown', function (event) {
-        if (root.hidden) return;
-
-        if (event.key === 'Escape') {
-            closeTour('dismiss');
-        } else if (event.key === 'ArrowRight') {
-            nextButton.click();
-        } else if (event.key === 'ArrowLeft' && activeIndex > 0) {
-            backButton.click();
-        } else if (event.key === 'Tab') {
-            const focusable = Array.from(dialog.querySelectorAll(
-                'a[href], button:not([disabled]):not([hidden]), [tabindex]:not([tabindex="-1"])'
-            )).filter(function (element) {
-                return element.offsetParent !== null;
+        document.querySelectorAll('[data-onboarding-open]').forEach(function (button) {
+            button.addEventListener('click', function (event) {
+                event.preventDefault();
+                openChooser();
             });
-            if (!focusable.length) return;
-            const first = focusable[0];
-            const last = focusable[focusable.length - 1];
-            if (event.shiftKey && document.activeElement === first) {
-                event.preventDefault();
-                last.focus();
-            } else if (!event.shiftKey && document.activeElement === last) {
-                event.preventDefault();
-                first.focus();
+        });
+        root.querySelectorAll('[data-tour-choose]').forEach(function (button) {
+            button.addEventListener('click', openChooser);
+        });
+        root.querySelectorAll('[data-tour-dismiss]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                invite.hidden = true;
+                markGuestSeen();
+                persist('dismiss');
+            });
+        });
+        root.querySelectorAll('[data-tour-close-chooser]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                closeChooser();
+                markGuestSeen();
+                persist('dismiss');
+            });
+        });
+        root.querySelector('[data-tour-stop]').addEventListener('click', function () { finish('dismiss'); });
+        next.addEventListener('click', advance);
+        skip.addEventListener('click', advance);
+        back.addEventListener('click', retreat);
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key !== 'Escape') return;
+            if (!chooser.hidden) {
+                closeChooser();
+                markGuestSeen();
+                persist('dismiss');
+            } else if (!guide.hidden) {
+                finish('dismiss');
             }
+        });
+
+        // Real actions advance the guide. We never fabricate a product, price,
+        // location, form submission or map marker.
+        document.addEventListener('submit', function (event) {
+            if (!active || active.path !== 'search' || active.step !== 0) return;
+            if (event.target.id !== 'search-form') return;
+            const field = event.target.querySelector('input[name="q"]');
+            if (field && field.value.trim()) {
+                active.step = 1;
+                saveProgress();  // Persists across the real GET navigation.
+                emit('search_submitted');
+            }
+        }, true);
+        document.addEventListener('click', function (event) {
+            if (!active || active.path !== 'search') return;
+            if (active.step === 1 && event.target.closest('#map')) {
+                advance();
+            } else if (active.step === 2 && event.target.closest('#price-feed a.price-card[href]')) {
+                finish('complete');  // The user navigates to the real report.
+            }
+        }, true);
+        document.addEventListener('change', function (event) {
+            if (!active || active.path !== 'record') return;
+            if (active.step === 0 && event.target.id === 'photos-input'
+                && event.target.files && event.target.files.length > 0) advance();
+            else if (active.step === 1 && event.target.id === 'product_search'
+                && event.target.value.trim()) advance();
+            else if (active.step === 2 && event.target.id === 'id_price'
+                && Number(event.target.value) > 0) advance();
+            else if (active.step === 3 && event.target.id === 'business_search'
+                && event.target.value.trim()) advance();
+        }, true);
+
+        window.addEventListener('resize', reposition);
+        window.addEventListener('scroll', reposition, { passive: true });
+
+        // Resume only on the relevant page. Nothing forces a new visitor
+        // to grant GPS permission, register, or submit a dummy report.
+        active = readProgress();
+        if (active) {
+            if (page === active.path) revealGuide();
+        } else if (root.dataset.inviteEligible === 'true' && (isAuthenticated || !guestHasSeen())) {
+            invitationTimer = window.setTimeout(function () { invite.hidden = false; }, 900);
         }
+
+        window.WikonomiOnboarding = { open: openChooser, start: startPath };
     });
-
-    document.addEventListener('DOMContentLoaded', function () {
-        let guestHasSeenTour = false;
-        try {
-            guestHasSeenTour = Boolean(localStorage.getItem(guestStorageKey));
-        } catch (error) {
-            guestHasSeenTour = false;
-        }
-
-        if (root.dataset.autoOpen === 'true' && (isAuthenticated || !guestHasSeenTour)) {
-            window.setTimeout(openTour, 700);
-        }
-    });
-
-    window.WikonomiOnboarding = {
-        open: openTour
-    };
 })();
