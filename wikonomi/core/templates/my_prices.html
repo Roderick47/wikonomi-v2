@@ -74,7 +74,7 @@
                 {% if tracked.previous_report %}
                 <p class="text-sm {% if tracked.price_direction == 'up' %}text-red-700{% elif tracked.price_direction == 'down' %}text-emerald-700{% else %}text-gray-600{% endif %}">
                     {% if tracked.price_direction == 'up' %}↑ Increased by {{ tracked.latest_report.currency }} {{ tracked.price_delta|floatformat:2|intcomma }}
-                    {% elif tracked.price_direction == 'down' %}↓ Decreased since the previous same-shop report
+                    {% elif tracked.price_direction == 'down' %}↓ Decreased by {{ tracked.latest_report.currency }} {{ tracked.price_drop_amount|floatformat:2|intcomma }}
                     {% else %}No change since the previous same-shop report{% endif %}
                     <span class="block mt-1 text-xs text-gray-500">Previous same-shop report: {{ tracked.previous_report.currency }} {{ tracked.previous_report.price|floatformat:2|intcomma }} on {{ tracked.previous_report.observed_at|date:"j M Y" }}.</span>
                 </p>
