@@ -40,6 +40,13 @@
         <form class="mt-8 space-y-6" method="post">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ next }}">
+            {% if form.non_field_errors %}
+            <div class="wk-form-alert" role="alert">
+                {% for error in form.non_field_errors %}
+                <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
             <div class="space-y-4">
                 <div>
                     <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700">Username</label>
@@ -47,7 +54,7 @@
                         {{ form.username }}
                     </div>
                     {% if form.username.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.username.errors.0 }}</p>
+                        <p class="wk-field-error">{{ form.username.errors.0 }}</p>
                     {% endif %}
                 </div>
                 
@@ -57,7 +64,7 @@
                         {{ form.password }}
                     </div>
                     {% if form.password.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.password.errors.0 }}</p>
+                        <p class="wk-field-error">{{ form.password.errors.0 }}</p>
                     {% endif %}
                 </div>
             </div>
