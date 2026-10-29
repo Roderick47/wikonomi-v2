@@ -53,9 +53,9 @@
                     <div class="mt-1">
                         {{ form.username }}
                     </div>
-                    {% if form.username.errors %}
-                        <p class="wk-field-error">{{ form.username.errors.0 }}</p>
-                    {% endif %}
+                    {% for error in form.username.errors %}
+                        <p class="wk-field-error">{{ error }}</p>
+                    {% endfor %}
                 </div>
                 
                 <div>
@@ -63,9 +63,9 @@
                     <div class="mt-1">
                         {{ form.password }}
                     </div>
-                    {% if form.password.errors %}
-                        <p class="wk-field-error">{{ form.password.errors.0 }}</p>
-                    {% endif %}
+                    {% for error in form.password.errors %}
+                        <p class="wk-field-error">{{ error }}</p>
+                    {% endfor %}
                 </div>
             </div>
 
