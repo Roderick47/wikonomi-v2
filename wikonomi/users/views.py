@@ -282,6 +282,9 @@ def delete_account(request):
             return redirect('home')
         else:
             messages.error(request, 'Incorrect password. Account deletion cancelled.')
+            return render(request, 'users/delete_account.html', {
+                'password_error': 'Incorrect password. Account deletion cancelled.',
+            })
     
     return render(request, 'users/delete_account.html')
 
