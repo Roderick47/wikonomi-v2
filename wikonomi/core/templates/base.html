@@ -105,6 +105,9 @@
                         {% if promotions_enabled %}<a href="{% url 'promotions:list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-greenDark hover:bg-brand-green/10 transition-colors">Specials</a>{% endif %}
                         <a href="{% url 'business_list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-blueDark hover:bg-brand-blue/10 transition-colors">Stores</a>
                         <a href="{% url 'guides:list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-600 hover:text-brand-greenDark hover:bg-brand-green/10 transition-colors">Guides</a>
+                        {% if user.is_authenticated %}
+                        <a href="{% url 'my_prices' %}?view=tracked" class="px-3 py-2 rounded-md text-sm font-semibold text-brand-purple hover:bg-brand-purple/10 transition-colors">Tracked</a>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="flex items-center space-x-2 sm:space-x-4">
@@ -134,6 +137,10 @@
                 {% if promotions_enabled %}<a href="{% url 'promotions:list' %}" class="shrink-0 rounded-full bg-brand-greenTint px-3 py-1.5 font-bold text-brand-greenDark">Specials</a>{% endif %}
                 <a href="{% url 'business_list' %}" class="shrink-0 rounded-full bg-brand-blueTint/60 px-3 py-1.5 font-semibold text-brand-blueDark">Stores</a>
                 <a href="{% url 'guides:list' %}" class="shrink-0 rounded-full bg-brand-greenTint px-3 py-1.5 font-semibold text-brand-greenDark">Guides</a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'my_prices' %}" class="shrink-0 rounded-full bg-brand-purple/10 px-3 py-1.5 font-semibold text-brand-purple">My prices</a>
+                <a href="{% url 'my_prices' %}?view=tracked" class="shrink-0 rounded-full bg-brand-purple/10 px-3 py-1.5 font-semibold text-brand-purple">Tracked</a>
+                {% endif %}
             </div>
         </div>
     </nav>
