@@ -1,0 +1,43 @@
+name: Price tracking checks
+
+on:
+  pull_request:
+    paths:
+      - 'wikonomi/core/views.py'
+      - 'wikonomi/core/templates/my_prices.html'
+      - 'wikonomi/core/templates/product_detail.html'
+      - 'wikonomi/core/templates/base.html'
+      - 'wikonomi/core/test_price_tracking_dashboard.py'
+      - 'wikonomi/core/test_views.py'
+      - '.github/workflows/price-tracking-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  django-price-tracking:
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: wikonomi.test_settings
+      DEBUG: 'True'
+      SECRET_KEY: ci-price-tracking-not-for-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Django checks
+        working-directory: wikonomi
+        run: python manage.py check
+      - name: Test tracking, watchlist and product pages
+        working-directory: wikonomi
+        run: |
+          python manage.py test \
+            core.test_price_tracking_dashboard \
+            core.test_views.WatchlistTest \
+            core.test_product_pages \
+            --verbosity 2
