@@ -50,6 +50,22 @@
         return field;
     }
 
+    // Keep feedback outside horizontal control rows, never beside the input.
+    // Explicit anchors (for custom photo pickers) retain their existing placement.
+    function feedbackAnchor(field) {
+        const anchor = errorAnchor(field);
+        if (anchor !== field) return anchor;
+
+        const wrapper = field.parentElement;
+        if (!wrapper || wrapper === field.form || wrapper.tagName === 'LABEL') return field;
+
+        // Inputs commonly sit in a small spacing/flex wrapper inside a larger
+        // form-field column. Place messages after that wrapper, not within it.
+        const isControlWrapper = wrapper.matches('.flex, .inline-flex, .relative, .mt-1, .mt-2, .mt-3, .mt-4');
+        const hasDirectLabel = Array.from(wrapper.children).some(child => child.tagName === 'LABEL');
+        return isControlWrapper && !hasDirectLabel ? wrapper : field;
+    }
+
     function clearFieldError(field) {
         field.removeAttribute('aria-invalid');
         field.style.removeProperty('border-color');
@@ -71,9 +87,9 @@
         const errorId = `wk-error-${field.id || field.name || 'field'}-${Math.random().toString(36).slice(2, 8)}`;
         error.id = errorId;
         error.setAttribute(ERROR_ATTRIBUTE, '');
-        error.className = 'mt-1 text-sm font-medium text-red-700';
+        error.className = 'wk-field-error';
         error.textContent = message;
-        errorAnchor(field).insertAdjacentElement('afterend', error);
+        feedbackAnchor(field).insertAdjacentElement('afterend', error);
         field.dataset.clientErrorId = errorId;
         field.setAttribute('aria-invalid', 'true');
         field.setAttribute('aria-describedby', [field.getAttribute('aria-describedby'), errorId].filter(Boolean).join(' '));
@@ -154,7 +170,7 @@
         const counterId = `wk-counter-${field.id || field.name || Math.random().toString(36).slice(2, 8)}`;
         counter.id = counterId;
         counter.setAttribute('data-wk-character-counter', '');
-        counter.className = 'mt-1 text-xs text-slate-500';
+        counter.className = 'wk-field-counter';
 
         const update = () => {
             const length = String(field.value || '').length;
@@ -162,7 +178,7 @@
             counter.style.color = length >= field.maxLength ? '#b45309' : '';
         };
 
-        errorAnchor(field).insertAdjacentElement('afterend', counter);
+        feedbackAnchor(field).insertAdjacentElement('afterend', counter);
         field.setAttribute('aria-describedby', [field.getAttribute('aria-describedby'), counterId].filter(Boolean).join(' '));
         field.dataset.wkCharacterCounterInitialized = '';
         field.addEventListener('input', update);
