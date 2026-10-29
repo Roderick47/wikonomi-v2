@@ -29,6 +29,9 @@
                                        name="profile_picture" 
                                        accept="image/*"
                                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-purple/5 file:text-brand-purple hover:file:bg-brand-purple/10">
+                                {% if profile_picture_error %}
+                                <p class="wk-field-error" role="alert">{{ profile_picture_error }}</p>
+                                {% endif %}
                                 <p class="mt-1 text-sm text-gray-500">Upload a new profile picture. Images will be automatically resized and optimized.</p>
                                 <p class="mt-1 text-xs text-gray-400">Preview will appear above when you select an image.</p>
                             </div>

@@ -54,7 +54,7 @@
   function errHtml(key, inputId) {
     const msg = state.errors[key];
     if (!msg) return { inputAttrs: '', html: '' };
-    return { inputAttrs: `aria-invalid="true" aria-describedby="${inputId}-err"`, html: `<p id="${inputId}-err">${esc(msg)}</p>` };
+    return { inputAttrs: `aria-invalid="true" aria-describedby="${inputId}-err"`, html: `<p id="${inputId}-err" class="wk-field-error">${esc(msg)}</p>` };
   }
 
   function renderSortTabs() {

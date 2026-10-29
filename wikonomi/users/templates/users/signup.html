@@ -21,9 +21,23 @@
 
     <form class="mt-8 space-y-6" method="post">
       {% csrf_token %}<input type="hidden" name="next" value="{{ next }}">
-      <div class="space-y-4">
+      {% if form.non_field_errors %}
+      <div class="wk-form-alert" role="alert">
+        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+      </div>
+      {% endif %}
+      <div class="space-y-5">
         {% for field in form %}
-          <div><label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ field.label }}</label><div class="mt-1">{{ field }}</div>{% if field.errors %}<p class="mt-1 text-sm text-red-600">{{ field.errors.0 }}</p>{% endif %}{% if field.help_text %}<div class="mt-1 text-xs text-gray-500">{{ field.help_text|safe }}</div>{% endif %}</div>
+        <div class="min-w-0">
+          <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ field.label }}</label>
+          <div class="mt-1">{{ field }}</div>
+          {% for error in field.errors %}
+          <p class="wk-field-error">{{ error }}</p>
+          {% endfor %}
+          {% if field.help_text %}
+          <div class="mt-2 text-xs leading-relaxed text-gray-500">{{ field.help_text|safe }}</div>
+          {% endif %}
+        </div>
         {% endfor %}
       </div>
       <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand-purple hover:bg-brand-purple/90">Sign Up</button>
