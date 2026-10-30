@@ -1,0 +1,48 @@
+name: Nearest map focus checks
+
+on:
+  pull_request:
+    paths:
+      - 'wikonomi/core/static/js/nearby-map-focus.js'
+      - 'wikonomi/core/templates/home.html'
+      - 'wikonomi/core/test_nearby_map_focus.py'
+      - 'wikonomi/core/tests/js/nearby-map-focus.test.cjs'
+      - '.github/workflows/nearby-map-focus-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  nearby-map:
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: wikonomi.test_settings
+      DEBUG: 'True'
+      SECRET_KEY: ci-nearby-map-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax and map-centering behavior
+        run: |
+          node --check wikonomi/core/static/js/nearby-map-focus.js
+          node --test wikonomi/core/tests/js/nearby-map-focus.test.cjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Django system check
+        working-directory: wikonomi
+        run: python manage.py check
+      - name: Nearby radius, fallback and map regression tests
+        working-directory: wikonomi
+        run: |
+          python manage.py test \
+            core.test_nearby_map_focus \
+            core.test_discovery_feed \
+            core.test_map_history \
+            --verbosity 2
