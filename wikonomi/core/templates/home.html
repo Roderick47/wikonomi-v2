@@ -588,11 +588,10 @@ function fitAllPrices() {
 function centerMapOnMyLocation() {
     if (!mapInstance || !nearbyUserLocation) return;
     const location = nearbyUserLocation;
-    if (window.WikonomiNearbyMapFocus.focus(
+    mapInstance.invalidateSize();
+    window.WikonomiNearbyMapFocus.focus(
         mapInstance, location.lat, location.lng, location.radiusKm, location.circle
-    )) {
-        mapInstance.invalidateSize();
-    }
+    );
 }
 
 function focusPriceOnMap(event, button) {
@@ -664,7 +663,6 @@ function initPriceMap() {
         });
 
         const bounds = [];
-        const reportBounds = [];
         if (hasUserLocation) {
             const uLat = Number(userLat);
             const uLng = Number(userLng);
@@ -741,7 +739,6 @@ function initPriceMap() {
                         mapPriceMarkers.set(Number(price.id), marker);
                         markers.push(marker);
                         bounds.push([price.lat, price.lng]);
-                        reportBounds.push([price.lat, price.lng]);
                     });
 
                     mapClusterGroup.addLayers(markers);
