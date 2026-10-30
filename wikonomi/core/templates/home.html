@@ -29,6 +29,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
+<script src="{% static 'js/nearby-map-focus.js' %}"></script>
 <style>
     main { padding-top: 1rem !important; }
     .wk-home-hero { padding-top: .5rem; padding-bottom: 1rem; }
@@ -442,7 +443,11 @@
                         <p id="map-status" class="wk-map-status" role="status">Loading reported prices…</p></div>
                         <div class="flex flex-wrap gap-2">
                         <button type="button" class="wk-home-shortcut" onclick="fitAllPrices()">Show all locations</button>
+                        {% if requested_sort == 'nearest' %}
+                        <button type="button" class="wk-home-shortcut" onclick="centerMapOnMyLocation()">Center on me</button>
+                        {% else %}
                         <button type="button" class="wk-home-shortcut" onclick="handleSortChange('nearest')">Near me</button>
+                        {% endif %}
                         </div>
                     </div>
                     <div class="flex-1 min-h-0">
@@ -496,6 +501,7 @@ let mapInitialized = false;
 let mapVisibleDesktop = true;
 let mapPriceMarkers = new Map();
 let pendingMapReportId = null;
+let nearbyUserLocation = null;
 
 function isDesktop() {
     return window.matchMedia('(min-width: 1024px)').matches;
@@ -579,6 +585,16 @@ function fitAllPrices() {
     }
 }
 
+function centerMapOnMyLocation() {
+    if (!mapInstance || !nearbyUserLocation) return;
+    const location = nearbyUserLocation;
+    if (window.WikonomiNearbyMapFocus.focus(
+        mapInstance, location.lat, location.lng, location.radiusKm, location.circle
+    )) {
+        mapInstance.invalidateSize();
+    }
+}
+
 function focusPriceOnMap(event, button) {
     event.preventDefault();
     event.stopPropagation();
@@ -610,6 +626,8 @@ function initPriceMap() {
         const selectedRadiusKm = Number(document.getElementById('nearby-radius').value);
         const locationFallback = {% if location_fallback %}true{% else %}false{% endif %};
         const hasUserLocation = userLat !== '' && userLng !== '' && Number.isFinite(Number(userLat)) && Number.isFinite(Number(userLng)) && Math.abs(Number(userLat)) <= 90 && Math.abs(Number(userLng)) <= 180;
+        const nearbyWithLocation = currentSort === 'nearest' && hasUserLocation;
+        nearbyUserLocation = null;
 
         let centerLat = -9.4438;
         let centerLng = 147.1803;
@@ -650,12 +668,12 @@ function initPriceMap() {
         if (hasUserLocation) {
             const uLat = Number(userLat);
             const uLng = Number(userLng);
-            L.circleMarker([uLat, uLng], { radius: 8, color: '#6b7280', fillColor: '#9ca3af', fillOpacity: 0.9, weight: 2 })
-                .addTo(mapInstance)
-                .bindPopup('<strong>Your location</strong>');
+            L.circleMarker([uLat, uLng], {
+                radius: 9, color: '#fff', fillColor: '#4B2798', fillOpacity: 1, weight: 3
+            }).addTo(mapInstance).bindPopup('<strong>Your location</strong>').bindTooltip('You are here');
             bounds.push([uLat, uLng]);
-            if (currentSort === 'nearest') {
-                L.circle([uLat, uLng], {
+            if (nearbyWithLocation) {
+                const radiusCircle = L.circle([uLat, uLng], {
                     radius: selectedRadiusKm * 1000,
                     color: '#4B2798',
                     weight: 1.5,
@@ -664,6 +682,10 @@ function initPriceMap() {
                     fillOpacity: 0.04,
                     interactive: false,
                 }).addTo(mapInstance);
+                nearbyUserLocation = {lat: uLat, lng: uLng, radiusKm: selectedRadiusKm, circle: radiusCircle};
+                // Fit the selected radius while keeping the user's pin at
+                // the exact map center, even if no nearby reports exist.
+                centerMapOnMyLocation();
             }
         }
 
@@ -733,15 +755,17 @@ function initPriceMap() {
                     if (!fitted && bounds.length) {
                         // A user who opted into location should first see their area,
                         // not be zoomed out across PNG by the first batch of pins.
-                        if (!hasUserLocation || locationFallback) {
-                            mapInstance.fitBounds(locationFallback ? reportBounds : bounds, {padding: [40, 40], maxZoom: 14});
+                        if (!hasUserLocation) {
+                            mapInstance.fitBounds(bounds, {padding: [40, 40], maxZoom: 14});
                         }
+                        // Nearby mode has already centered on the user's pin.
+                        // Never re-fit distant reports when local prices are absent.
                         fitted = true;
                     }
                     cursor = data.next_cursor;
                     status.textContent = loaded
-                        ? `${loaded} mapped price reports${cursor ? ' · Loading more…' : ''}${locationFallback ? ' · Showing available locations' : hasUserLocation ? ' · Map centered near you' : ''}`
-                        : 'No mapped prices for this search. Try another product or browse the list.';
+                        ? `${loaded} mapped price reports${cursor ? ' · Loading more…' : ''}${nearbyWithLocation ? locationFallback ? ' · No local reports yet; centered on your pin' : ' · Centered on your pin' : hasUserLocation ? ' · Location shown on map' : ''}`
+                        : nearbyWithLocation ? 'No mapped prices here yet · Centered on your pin' : 'No mapped prices for this search. Try another product or browse the list.';
                     // Yield between batches so map gestures remain responsive.
                     if (cursor) await new Promise(resolve => setTimeout(resolve, 50));
                 } while (cursor);
