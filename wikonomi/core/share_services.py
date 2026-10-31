@@ -174,17 +174,42 @@ def build_price_share_context(report, *, base_url=''):
     else:
         comparison_line = f'No store prices reported within the last {COMPARISON_STALE_AFTER_DAYS} days are available for a current comparison.'
 
-    title = f"{product.name} — {report_money} at {store_name}"
-    text_lines = [
-        f"{product.name} — {report_money} at {store_name}",
-        status_line,
-        comparison_line,
-        f"Observed {observed_label}.",
-        f"Open on Wikonomi: {share_url}",
-    ]
-    text = '\n'.join(line for line in text_lines if line)
+    # Sharing is a social invitation, not a pasted diagnostic report.
+    # Keep the detailed status and comparison on the landing page instead.
+    share_money = f"K{Decimal(report.price):,.2f}" if currency == 'PGK' else report_money
+    if store_name == 'Unknown store':
+        headline = f"👀 {product.name} for {share_money} — spotted on Wikonomi!"
+        title = f"{product.name} for {report_money} | Wikonomi"
+    else:
+        headline = f"👀 {product.name} for {share_money} at {store_name}!"
+        title = f"{product.name} for {report_money} at {store_name} | Wikonomi"
+
+    if report.marked_for_deletion or not is_current_comparable:
+        # Don't make historical or flagged observations sound like live offers.
+        if store_name == 'Unknown store':
+            headline = f"👀 {product.name} was reported for {share_money} on Wikonomi."
+        else:
+            headline = f"👀 {product.name} was reported for {share_money} at {store_name}."
+
+    if report.marked_for_deletion:
+        invitation = "This price report is under review. See the details before relying on it 👇"
+    elif not is_current_comparable:
+        invitation = f"This price was reported on {observed_label}. Check for newer prices 👇"
+    elif store_count > 1 and cheapest and report.id == cheapest.id and savings_amount and savings_amount > 0:
+        saving = f"K{savings_amount:,.2f}" if currency == 'PGK' else _money(currency, savings_amount)
+        invitation = (
+            f"Another shop reported this for {saving} more. Compare the prices 👇"
+            if store_count == 2 else
+            f"Other shops have reported up to {saving} more. See the comparison 👇"
+        )
+    elif store_count > 1:
+        invitation = "Wondering how that compares with other shops? Have a look 👇"
+    else:
+        invitation = "Know another shop's price? Take a look or add yours 👇"
+
+    text = f"{headline}\n\n{invitation}\n{share_url}"
     preview_description = _truncate(
-        f"{report_money} at {store_name}. {comparison_line} Observed {observed_label}."
+        f"Price reported on {observed_label}. See this price and compare shops on Wikonomi."
     )
 
     return {

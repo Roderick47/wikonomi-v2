@@ -46,8 +46,10 @@ class EnrichedPriceSharingTests(TestCase):
         self.assertEqual(data['best_current_store'], 'Store B')
         self.assertEqual(data['gap_from_best'], '2.00')
         self.assertEqual(Decimal(data['gap_percent']).quantize(Decimal('0.1')), Decimal('20.0'))
-        self.assertIn('Best current Wikonomi price: PGK 10.00 at Store B.', data['text'])
-        self.assertIn('PGK 2.00 (20.0%) higher', data['text'])
+        self.assertIn('👀 Test Rice 1kg for K12.00 at Store A!', data['text'])
+        self.assertIn('Wondering how that compares with other shops?', data['text'])
+        self.assertNotIn('Checked ', data['text'])
+        self.assertNotIn('Best current Wikonomi price:', data['text'])
         self.assertIn('/price/', data['share_url'])
         self.assertTrue(data['share_url'].endswith('/share/'))
 
@@ -64,6 +66,48 @@ class EnrichedPriceSharingTests(TestCase):
         self.assertEqual(Decimal(data['savings_percent']).quantize(Decimal('0.1')), Decimal('33.3'))
         self.assertIn('Lowest current Wikonomi price across 3 stores', data['comparison_line'])
         self.assertIn('save up to PGK 5.00 (33.3%)', data['comparison_line'])
+
+    def test_winning_share_leads_with_price_and_a_real_price_difference(self):
+        shared = self.make_report(store=self.store_a, price='10.00')
+        self.make_report(store=self.store_b, price='15.00')
+        data = build_price_share_context(shared, base_url='https://www.wikonomi.com')
+
+        self.assertTrue(data['text'].startswith('👀 Test Rice 1kg for K10.00 at Store A!'))
+        self.assertIn('Another shop reported this for K5.00 more.', data['text'])
+        self.assertEqual(data['text'].count(data['share_url']), 1)
+        self.assertNotIn('Current Wikonomi observation', data['text'])
+        self.assertIn('Price reported on', data['preview_description'])
+
+    def test_old_share_is_upfront_about_its_date(self):
+        shared = self.make_report(store=self.store_a, price='8.00', days_old=120)
+        data = build_price_share_context(shared)
+
+        self.assertIn('This price was reported on', data['text'])
+        self.assertIn('Check for newer prices', data['text'])
+        self.assertNotIn('Another shop reported this for', data['text'])
+
+    def test_reviewed_share_is_not_promoted_as_a_bargain(self):
+        shared = self.make_report(store=self.store_a, price='7.00', marked=True)
+        self.make_report(store=self.store_b, price='9.00')
+        data = build_price_share_context(shared)
+
+        self.assertIn('This price report is under review', data['text'])
+        self.assertNotIn('Other shops have reported up to', data['text'])
+
+    def test_usd_share_keeps_its_currency(self):
+        shared = self.make_report(store=self.store_a, price='4.00', currency='USD')
+        data = build_price_share_context(shared)
+
+        self.assertIn('for USD 4.00', data['text'])
+        self.assertNotIn('for K4.00', data['text'])
+
+    def test_share_data_endpoint_returns_copypaste_ready_message(self):
+        shared = self.make_report(store=self.store_a, price='11.50')
+        data = self.client.get(reverse('price_share_data', args=[shared.pk])).json()
+
+        self.assertIn('👀 Test Rice 1kg for K11.50 at Store A!', data['text'])
+        self.assertTrue(data['text'].endswith(data['share_url']))
+        self.assertIn('Know another shop', data['text'])
 
     def test_older_shared_report_never_becomes_current_winner(self):
         old_shared = self.make_report(store=self.store_a, price='8.00', days_old=10)
