@@ -112,7 +112,7 @@
 {% url 'duplicate_price_report' report.pk as shortcut_duplicate_url %}
 {% url 'mark_for_deletion' report.pk as shortcut_mark_delete_url %}
 {% url 'price_detail' report.pk as shortcut_share_path %}
-{% with share_url=request.scheme|add:'://'|add:request.get_host|add:shortcut_share_path share_title=report.product.name share_text='Checked this price on Wikonomi.' %}
+{% with share_url=request.scheme|add:'://'|add:request.get_host|add:shortcut_share_path share_title=report.product.name share_text='Have a look at this reported price on Wikonomi 👀' %}
 {% include "includes/_detail_shortcuts.html" with shortcut_label='Price detail' shortcut_title=report.product.name shortcut_meta=report.price shortcut_meta_prefix=report.currency shortcut_rating_target='price-report' shortcut_object_id=report.id shortcut_comment_content_type_id=comment_content_type_id shortcut_edit_url=shortcut_edit_url shortcut_duplicate_url=shortcut_duplicate_url shortcut_inline_edit=True shortcut_mark_delete_url=shortcut_mark_delete_url shortcut_marked_for_deletion=report.marked_for_deletion shortcut_share_url=share_url shortcut_share_title=share_title shortcut_share_text=share_text %}
 {% endwith %}
     <div class="mb-4">
