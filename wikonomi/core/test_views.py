@@ -377,6 +377,14 @@ class BusinessDetailGuidesTest(TestCase):
         self.assertContains(response, linked_guide.title)
         self.assertNotContains(response, 'Guide for another pharmacy')
 
+    def test_business_detail_inherits_shared_floating_action_menu(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, 'data-wk-fab')
+        self.assertContains(response, 'data-wk-fab-toggle')
+        self.assertContains(response, 'data-wk-fab-panel')
+        self.assertContains(response, 'class="wk-fab__trigger"')
+        self.assertContains(response, 'class="wk-fab__panel"')
+
     def test_business_profile_has_natural_sharing_action(self):
         response = self.client.get(self.url)
 
