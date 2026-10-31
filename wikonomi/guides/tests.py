@@ -152,6 +152,7 @@ class GuideBackendTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_guide_actions_use_shared_floating_menu_design(self):
+        self.client.force_login(self.user)
         response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
 
         self.assertContains(response, 'css/floating_actions.css')
