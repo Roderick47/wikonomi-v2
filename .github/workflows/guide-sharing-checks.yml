@@ -18,6 +18,7 @@ jobs:
       DJANGO_SETTINGS_MODULE: wikonomi.test_settings
       DEBUG: 'True'
       SECRET_KEY: ci-guide-sharing-check-only
+      MEDIA_ROOT: ${{ runner.temp }}/wikonomi-guide-test-media
 
     steps:
       - uses: actions/checkout@v4
