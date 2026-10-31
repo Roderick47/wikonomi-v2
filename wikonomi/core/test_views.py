@@ -377,6 +377,15 @@ class BusinessDetailGuidesTest(TestCase):
         self.assertContains(response, linked_guide.title)
         self.assertNotContains(response, 'Guide for another pharmacy')
 
+    def test_business_profile_has_natural_sharing_action(self):
+        response = self.client.get(self.url)
+
+        self.assertContains(response, '↗ Share business')
+        self.assertContains(response, "kind: 'business'")
+        self.assertContains(response, "preview: true")
+        self.assertContains(response, 'Explore its Wikonomi business profile')
+        self.assertNotContains(response, 'Find the best deals near you')
+
     def test_business_without_guides_has_scoped_add_guide_actions(self):
         add_guide_url = f'{reverse("guides:create")}?business={self.business.pk}'
 
