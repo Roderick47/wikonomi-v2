@@ -2,14 +2,8 @@
 {% if shortcut_rating_target == 'price-report' %}
 {% price_share_context_by_id shortcut_object_id request as shortcut_enriched_share %}
 {% endif %}
-<style>
-    .wk-shortcut-dock { bottom: 6.5rem; }
-    .wk-shortcut-panel, .wk-rating-tray { transform-origin: bottom right; }
-    .wk-shortcut-panel.is-open, .wk-rating-tray.is-open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
-</style>
-
-<div class="wk-shortcut-dock fixed right-4 z-50 flex flex-col items-end gap-3 sm:right-6" data-shortcut-root>
-    <div class="wk-rating-tray pointer-events-none flex translate-y-2 scale-95 gap-2 rounded-2xl border border-amber-100 bg-white p-2 opacity-0 shadow-xl transition-all" data-shortcut-rating-tray aria-label="Quick rating scale">
+<div class="wk-fab" data-wk-fab data-shortcut-root>
+    <div class="wk-fab__rating-tray" data-shortcut-rating-tray aria-label="Quick rating scale" aria-hidden="true" inert>
         {% if user.is_authenticated %}
             {% for value in "12345" %}
             <button type="button" class="flex h-10 w-10 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-sm font-bold text-amber-700 shadow-sm transition hover:bg-amber-100" data-rating-target="{{ shortcut_rating_target }}" data-object-id="{{ shortcut_object_id }}" data-rating-value="{{ value }}" aria-label="Rate {{ value }} out of 5">{{ value }}</button>
@@ -19,22 +13,22 @@
         {% endif %}
     </div>
 
-    <div class="wk-shortcut-panel pointer-events-none flex translate-y-2 scale-95 flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-2 opacity-0 shadow-xl transition-all" data-shortcut-panel>
+    <div id="wk-detail-actions-panel" class="wk-fab__panel" data-wk-fab-panel data-shortcut-panel aria-label="Price and business actions" aria-hidden="true" inert>
         {% include 'includes/_commerce_context_actions.html' %}
-        <button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50" data-shortcut-action="rating">⭐ {{ shortcut_rate_label|default:'Rate this price' }}</button>
+        <button type="button" class="wk-fab__item" data-wk-fab-keep-open data-shortcut-action="rating"><span class="wk-fab__icon" aria-hidden="true">⭐</span><span>{{ shortcut_rate_label|default:'Rate this price' }}</span></button>
         {% if shortcut_inline_edit %}
-        <button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/5" data-shortcut-action="inline-edit">✏️ {{ shortcut_edit_label|default:'Edit this price' }}</button>
+        <button type="button" class="wk-fab__item" data-shortcut-action="inline-edit"><span class="wk-fab__icon" aria-hidden="true">✏️</span><span>{{ shortcut_edit_label|default:'Edit this price' }}</span></button>
         {% else %}
-        <a href="{{ shortcut_edit_url }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/5">✏️ {{ shortcut_edit_label|default:'Edit this price' }}</a>
+        <a href="{{ shortcut_edit_url }}" class="wk-fab__item"><span class="wk-fab__icon" aria-hidden="true">✏️</span><span>{{ shortcut_edit_label|default:'Edit this price' }}</span></a>
         {% endif %}
-        {% if shortcut_add_guide_url %}<a href="{{ shortcut_add_guide_url }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-greenDark hover:bg-brand-greenDark/5">📖 {{ shortcut_add_guide_label|default:'Add guide' }}</a>{% endif %}
-        {% if shortcut_duplicate_url %}<a href="{{ shortcut_duplicate_url }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-slate-50">📋 Duplicate this price</a>{% endif %}
-        {% if shortcut_mark_delete_url and not shortcut_marked_for_deletion %}<button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50" data-shortcut-action="mark-delete">🗑️ Mark this price for deletion</button>{% endif %}
-        <button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-blueDark hover:bg-brand-blue/10" data-shortcut-action="comment">💬 {{ shortcut_comment_label|default:'Write Comment' }}</button>
-        {% if shortcut_share_url %}<button type="button" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-brand-greenDark hover:bg-brand-green/10" data-shortcut-action="share">🔗 Share this price</button>{% endif %}
+        {% if shortcut_add_guide_url %}<a href="{{ shortcut_add_guide_url }}" class="wk-fab__item"><span class="wk-fab__icon" aria-hidden="true">📖</span><span>{{ shortcut_add_guide_label|default:'Add guide' }}</span></a>{% endif %}
+        {% if shortcut_duplicate_url %}<a href="{{ shortcut_duplicate_url }}" class="wk-fab__item"><span class="wk-fab__icon" aria-hidden="true">📋</span><span>Duplicate this price</span></a>{% endif %}
+        {% if shortcut_mark_delete_url and not shortcut_marked_for_deletion %}<button type="button" class="wk-fab__item wk-fab__item--danger" data-shortcut-action="mark-delete"><span class="wk-fab__icon" aria-hidden="true">🗑️</span><span>Mark this price for deletion</span></button>{% endif %}
+        <button type="button" class="wk-fab__item" data-shortcut-action="comment"><span class="wk-fab__icon" aria-hidden="true">💬</span><span>{{ shortcut_comment_label|default:'Write Comment' }}</span></button>
+        {% if shortcut_share_url %}<button type="button" class="wk-fab__item" data-shortcut-action="share"><span class="wk-fab__icon" aria-hidden="true">🔗</span><span>Share this price</span></button>{% endif %}
     </div>
 
-    <button type="button" class="flex h-14 w-14 items-center justify-center rounded-full bg-brand-purple text-2xl text-white shadow-2xl ring-4 ring-white transition hover:bg-brand-purple/90" data-shortcut-toggle aria-expanded="false" aria-label="Open detail shortcuts">＋</button>
+    <button type="button" class="wk-fab__trigger" data-wk-fab-toggle data-shortcut-toggle aria-expanded="false" aria-controls="wk-detail-actions-panel" aria-label="Open detail shortcuts"><span data-wk-fab-symbol aria-hidden="true">+</span></button>
 </div>
 
 <div class="fixed inset-0 z-[70] hidden items-center justify-center bg-slate-900/45 px-4" data-quick-comment-modal role="dialog" aria-modal="true" aria-labelledby="quick-comment-title">
@@ -86,16 +80,15 @@
     const deleteError = document.querySelector('[data-mark-delete-error]');
     const csrf = '{{ csrf_token }}';
 
-    function setPanel(open) {
-        panel.classList.toggle('is-open', open);
-        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        toggle.textContent = open ? '×' : '＋';
-        if (!open) setRating(false);
-    }
     function setRating(open) {
         const shouldOpen = Boolean(open) && panel.classList.contains('is-open');
         ratingTray.classList.toggle('is-open', shouldOpen);
+        ratingTray.inert = !shouldOpen;
+        ratingTray.setAttribute('aria-hidden', String(!shouldOpen));
     }
+    root.addEventListener('wk:fab:change', (event) => {
+        if (!event.detail.open) setRating(false);
+    });
     function openCommentModal() { commentModal.classList.remove('hidden'); commentModal.classList.add('flex'); commentModal.querySelector('textarea')?.focus(); }
     function closeCommentModal() { commentModal.classList.add('hidden'); commentModal.classList.remove('flex'); commentForm?.reset(); commentError?.classList.add('hidden'); }
     function openDeleteModal(reasonValue = '') { if (!deleteModal) return; deleteModal.classList.remove('hidden'); deleteModal.classList.add('flex'); const input = deleteModal.querySelector('[name="reason"]'); if (input) input.value = reasonValue; input?.focus(); }
@@ -103,7 +96,6 @@
     function markDeletionTrigger(reasonValue = '') { openDeleteModal(reasonValue); }
     window.wkConfirmPriceDeletion = markDeletionTrigger;
 
-    toggle.addEventListener('click', () => setPanel(!panel.classList.contains('is-open')));
     root.addEventListener('click', (event) => {
         const action = event.target.closest('[data-shortcut-action]')?.dataset.shortcutAction;
         if (!action) return;
@@ -122,15 +114,9 @@
             else window.location.href = '{{ shortcut_edit_url }}';
         }
     });
-    document.addEventListener('click', (event) => {
-        if (root.contains(event.target)) return;
-        setRating(false);
-        setPanel(false);
-    });
     document.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape') return;
         setRating(false);
-        setPanel(false);
         closeCommentModal();
         closeDeleteModal();
     });
