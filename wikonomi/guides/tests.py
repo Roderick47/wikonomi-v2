@@ -1,4 +1,7 @@
 import json
+from io import BytesIO
+
+from PIL import Image
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -113,15 +116,40 @@ class GuideBackendTests(TestCase):
         self.guide.save(update_fields=['photo'])
         response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
 
-        self.assertEqual(
-            response.context['share_image_url'],
-            f'http://testserver{self.guide.photo.url}',
-        )
+        image_url = reverse('guides:share_image', args=[self.guide.slug])
+        self.assertEqual(response.context['share_image_url'], f'http://testserver{image_url}')
         self.assertContains(
             response,
-            f'<meta property="og:image" content="http://testserver{self.guide.photo.url}">',
+            f'<meta property="og:image" content="http://testserver{image_url}">',
             html=True,
         )
+        self.assertContains(response, '<meta property="og:image:width" content="1200">')
+        self.assertContains(response, '<meta property="og:image:height" content="630">')
+        self.assertContains(response, f'data-guide-image="http://testserver{image_url}"')
+        self.assertContains(response, 'data-guide-url="http://testserver/guides/open-business-account/?cover=')
+
+    def test_share_image_endpoint_is_public_and_compressed_jpeg(self):
+        raw_image = BytesIO()
+        Image.new('RGB', (1600, 1000), color=(40, 100, 160)).save(raw_image, format='JPEG')
+        self.guide.photo.save(
+            'guide-cover.jpg',
+            SimpleUploadedFile('guide-cover.jpg', raw_image.getvalue(), content_type='image/jpeg'),
+            save=True,
+        )
+
+        url = reverse('guides:share_image', args=[self.guide.slug])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'image/jpeg')
+        self.assertLess(len(response.content), 500_000)
+        self.assertIn('public', response['Cache-Control'])
+        with Image.open(BytesIO(response.content)) as shared:
+            self.assertEqual(shared.size, (1200, 630))
+            self.assertEqual(shared.format, 'JPEG')
+
+    def test_share_image_endpoint_does_not_leak_missing_photos(self):
+        response = self.client.get(reverse('guides:share_image', args=[self.guide.slug]))
+        self.assertEqual(response.status_code, 404)
 
     def test_detail_supports_natural_editable_guide_sharing(self):
         self.guide.summary = 'Steps for a business account in PNG.'
