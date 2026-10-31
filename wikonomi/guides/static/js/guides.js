@@ -439,9 +439,11 @@ function buildGuideShareText(title, summary = '', stepCount = 0, underReview = f
     }
     const introduction = clean(summary, 170);
     const count = Number(stepCount) || 0;
-    const invitation = count > 0
-        ? 'Explore the ' + count + ' step' + (count === 1 ? '' : 's') + ' on Wikonomi 👇'
-        : 'Have a look at this guide on Wikonomi 👇';
+    const invitation = count > 1
+        ? 'Explore all ' + count + ' steps on Wikonomi 👇'
+        : count === 1
+            ? 'See the practical steps on Wikonomi 👇'
+            : 'Have a look at this guide on Wikonomi 👇';
     return heading + (introduction ? '\n\n' + introduction : '') + '\n\n' + invitation;
 }
 
