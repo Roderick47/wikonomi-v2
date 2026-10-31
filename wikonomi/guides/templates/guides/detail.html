@@ -14,6 +14,8 @@
 <meta property="og:image" content="{{ share_image_url }}">
 <meta property="og:image:secure_url" content="{{ share_image_url }}">
 <meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="{% if guide.photo %}Cover image for {{ guide.title }}{% else %}Wikonomi — Your local guide to PNG{% endif %}">
 <meta property="og:locale" content="en_PG">
 <meta name="twitter:card" content="summary_large_image">
@@ -211,7 +213,7 @@
         <button type="button" data-open-rating class="guide-action-item">★ <span>Rate Guide</span></button>
         {% if can_edit %}<a href="{% url 'guides:edit' guide.slug %}" class="guide-action-item">✎ <span>Edit Guide</span></a>{% endif %}
         <button type="button" data-open-fork class="guide-action-item">⧉ <span>Copy Guide</span></button>
-        <button type="button" data-share-guide data-title="{{ guide.title }}" data-summary="{{ guide.summary|default:''|striptags|truncatechars:170 }}" data-step-count="{{ steps|length }}" data-under-review="{{ guide.marked_for_deletion|yesno:'true,false' }}" data-guide-url="{{ canonical_url }}" class="guide-action-item">↗ <span>Share Guide</span></button>
+        <button type="button" data-share-guide data-title="{{ guide.title }}" data-summary="{{ guide.summary|default:''|striptags|truncatechars:170 }}" data-step-count="{{ steps|length }}" data-under-review="{{ guide.marked_for_deletion|yesno:'true,false' }}" data-guide-url="{{ social_share_url }}" {% if has_share_photo %}data-guide-image="{{ share_image_url }}"{% endif %} class="guide-action-item">↗ <span>Share Guide</span></button>
         {% if can_delete_guide %}<button type="button" data-delete-guide-direct class="guide-action-item text-red-600">⌫ <span>Delete Guide</span></button>{% elif user.is_authenticated and not guide.marked_for_deletion %}<button type="button" data-mark-guide-delete class="guide-action-item text-red-600">⌫ <span>Mark for Deletion</span></button>{% endif %}
     </div>
     <button type="button" data-guide-action-toggle aria-label="Open guide actions" aria-expanded="false" class="flex h-14 w-14 items-center justify-center rounded-full bg-brand-purple text-3xl font-light text-white shadow-xl transition hover:scale-105 hover:bg-brand-purple/90">+</button>
