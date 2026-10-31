@@ -33,6 +33,22 @@ class EnrichedPriceSharingTests(TestCase):
             report.refresh_from_db()
         return report
 
+    def test_price_detail_uses_the_same_floating_menu_as_guides(self):
+        report = self.make_report(store=self.store_a, price='10.00')
+        response = self.client.get(reverse('price_detail', args=[report.pk]))
+
+        self.assertContains(response, 'css/floating_actions.css')
+        self.assertContains(response, 'js/floating_actions.js')
+        self.assertContains(response, 'data-wk-fab')
+        self.assertContains(response, 'data-wk-fab-toggle')
+        self.assertContains(response, 'data-wk-fab-panel')
+        self.assertContains(response, 'class="wk-fab__trigger"')
+        self.assertContains(response, 'class="wk-fab__panel"')
+        self.assertContains(response, 'class="wk-fab__item"')
+        self.assertContains(response, 'data-wk-fab-keep-open')
+        self.assertContains(response, 'wk-fab__rating-tray')
+        self.assertNotContains(response, 'wk-shortcut-dock')
+
     def test_current_non_cheapest_share_uses_best_current_price_and_gap(self):
         shared = self.make_report(store=self.store_a, price='12.00')
         self.make_report(store=self.store_b, price='10.00')
