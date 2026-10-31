@@ -231,6 +231,13 @@
                 : shareText.trim() + '\n' + resolvedUrl;
             const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
+            // This preview deliberately adds a second user gesture: native sharing
+            // must be invoked directly from a tap, not after an awaited fetch.
+            if (data.reportId || data.preview) {
+                openShareMessagePreview(shareTitle, fullMessage, event?.target);
+                return;
+            }
+
             if (navigator.share && mobile) {
                 try {
                     await navigator.share({ title: shareTitle, text: fullMessage });
@@ -265,6 +272,81 @@
                 showToast('Could not copy automatically. Please try again.', 'error');
                 return false;
             }
+        }
+
+        function openShareMessagePreview(title, message, trigger) {
+            document.querySelector('[data-price-share-preview]')?.remove();
+
+            const overlay = document.createElement('div');
+            overlay.dataset.priceSharePreview = '';
+            overlay.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/55 px-4 py-6';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.setAttribute('aria-label', 'Share a price from Wikonomi');
+            overlay.innerHTML = `
+                <div class="w-full max-w-lg overflow-hidden rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-gray-900">Share this price 👀</h2>
+                            <p class="mt-1 text-sm text-gray-600">Ready to send. Edit it to sound like you, or copy it as is.</p>
+                        </div>
+                        <button type="button" data-share-close aria-label="Close sharing" class="rounded-lg px-2 py-1 text-2xl text-gray-500 hover:bg-slate-100">×</button>
+                    </div>
+                    <label for="wk-share-message" class="mt-5 block text-sm font-semibold text-gray-800">Your message</label>
+                    <textarea id="wk-share-message" data-share-text rows="6" class="mt-2 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-relaxed text-slate-900 focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"></textarea>
+                    <div class="mt-4 flex flex-wrap items-center gap-2">
+                        <button type="button" data-share-copy class="rounded-xl bg-brand-purple px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-purple/90">Copy message</button>
+                        <button type="button" data-share-native class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-gray-800 hover:bg-slate-50">Share to apps</button>
+                        <a data-share-whatsapp target="_blank" rel="noopener noreferrer" class="rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-bold text-green-800 hover:bg-green-100">WhatsApp</a>
+                    </div>
+                </div>`;
+
+            const field = overlay.querySelector('[data-share-text]');
+            const nativeButton = overlay.querySelector('[data-share-native]');
+            const whatsappLink = overlay.querySelector('[data-share-whatsapp]');
+            field.value = message;
+            nativeButton.hidden = typeof navigator.share !== 'function';
+
+            const updateWhatsApp = () => {
+                whatsappLink.href = 'https://wa.me/?text=' + encodeURIComponent(field.value);
+            };
+            field.addEventListener('input', updateWhatsApp);
+            updateWhatsApp();
+
+            let previousOverflow = document.body.style.overflow;
+            const close = () => {
+                document.removeEventListener('keydown', onKeyDown);
+                overlay.remove();
+                document.body.style.overflow = previousOverflow;
+                if (trigger && typeof trigger.focus === 'function') trigger.focus();
+            };
+            const onKeyDown = (event) => {
+                if (event.key === 'Escape') close();
+            };
+            document.addEventListener('keydown', onKeyDown);
+            overlay.addEventListener('click', (event) => {
+                if (event.target === overlay || event.target.closest('[data-share-close]')) close();
+            });
+            overlay.querySelector('[data-share-copy]').addEventListener('click', () => {
+                copyToClipboard(field.value, 'Share message copied — ready to paste.');
+            });
+            nativeButton.addEventListener('click', () => {
+                // Call share() synchronously inside this actual user click.
+                try {
+                    Promise.resolve(navigator.share({ title, text: field.value.trim() }))
+                        .then(close)
+                        .catch((error) => {
+                            if (error.name !== 'AbortError') showToast('Could not open the share sheet. Try copying the message.', 'error');
+                        });
+                } catch (error) {
+                    showToast('Could not open the share sheet. Try copying the message.', 'error');
+                }
+            });
+
+            document.body.appendChild(overlay);
+            document.body.style.overflow = 'hidden';
+            field.focus();
+            field.setSelectionRange(0, 0);
         }
 
         function getCookie(name) {
