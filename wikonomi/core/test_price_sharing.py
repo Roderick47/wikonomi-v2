@@ -73,7 +73,7 @@ class EnrichedPriceSharingTests(TestCase):
         data = build_price_share_context(shared, base_url='https://www.wikonomi.com')
 
         self.assertTrue(data['text'].startswith('👀 Test Rice 1kg for K10.00 at Store A!'))
-        self.assertIn('Other shops have reported up to K5.00 more.', data['text'])
+        self.assertIn('Another shop reported this for K5.00 more.', data['text'])
         self.assertEqual(data['text'].count(data['share_url']), 1)
         self.assertNotIn('Current Wikonomi observation', data['text'])
         self.assertIn('Price reported on', data['preview_description'])
@@ -84,7 +84,7 @@ class EnrichedPriceSharingTests(TestCase):
 
         self.assertIn('This price was reported on', data['text'])
         self.assertIn('Check for newer prices', data['text'])
-        self.assertNotIn('Other shops have reported up to', data['text'])
+        self.assertNotIn('Another shop reported this for', data['text'])
 
     def test_reviewed_share_is_not_promoted_as_a_bargain(self):
         shared = self.make_report(store=self.store_a, price='7.00', marked=True)
