@@ -94,7 +94,7 @@ Wikonomi is bringing community-reported prices, businesses and practical PNG gui
 
   function getFullShareMessage() {
     const text = getShareText().trim();
-    const hasLink = /https?:\/\/(www\.)?wikonomi\.com\/?(?:\s|$)/i.test(text);
+    const hasLink = /https?:\/\/(www\.)?wikonomi\.com(?:\/[^\s]*)?/i.test(text);
     return hasLink ? text : (text ? text + '\n\n' : '') + siteUrl;
   }
 
@@ -142,7 +142,7 @@ Wikonomi is bringing community-reported prices, businesses and practical PNG gui
       }
 
       if (platform === 'x') {
-        const xText = getShareText().trim().slice(0, 220).trimEnd();
+        const xText = getShareText().trim().split(/\n\s*\n/)[0].slice(0, 220).trimEnd();
         openShareWindow('https://twitter.com/intent/tweet?text=' + encodeURIComponent(xText) + '&url=' + encodedUrl);
         return;
       }
