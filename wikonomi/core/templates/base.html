@@ -234,7 +234,7 @@
             // This preview deliberately adds a second user gesture: native sharing
             // must be invoked directly from a tap, not after an awaited fetch.
             if (data.reportId || data.preview) {
-                openShareMessagePreview(shareTitle, fullMessage, event?.target);
+                openShareMessagePreview(shareTitle, fullMessage, event?.target?.closest?.('button') || event?.currentTarget);
                 return;
             }
 
@@ -279,7 +279,7 @@
 
             const overlay = document.createElement('div');
             overlay.dataset.priceSharePreview = '';
-            overlay.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/55 px-4 py-6';
+            overlay.className = 'fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-900/55 px-4 py-6';
             overlay.setAttribute('role', 'dialog');
             overlay.setAttribute('aria-modal', 'true');
             overlay.setAttribute('aria-label', 'Share a price from Wikonomi');
