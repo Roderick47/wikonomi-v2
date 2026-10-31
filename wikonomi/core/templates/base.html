@@ -193,42 +193,78 @@
             }
         });
 
-        async function sharePriceReport(event, data) {
+        async function sharePriceReport(event, data = {}) {
             if (event) {
                 event.preventDefault();
                 event.stopPropagation();
             }
 
-            const { title, text, url, urlInText } = data;
-            const shareUrl = url || window.location.href;
-            const shareData = {
-                title: title || 'Check out this price on Wikonomi',
-                text: text || `Check out the price for ${title} on Wikonomi!`
-            };
-            if (!urlInText) shareData.url = shareUrl;
+            const shareUrl = data.url || window.location.href;
+            let shareTitle = data.title || 'A price worth comparing on Wikonomi';
+            let shareText = data.text || (data.title
+                ? '👀 Have a look at the reported price for ' + data.title + ' on Wikonomi 👇'
+                : '👀 See this reported price on Wikonomi 👇');
+            let resolvedUrl = shareUrl;
+            let urlInText = Boolean(data.urlInText);
 
-            if (navigator.share) {
+            // Resolve one trusted, up-to-date message for cards and detail pages.
+            // Only fetch when someone chooses to share, not for every card on the feed.
+            if (data.reportId) {
                 try {
-                    await navigator.share(shareData);
-                    showToast('Shared successfully!', 'success');
-                } catch (err) {
-                    if (err.name !== 'AbortError') {
-                        console.error('Error sharing:', err);
-                        copyToClipboard(shareUrl);
-                    }
+                    const response = await fetch('/price/' + encodeURIComponent(data.reportId) + '/share-data/', {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (!response.ok) throw new Error('Price share details unavailable');
+                    const enriched = await response.json();
+                    shareTitle = enriched.title || shareTitle;
+                    shareText = enriched.text || shareText;
+                    resolvedUrl = enriched.share_url || resolvedUrl;
+                    urlInText = Boolean(enriched.text && enriched.text.includes(resolvedUrl));
+                } catch (error) {
+                    console.warn('Using basic price-sharing text:', error);
                 }
-            } else {
-                copyToClipboard(shareUrl);
             }
+
+            // A single URL in the message works consistently in WhatsApp and in copied text.
+            const fullMessage = urlInText
+                ? shareText.trim()
+                : shareText.trim() + '\n' + resolvedUrl;
+            const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+            if (navigator.share && mobile) {
+                try {
+                    await navigator.share({ title: shareTitle, text: fullMessage });
+                    return;
+                } catch (error) {
+                    if (error.name === 'AbortError') return;
+                    console.warn('Native sharing unavailable, copying message instead:', error);
+                }
+            }
+            await copyToClipboard(fullMessage, 'Full share message copied — paste it into WhatsApp or a chat.');
         }
 
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('Link copied to clipboard!', 'info');
-            }).catch(err => {
-                console.error('Failed to copy: ', err);
-                showToast('Failed to copy link', 'error');
-            });
+        async function copyToClipboard(text, successMessage = 'Copied to clipboard!') {
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const field = document.createElement('textarea');
+                    field.value = text;
+                    field.style.position = 'fixed';
+                    field.style.opacity = '0';
+                    document.body.appendChild(field);
+                    field.select();
+                    const copied = document.execCommand('copy');
+                    field.remove();
+                    if (!copied) throw new Error('Copy not supported');
+                }
+                showToast(successMessage, 'success');
+                return true;
+            } catch (error) {
+                console.error('Failed to copy share message:', error);
+                showToast('Could not copy automatically. Please try again.', 'error');
+                return false;
+            }
         }
 
         function getCookie(name) {
