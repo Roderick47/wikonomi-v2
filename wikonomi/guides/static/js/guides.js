@@ -394,11 +394,7 @@ function sortAnswerCards(list) {
 function initGuideActions() {
     const root = document.querySelector('[data-guide-actions]');
     if (!root) return;
-    const toggle = root.querySelector('[data-guide-action-toggle]');
-    const menu = root.querySelector('[data-guide-action-menu]');
-    const closeMenu = () => { menu.classList.add('hidden'); toggle.setAttribute('aria-expanded', 'false'); toggle.textContent = '+'; };
-    toggle.addEventListener('click', (event) => { event.stopPropagation(); const opening = menu.classList.contains('hidden'); menu.classList.toggle('hidden', !opening); toggle.setAttribute('aria-expanded', String(opening)); toggle.textContent = opening ? '×' : '+'; });
-    document.addEventListener('click', (event) => { if (!root.contains(event.target)) closeMenu(); });
+    // Shared floating_actions.js owns the trigger, outside click and Escape.
     document.addEventListener('click', (event) => {
         const rating = event.target.closest('[data-open-rating]');
         const fork = event.target.closest('[data-open-fork]');
@@ -406,7 +402,6 @@ function initGuideActions() {
         if (rating) openGuidePopover(document.querySelector('[data-rating-popover]'));
         if (fork) openGuidePopover(document.querySelector('[data-fork-popover]'));
         if (share) shareGuide(event, share);
-        if (rating || fork || share) closeMenu();
         if (event.target.closest('[data-close-popover]')) closeGuidePopovers();
     });
     const forkForm = document.querySelector('[data-fork-form]');
