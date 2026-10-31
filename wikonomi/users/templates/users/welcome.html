@@ -51,11 +51,9 @@
 
         <div class="mt-6 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm">
           <label for="wikonomi-share-text" class="block text-sm font-semibold text-gray-900">A message you can use</label>
-          <textarea id="wikonomi-share-text" rows="7" class="mt-3 w-full resize-y rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm leading-6 text-gray-700 focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20">PNG’s economy is full of knowledge hiding in plain sight — prices on shelves, businesses down the road, and know-how carried by ordinary people.
+          <textarea id="wikonomi-share-text" rows="7" class="mt-3 w-full resize-y rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm leading-6 text-gray-700 focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20">🇵🇬 Ever wished you could compare prices at local shops before heading out?
 
-Wikonomi is trying to bring that knowledge together into a living map of our local economy, built by Papua New Guineans for Papua New Guinea.
-
-I’ve joined early, while the map is still being drawn. If you believe PNG should be easier to discover, compare and navigate, come help us build it. Post a price. Add a business. Share a guide. Even one small contribution can become part of something much bigger.</textarea>
+Wikonomi is bringing community-reported prices, businesses and practical PNG guides into one place. Have a look — and add a price you know! 👀</textarea>
           <div class="mt-3 flex flex-wrap items-center gap-3">
             <button type="button" id="copy-share-text" class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Copy message</button>
             <span id="copy-share-status" class="text-sm font-medium text-green-700" role="status" aria-live="polite"></span>
@@ -83,8 +81,8 @@ I’ve joined early, while the map is still being drawn. If you believe PNG shou
 
 <script>
 (function () {
-  const siteUrl = 'https://wikonomi.com/';
-  const shareTitle = 'Wikonomi — help build PNG’s local economic map';
+  const siteUrl = 'https://www.wikonomi.com/';
+  const shareTitle = 'Wikonomi — compare local prices across PNG';
   const textArea = document.getElementById('wikonomi-share-text');
   const copyButton = document.getElementById('copy-share-text');
   const copyStatus = document.getElementById('copy-share-status');
@@ -94,20 +92,16 @@ I’ve joined early, while the map is still being drawn. If you believe PNG shou
     return textArea.value.trim();
   }
 
+  function getFullShareMessage() {
+    const text = getShareText().trim();
+    const hasLink = /https?:\/\/(www\.)?wikonomi\.com(?:\/[^\s]*)?/i.test(text);
+    return hasLink ? text : (text ? text + '\n\n' : '') + siteUrl;
+  }
+
   async function copyShareMessage() {
-    const fullMessage = getShareText() + '\n\n' + siteUrl;
-    try {
-      await navigator.clipboard.writeText(fullMessage);
-      copyStatus.textContent = 'Copied!';
-    } catch (error) {
-      textArea.focus();
-      textArea.select();
-      document.execCommand('copy');
-      copyStatus.textContent = 'Copied!';
-    }
-    window.setTimeout(function () {
-      copyStatus.textContent = '';
-    }, 2500);
+    const copied = await copyToClipboard(getFullShareMessage(), 'Wikonomi message copied — ready to paste.');
+    copyStatus.textContent = copied ? 'Copied!' : 'Unable to copy. Try selecting the text.';
+    window.setTimeout(function () { copyStatus.textContent = ''; }, 2500);
   }
 
   function openShareWindow(url) {
@@ -119,14 +113,13 @@ I’ve joined early, while the map is still being drawn. If you believe PNG shou
   shareButtons.forEach(function (button) {
     button.addEventListener('click', async function () {
       const platform = button.dataset.sharePlatform;
-      const shareText = getShareText();
-      const encodedText = encodeURIComponent(shareText);
+      const shareText = getFullShareMessage();
       const encodedUrl = encodeURIComponent(siteUrl);
 
       if (platform === 'native') {
         if (navigator.share) {
           try {
-            await navigator.share({ title: shareTitle, text: shareText, url: siteUrl });
+            await navigator.share({ title: shareTitle, text: shareText });
           } catch (error) {
             if (error.name !== 'AbortError') {
               await copyShareMessage();
@@ -139,7 +132,7 @@ I’ve joined early, while the map is still being drawn. If you believe PNG shou
       }
 
       if (platform === 'whatsapp') {
-        openShareWindow('https://wa.me/?text=' + encodeURIComponent(shareText + '\n\n' + siteUrl));
+        openShareWindow('https://wa.me/?text=' + encodeURIComponent(shareText));
         return;
       }
 
@@ -149,7 +142,7 @@ I’ve joined early, while the map is still being drawn. If you believe PNG shou
       }
 
       if (platform === 'x') {
-        const xText = 'PNG’s economy is full of knowledge hiding in plain sight. Wikonomi is building a living map of our local economy, by Papua New Guineans for Papua New Guinea. I joined while the map is still being drawn — come help build it. 🇵🇬';
+        const xText = getShareText().trim().split(/\n\s*\n/)[0].slice(0, 220).trimEnd();
         openShareWindow('https://twitter.com/intent/tweet?text=' + encodeURIComponent(xText) + '&url=' + encodedUrl);
         return;
       }
@@ -160,7 +153,7 @@ I’ve joined early, while the map is still being drawn. If you believe PNG shou
       }
 
       if (platform === 'email') {
-        window.location.href = 'mailto:?subject=' + encodeURIComponent(shareTitle) + '&body=' + encodeURIComponent(shareText + '\n\n' + siteUrl);
+        window.location.href = 'mailto:?subject=' + encodeURIComponent(shareTitle) + '&body=' + encodeURIComponent(shareText);
       }
     });
   });

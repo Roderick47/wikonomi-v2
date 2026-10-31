@@ -98,6 +98,15 @@ class ProductPageViewsTest(TestCase):
         self.assertEqual(response.context['currency_stats'][0]['report_count'], 3)
         self.assertEqual(response.context['comparison_savings_amount'], Decimal('5.00'))
 
+    def test_product_detail_offers_editable_share_message(self):
+        response = self.client.get(reverse('product_detail', args=[self.product.pk]))
+
+        self.assertContains(response, '↗ Share product')
+        self.assertContains(response, "kind: 'product'")
+        self.assertContains(response, "preview: true")
+        self.assertContains(response, 'See community-reported prices at different shops')
+        self.assertNotContains(response, 'Checked this price at')
+
     def test_product_detail_keeps_historical_reports_in_history_feed(self):
         response = self.client.get(reverse('product_detail', args=[self.product.pk]))
 

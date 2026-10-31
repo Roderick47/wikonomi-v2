@@ -123,13 +123,25 @@ class GuideBackendTests(TestCase):
             html=True,
         )
 
-    def test_detail_includes_desktop_share_text_preview(self):
+    def test_detail_supports_natural_editable_guide_sharing(self):
+        self.guide.summary = 'Steps for a business account in PNG.'
+        self.guide.save(update_fields=['summary'])
         response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
 
-        self.assertContains(response, 'data-share-popover')
-        self.assertContains(response, 'data-guide-share-text')
-        self.assertContains(response, 'data-copy-guide-share')
-        self.assertContains(response, 'Copy share text')
+        self.assertContains(response, 'data-share-guide')
+        self.assertContains(response, 'data-summary="Steps for a business account in PNG."')
+        self.assertContains(response, 'data-step-count="1"')
+        self.assertContains(response, 'data-under-review="false"')
+        self.assertContains(response, f'data-guide-url="http://testserver{reverse("guides:detail", args=[self.guide.slug])}"')
+        self.assertNotContains(response, 'data-share-popover')
+        self.assertNotContains(response, 'readonly data-guide-share-text')
+
+    def test_flagged_guide_share_data_warns_before_recommending(self):
+        self.guide.marked_for_deletion = True
+        self.guide.marked_for_deletion_by = self.user
+        self.guide.save(update_fields=['marked_for_deletion', 'marked_for_deletion_by'])
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+        self.assertContains(response, 'data-under-review="true"')
 
     def test_create_prefills_business_from_business_detail_link(self):
         self.client.force_login(self.user)
