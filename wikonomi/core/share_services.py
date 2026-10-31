@@ -196,7 +196,7 @@ def build_price_share_context(report, *, base_url=''):
     else:
         invitation = "Know another shop's price? Take a look or add yours 👇"
 
-    text = f"{headline}\\n\\n{invitation}\\n{share_url}"
+    text = f"{headline}\n\n{invitation}\n{share_url}"
     preview_description = _truncate(
         f"Price reported on {observed_label}. See this price and compare shops on Wikonomi."
     )
