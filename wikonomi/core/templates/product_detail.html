@@ -50,6 +50,7 @@
             {% else %}
             <a href="{% url 'login' %}?next={{ request.path|urlencode }}" class="inline-flex items-center rounded-full border border-brand-purple px-4 py-2 text-sm font-semibold text-brand-purple hover:bg-brand-purple/10">☆ Sign in to track</a>
             {% endif %}
+            <button type="button" onclick="sharePriceReport(event, {title: '{{ product.name|escapejs }}', kind: 'product', preview: true, text: '🛒 Comparing prices for {{ product.name|escapejs }}? {% if comparable_report_count %}See community-reported prices at different shops and compare your options on Wikonomi 👇{% else %}See the product on Wikonomi and help add a price from your local shop 👇{% endif %}', url: window.location.origin + '{% url 'product_detail' product.pk %}'})" class="inline-flex items-center rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-greenDark hover:bg-brand-green/10" aria-label="Share {{ product.name }}">↗ Share product</button>
             <a href="{% url 'product_price_analysis' product.pk %}" class="inline-flex items-center rounded-full border border-brand-blue px-4 py-2 text-sm font-semibold text-brand-blueDark hover:bg-brand-blue/10">Price history & analysis</a>
             <a href="{% url 'add_price' %}?product_name={{ product.name|urlencode }}" class="inline-flex items-center rounded-full bg-brand-greenDark px-4 py-2 text-sm font-semibold text-white shadow hover:bg-brand-greenDark/90">
                 Report a newer price
