@@ -460,6 +460,7 @@ function shareGuide(event, button) {
         text,
         kind: 'guide',
         url: button.dataset.guideUrl || window.location.origin + window.location.pathname,
+        imageUrl: button.dataset.guideImage || null,
         preview: true,
     });
 }
