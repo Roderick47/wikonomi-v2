@@ -1,0 +1,35 @@
+name: Guide sharing checks
+
+on:
+  pull_request:
+    paths:
+      - 'wikonomi/guides/**'
+      - 'wikonomi/core/templates/base.html'
+      - '.github/workflows/guide-sharing-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guide-tests:
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: wikonomi.test_settings
+      DEBUG: 'True'
+      SECRET_KEY: ci-guide-sharing-check-only
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Django system check
+        working-directory: wikonomi
+        run: python manage.py check
+      - name: Run guide and social image tests
+        working-directory: wikonomi
+        run: python manage.py test guides.tests --verbosity 2
