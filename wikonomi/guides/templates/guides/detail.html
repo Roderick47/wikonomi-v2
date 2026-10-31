@@ -10,7 +10,7 @@
 <meta property="og:site_name" content="Wikonomi">
 <meta property="og:url" content="{{ canonical_url }}">
 <meta property="og:title" content="{{ guide.title }} — Wikonomi Guides">
-<meta property="og:description" content="{{ guide.summary|default:'A practical local guide shared by the Wikonomi community.'|striptags|truncatechars:200 }}">
+<meta property="og:description" content="{% if guide.marked_for_deletion %}This guide has been flagged for review. Check the details before relying on it.{% elif guide.summary %}{{ guide.summary|striptags|truncatechars:180 }}{% else %}Explore practical steps and local tips for {{ guide.title }} on Wikonomi.{% endif %}">
 <meta property="og:image" content="{{ share_image_url }}">
 <meta property="og:image:secure_url" content="{{ share_image_url }}">
 <meta property="og:image:type" content="image/jpeg">
@@ -18,7 +18,7 @@
 <meta property="og:locale" content="en_PG">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ guide.title }} — Wikonomi Guides">
-<meta name="twitter:description" content="{{ guide.summary|default:'A practical local guide shared by the Wikonomi community.'|striptags|truncatechars:200 }}">
+<meta name="twitter:description" content="{% if guide.marked_for_deletion %}This guide has been flagged for review. Check the details before relying on it.{% elif guide.summary %}{{ guide.summary|striptags|truncatechars:180 }}{% else %}Explore practical steps and local tips for {{ guide.title }} on Wikonomi.{% endif %}">
 <meta name="twitter:image" content="{{ share_image_url }}">
 {% endblock %}
 
