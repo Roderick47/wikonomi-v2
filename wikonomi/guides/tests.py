@@ -151,6 +151,22 @@ class GuideBackendTests(TestCase):
         response = self.client.get(reverse('guides:share_image', args=[self.guide.slug]))
         self.assertEqual(response.status_code, 404)
 
+    def test_guide_actions_use_shared_floating_menu_design(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('guides:detail', args=[self.guide.slug]))
+
+        self.assertContains(response, 'css/floating_actions.css')
+        self.assertContains(response, 'js/floating_actions.js')
+        self.assertContains(response, 'data-wk-fab')
+        self.assertContains(response, 'data-wk-fab-toggle')
+        self.assertContains(response, 'data-wk-fab-panel')
+        self.assertContains(response, 'class="wk-fab__trigger"')
+        self.assertContains(response, 'class="wk-fab__panel"')
+        self.assertContains(response, 'class="wk-fab__item"')
+        self.assertContains(response, 'wk-fab__item--danger')
+        self.assertNotContains(response, 'class="guide-action-item"')
+        self.assertNotContains(response, '.guide-action-item{')
+
     def test_detail_supports_natural_editable_guide_sharing(self):
         self.guide.summary = 'Steps for a business account in PNG.'
         self.guide.save(update_fields=['summary'])

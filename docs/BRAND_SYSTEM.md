@@ -124,3 +124,32 @@ The October 2026 typography rollout established the common font and color tokens
 3. Verify desktop/mobile navigation, search, forms, price cards, store comparisons, Guide steps, map labels and onboarding.
 4. Confirm focus visibility, color contrast, 200% zoom and screen-reader labels.
 5. Run existing Django tests and `python manage.py check` in the configured app environment; verify `collectstatic` serves `css/brand.css`.
+
+## Reusable floating action menus
+
+Guides, price reports and business profiles use the same floating action component.
+Do not create page-specific floating trigger/panel styles or duplicate the
+open/close listeners when adding a new floating menu.
+
+- The shared styles live in `wikonomi/core/static/css/floating_actions.css` and
+  load from `base.html` on all pages.
+- The shared controller lives in `wikonomi/core/static/js/floating_actions.js`.
+  It manages open/close animation state, `aria-expanded`, `aria-hidden`,
+  inert content, outside clicks and Escape, and restores focus to the trigger.
+- Use `data-wk-fab` on the root, `data-wk-fab-panel` and `wk-fab__panel`
+  on the action panel, and `data-wk-fab-toggle` and `wk-fab__trigger` on
+  its trigger button. Give the panel a unique id and connect the trigger with
+  `aria-controls`.
+- Each action uses `wk-fab__item`; wrap its icon in a
+  `wk-fab__icon` span (with `aria-hidden="true"`) and its label in a
+  separate span. Use `wk-fab__item--danger` only for destructive actions.
+- Put `data-wk-fab-symbol` on the plus symbol so the shared controller can
+  switch + to × without replacing the button or its accessibility attributes.
+- Mark an action `data-wk-fab-keep-open` only when selecting it must leave
+  the panel visible (the inline price rating tray does this). Listen for
+  `wk:fab:change` when a page-specific popover should close with the menu.
+
+Keep actions and permissions specific to each page. All floating menus get the
+same circular purple trigger with a white outline, spacing, panel, hover/focus
+states, and small-screen handling. Avoid reverting to legacy
+`guide-action-item` or `wk-shortcut-panel` CSS.

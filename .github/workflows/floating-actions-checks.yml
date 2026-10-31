@@ -1,0 +1,57 @@
+name: Shared floating action menu checks
+
+on:
+  pull_request:
+    paths:
+      - 'wikonomi/core/static/css/floating_actions.css'
+      - 'wikonomi/core/static/js/floating_actions.js'
+      - 'wikonomi/core/tests/js/floating-actions.test.cjs'
+      - 'wikonomi/core/templates/base.html'
+      - 'wikonomi/core/templates/includes/_detail_shortcuts.html'
+      - 'wikonomi/core/templates/includes/_commerce_context_actions.html'
+      - 'wikonomi/guides/templates/guides/detail.html'
+      - 'wikonomi/guides/static/js/guides.js'
+      - 'wikonomi/guides/tests.py'
+      - 'wikonomi/core/test_price_sharing.py'
+      - 'wikonomi/core/test_views.py'
+      - '.github/workflows/floating-actions-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  floating-menus:
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: wikonomi.test_settings
+      DEBUG: 'True'
+      SECRET_KEY: ci-floating-actions
+      MEDIA_ROOT: /tmp/wikonomi-floating-actions-test-media
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check shared JavaScript syntax and interactions
+        run: |
+          node --check wikonomi/core/static/js/floating_actions.js
+          node --check wikonomi/guides/static/js/guides.js
+          node --test wikonomi/core/tests/js/floating-actions.test.cjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install application dependencies
+        run: pip install -r requirements.txt
+      - name: Django checks
+        working-directory: wikonomi
+        run: python manage.py check
+      - name: Shared floating menu and related page regression tests
+        working-directory: wikonomi
+        run: |
+          python manage.py test \
+            guides.tests \
+            core.test_price_sharing \
+            core.test_views.BusinessDetailGuidesTest \
+            --verbosity 2
