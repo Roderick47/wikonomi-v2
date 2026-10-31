@@ -234,7 +234,7 @@
             // This preview deliberately adds a second user gesture: native sharing
             // must be invoked directly from a tap, not after an awaited fetch.
             if (data.reportId || data.preview) {
-                openShareMessagePreview(shareTitle, fullMessage, event?.target?.closest?.('button') || event?.currentTarget, data.kind || 'price');
+                openShareMessagePreview(shareTitle, fullMessage, event?.target?.closest?.('button') || event?.currentTarget, data.kind || 'price', data.imageUrl || null);
                 return;
             }
 
@@ -274,7 +274,7 @@
             }
         }
 
-        function openShareMessagePreview(title, message, trigger, kind = 'price') {
+        function openShareMessagePreview(title, message, trigger, kind = 'price', imageUrl = null) {
             document.querySelector('[data-price-share-preview]')?.remove();
 
             const overlay = document.createElement('div');
@@ -296,9 +296,18 @@
                     </div>
                     <label for="wk-share-message" class="mt-5 block text-sm font-semibold text-gray-800">Your message</label>
                     <textarea id="wk-share-message" data-share-text rows="6" class="mt-2 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-relaxed text-slate-900 focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"></textarea>
+                    <div data-share-cover class="mt-3 hidden items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <img data-share-cover-image alt="Cover photo for this guide" class="h-20 w-28 shrink-0 rounded-lg object-cover" />
+                        <div>
+                            <p class="text-sm font-semibold text-gray-800">Guide cover photo</p>
+                            <p class="mt-1 text-xs text-gray-600">Share the actual photo, or send the link so WhatsApp can show its preview.</p>
+                        </div>
+                    </div>
+                    <p data-share-image-status class="mt-2 hidden text-xs text-gray-600" role="status" aria-live="polite"></p>
                     <div class="mt-4 flex flex-wrap items-center gap-2">
                         <button type="button" data-share-copy class="rounded-xl bg-brand-purple px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-purple/90">Copy message</button>
                         <button type="button" data-share-native class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-gray-800 hover:bg-slate-50">Share to apps</button>
+                        <button type="button" data-share-photo class="hidden rounded-xl border border-brand-blue/30 bg-brand-blue/10 px-4 py-2.5 text-sm font-bold text-brand-blueDark hover:bg-brand-blue/20">Share cover photo + link</button>
                         <a data-share-whatsapp target="_blank" rel="noopener noreferrer" class="rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-bold text-green-800 hover:bg-green-100">WhatsApp</a>
                     </div>
                 </div>`;
@@ -315,6 +324,45 @@
             };
             field.addEventListener('input', updateWhatsApp);
             updateWhatsApp();
+
+            const coverPanel = overlay.querySelector('[data-share-cover]');
+            const coverPreview = overlay.querySelector('[data-share-cover-image]');
+            const photoButton = overlay.querySelector('[data-share-photo]');
+            const imageStatus = overlay.querySelector('[data-share-image-status]');
+            let imageFile = null;
+
+            if (kind === 'guide' && imageUrl) {
+                const url = new URL(imageUrl, window.location.href);
+                if (url.origin === window.location.origin) {
+                    coverPanel.classList.remove('hidden');
+                    coverPanel.classList.add('flex');
+                    coverPreview.src = url.href;
+                    imageStatus.classList.remove('hidden');
+
+                    if (typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && typeof File !== 'undefined') {
+                        imageStatus.textContent = 'Preparing the guide cover photo for sharing…';
+                        // Preload before the user taps; native sharing needs a fresh tap.
+                        fetch(url.href, {credentials: 'same-origin'})
+                            .then((response) => {
+                                if (!response.ok) throw new Error('Cover image unavailable');
+                                return response.blob();
+                            })
+                            .then((blob) => {
+                                if (blob.type !== 'image/jpeg') throw new Error('Unexpected cover image type');
+                                const file = new File([blob], 'wikonomi-guide-cover.jpg', {type: 'image/jpeg'});
+                                if (!navigator.canShare({files: [file]})) throw new Error('File sharing is unsupported');
+                                imageFile = file;
+                                photoButton.classList.remove('hidden');
+                                imageStatus.textContent = 'To attach the photo in WhatsApp, tap “Share cover photo + link” and choose WhatsApp.';
+                            })
+                            .catch(() => {
+                                imageStatus.textContent = 'Photo attachment is unavailable here. Sharing the guide link can still show its image preview.';
+                            });
+                    } else {
+                        imageStatus.textContent = 'This device cannot attach a photo from the browser. Share the link for its image preview.';
+                    }
+                }
+            }
 
             let previousOverflow = document.body.style.overflow;
             const close = () => {
@@ -343,6 +391,26 @@
                         });
                 } catch (error) {
                     showToast('Could not open the share sheet. Try copying the message.', 'error');
+                }
+            });
+            photoButton.addEventListener('click', () => {
+                if (!imageFile) return;
+                // File and text sharing must be invoked inside this click to
+                // preserve Android's share-sheet user activation.
+                try {
+                    Promise.resolve(navigator.share({
+                        title,
+                        text: field.value.trim(),
+                        files: [imageFile]
+                    }))
+                        .then(close)
+                        .catch((error) => {
+                            if (error.name !== 'AbortError') {
+                                showToast('Unable to share the image. Use WhatsApp or copy the guide link instead.', 'error');
+                            }
+                        });
+                } catch (error) {
+                    showToast('Unable to share the image. Use WhatsApp or copy the guide link instead.', 'error');
                 }
             });
 

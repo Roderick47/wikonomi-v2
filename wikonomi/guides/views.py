@@ -1,13 +1,18 @@
+import hashlib
 import json
+from io import BytesIO
+
+from PIL import Image, ImageOps
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import F, Prefetch, Q
-from django.http import JsonResponse
+from django.http import HttpResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.text import slugify
+from django.views.decorators.cache import cache_control
 from django.views.decorators.http import require_GET, require_POST
 
 from categories.models import BusinessCategory
@@ -242,10 +247,16 @@ def guide_detail(request, slug):
         question.accepted = any(answer.is_accepted for answer in question.answers.all())
 
     has_edits = guide.versions.exclude(pk=guide.current_version_id).exists()
+    # Give link-preview crawlers an image on our own public domain rather than
+    # requiring them to fetch a separate object-storage host.
     share_image_url = request.build_absolute_uri(
-        guide.photo.url if guide.photo else static('img/wikonomi-og-default.jpg')
+        reverse('guides:share_image', args=[guide.slug])
+        if guide.photo else static('img/wikonomi-og-default.jpg')
     )
     canonical_url = request.build_absolute_uri(request.path)
+    photo_version = hashlib.sha256(guide.photo.name.encode()).hexdigest()[:10] if guide.photo else ''
+    # A changed share URL also bypasses WhatsApp's previously cached text-only cards.
+    social_share_url = f'{canonical_url}?cover={photo_version}' if photo_version else canonical_url
     return render(request, 'guides/detail.html', {
         'guide': guide,
         'steps': steps,
@@ -261,7 +272,45 @@ def guide_detail(request, slug):
         'latest_editor': guide.current_version.edited_by if has_edits and guide.current_version else None,
         'share_image_url': share_image_url,
         'canonical_url': canonical_url,
+        'social_share_url': social_share_url,
+        'has_share_photo': bool(guide.photo),
     })
+
+
+
+@require_GET
+@cache_control(public=True, max_age=3600)
+def guide_share_image(request, slug):
+    """Deliver a compact cover image to social crawlers and native sharing.
+
+    A same-origin JPEG avoids cross-domain media hotlink restrictions and gives
+    WhatsApp an image comfortably below its usual preview size limit.
+    """
+    guide = get_object_or_404(Guide, slug=slug)
+    if not guide.photo:
+        raise Http404('This guide has no cover image')
+
+    try:
+        with guide.photo.open('rb') as source, Image.open(source) as original:
+            # Keep the complete image: cropping could remove important guide text.
+            image = ImageOps.pad(
+                original.convert('RGB'),
+                (1200, 630),
+                method=Image.Resampling.LANCZOS,
+                color=(248, 250, 252),
+            )
+        encoded = b''
+        for quality in (78, 68, 58, 48):
+            buffer = BytesIO()
+            image.save(buffer, format='JPEG', quality=quality, optimize=True)
+            encoded = buffer.getvalue()
+            if len(encoded) <= 500_000:
+                break
+    except (OSError, ValueError) as exc:
+        # Do not leak private object-storage details to public crawlers.
+        raise Http404('Guide cover image unavailable') from exc
+
+    return HttpResponse(encoded, content_type='image/jpeg')
 
 
 @login_required

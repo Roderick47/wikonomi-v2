@@ -8,6 +8,7 @@ app_name = 'guides'
 urlpatterns = [
     path('', views.guide_list, name='list'),
     path('new/', views.guide_create, name='create'),
+    path('<slug:slug>/share-image/', views.guide_share_image, name='share_image'),
     path('<slug:slug>/', views.guide_detail, name='detail'),
     path('<slug:slug>/edit/', views.guide_edit, name='edit'),
     path('<slug:slug>/fork/', views.guide_fork, name='fork'),
