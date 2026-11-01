@@ -42,6 +42,7 @@ urlpatterns = [
     path('categories/', include('categories.urls')),
     path('add/', promotion_views.contribute, name='contribute'),
     path('specials/', include('promotions.urls')),
+    path('app/', include('mobile.urls')),
     path('', include('core.urls')),
     path('analytics/', include('analytics.urls')),
     path('guides/', include('guides.urls')),
