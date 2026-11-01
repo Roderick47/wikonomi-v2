@@ -1,4 +1,5 @@
 from django import forms
+from django.forms import formset_factory
 
 from .models import Guide, GuideAnswer, GuideQuestion, StepTip
 
@@ -68,6 +69,49 @@ class GuideForm(forms.ModelForm):
                 self.fields['organization_name'].initial = self.instance.organization.name
             if self.instance.category:
                 self.fields['category_name'].initial = self.instance.category.name
+
+
+class GuideReferenceForm(forms.Form):
+    title = forms.CharField(
+        label='Source title',
+        max_length=300,
+        widget=forms.TextInput(attrs={
+            'class': GUIDE_INPUT_CLASS,
+            'placeholder': 'e.g. PNG ICA — Ordinary Passport Renewal Checklist',
+        }),
+    )
+    url = forms.URLField(
+        label='Source URL',
+        max_length=2048,
+        widget=forms.URLInput(attrs={
+            'class': GUIDE_INPUT_CLASS,
+            'placeholder': 'https://...',
+        }),
+    )
+    publisher = forms.CharField(
+        label='Publisher or organization',
+        required=False,
+        max_length=180,
+        widget=forms.TextInput(attrs={
+            'class': GUIDE_INPUT_CLASS,
+            'placeholder': 'e.g. PNG Immigration & Citizenship Authority',
+        }),
+    )
+    accessed_at = forms.DateField(
+        label='Date accessed',
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': GUIDE_INPUT_CLASS,
+            'type': 'date',
+        }),
+    )
+
+
+GuideReferenceFormSet = formset_factory(
+    GuideReferenceForm,
+    extra=0,
+    can_delete=True,
+)
 
 
 class GuideForkForm(forms.Form):
