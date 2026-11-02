@@ -154,7 +154,7 @@
                 <div>
                     <p class="text-xs font-bold uppercase tracking-wide text-brand-purple">Current comparison · {{ comparison_currency }}</p>
                     <h2 class="mt-1 text-2xl font-extrabold text-gray-900">Where is {{ product.name }} cheapest?</h2>
-                    <p class="mt-1 max-w-3xl text-sm text-gray-600">The table keeps one latest-known valid price per store or branch. Prices older than {{ comparison_stale_after_days }} days stay visible but are excluded from the current winner, savings, nearby ranking, and map.</p>
+                    <p class="mt-1 max-w-3xl text-sm text-gray-600">The table keeps one latest-known valid price per store or branch. Prices older than {{ comparison_stale_after_days }} days stay visible on the map and in the table, but are excluded from the current winner, savings, and nearby ranking.</p>
                 </div>
                 {% if comparison_savings_amount %}
                 <div class="rounded-2xl bg-brand-green/10 px-4 py-3 text-right">
@@ -262,6 +262,21 @@
         {% endif %}
     </section>
 
+    <section class="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm" aria-labelledby="product-map-heading">
+        <h2 id="product-map-heading" class="text-xl font-extrabold text-gray-900">Where to find {{ product.name }}</h2>
+        <p class="mt-1 text-sm text-gray-600">Latest known price at each mapped store or branch, including older reports. Check the reported date before visiting; only reports within {{ comparison_stale_after_days }} days qualify for the current price comparison.</p>
+        {% if reports_with_location %}
+        <div id="product-map" class="mt-4 h-96 w-full rounded-xl border border-gray-200" role="region" aria-label="Map of reported prices for {{ product.name }}"></div>
+        <p class="mt-2 text-xs text-gray-500">{{ reports_with_location|length }} mapped store price{{ reports_with_location|length|pluralize }}. Select a pin to view its price, report date and original report.</p>
+        {% else %}
+        <div class="mt-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center">
+            <p class="font-semibold text-gray-800">No mapped prices yet</p>
+            <p class="mt-1 text-sm text-gray-600">Price reports need coordinates before their stores can appear on the map.</p>
+            <a href="{% url 'add_price' %}?product_name={{ product.name|urlencode }}" class="mt-3 inline-flex rounded-full bg-brand-greenDark px-4 py-2 text-sm font-semibold text-white">Add a mapped price</a>
+        </div>
+        {% endif %}
+    </section>
+
     {% if currency_stats %}
     <section class="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 class="text-lg font-bold text-gray-900">Latest-known prices by currency</h2>
@@ -303,13 +318,6 @@
     </section>
     {% endif %}
 
-    {% if reports_with_location %}
-    <section class="mt-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 class="text-2xl font-bold text-gray-900">Current price map</h2>
-        <p class="text-sm text-gray-600">Mapped store prices reported within the last {{ comparison_stale_after_days }} days for {{ product.name }}.</p>
-        <div id="product-map" class="mt-4 h-96 rounded-xl border border-gray-200"></div>
-    </section>
-    {% endif %}
     {% if nearest_reports %}
     <section class="mt-8">
         <div class="mb-4 flex items-center justify-between gap-3">
@@ -392,7 +400,12 @@ document.addEventListener('DOMContentLoaded', function() {
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap contributors' }).addTo(map);
     const bounds = [];
     {% for report in reports_with_location %}
-    L.marker([{{ report.latitude }}, {{ report.longitude }}]).addTo(map).bindPopup('<strong>{{ report.currency }} {{ report.price|intcomma }}</strong><br>{{ report.get_business_display|escapejs }}<br><a href="{% url "price_detail" report.pk %}">View report</a>');
+    L.marker([{{ report.latitude }}, {{ report.longitude }}]).addTo(map).bindPopup(
+        '<strong>{{ report.currency|escapejs }} {{ report.price|floatformat:2|escapejs }}</strong><br>' +
+        '{{ report.get_business_display|escapejs }}<br>' +
+        'Reported {{ report.observed_at|date:"j M Y"|escapejs }}<br>' +
+        '<a href="{% url "price_detail" report.pk %}">View report</a>'
+    );
     bounds.push([{{ report.latitude }}, {{ report.longitude }}]);
     {% endfor %}
     if (bounds.length) map.fitBounds(bounds, { padding: [40, 40] });
