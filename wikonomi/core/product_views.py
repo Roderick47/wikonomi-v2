@@ -348,10 +348,12 @@ def product_detail(request, pk):
     if nearby_most_expensive_report is None:
         nearby_most_expensive_report = most_expensive_report
 
-    reports_with_location = comparable_reports.filter(
+    # Show the latest known price at every mapped store, even when its
+    # observation is too old to qualify for today's price ranking.
+    reports_with_location = list(current_reports.filter(
         latitude__isnull=False,
         longitude__isnull=False,
-    ).select_related('business')[:100]
+    ).select_related('business', 'business_branch').order_by('-observed_at'))
 
     product_photos = PriceReportPhoto.objects.filter(
         price_report__product_id__in=product_ids,
