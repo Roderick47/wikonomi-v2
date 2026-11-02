@@ -169,6 +169,21 @@ class ProductPageViewsTest(TestCase):
         nearest_ids = [report.pk for report in response.context['nearest_reports']]
         self.assertNotIn(self.stale_report.pk, nearest_ids)
 
+    def test_product_map_includes_older_latest_known_store_prices(self):
+        response = self.client.get(reverse('product_detail', args=[self.product.pk]))
+        mapped_ids = [report.pk for report in response.context['reports_with_location']]
+        self.assertIn(self.stale_report.pk, mapped_ids)
+        self.assertIn(self.cheapest_report.pk, mapped_ids)
+        self.assertNotIn(self.historical_report.pk, mapped_ids)
+        self.assertContains(response, 'Where to find Trukai Rice 10kg')
+        self.assertContains(response, 'id="product-map"')
+
+    def test_product_map_has_empty_state(self):
+        PriceReport.objects.all().update(latitude=None, longitude=None)
+        response = self.client.get(reverse('product_detail', args=[self.product.pk]))
+        self.assertContains(response, 'No mapped prices yet')
+        self.assertNotContains(response, 'id="product-map"')
+
     def test_product_detail_renders_without_reports(self):
         empty_product = Product.objects.create(
             name='Empty Product',
