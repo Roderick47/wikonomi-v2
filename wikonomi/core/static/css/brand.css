@@ -306,3 +306,12 @@ form[data-wk-validate] .wk-field-counter {
   color: inherit;
 }
 .wk-form-alert ul.errorlist li + li { margin-top: 0.375rem; }
+ 
+/* All Leaflet maps share a stacking context. Leaflet's panes and controls
+ * otherwise use z-indices (400–1000) that can overlap the sticky site navbar
+ * and fixed UI when the page scrolls. Keep every map below the site chrome
+ * while preserving the normal layering of markers, popups and controls. */
+.leaflet-container {
+  isolation: isolate;
+  z-index: 0;
+}
