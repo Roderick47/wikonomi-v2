@@ -6,6 +6,8 @@ on:
       - 'wikonomi/core/views.py'
       - 'wikonomi/core/templates/my_prices.html'
       - 'wikonomi/core/templates/product_detail.html'
+      - 'wikonomi/core/templates/price_report_detail.html'
+      - 'wikonomi/core/test_product_pages.py'
       - 'wikonomi/core/templates/base.html'
       - 'wikonomi/core/test_price_tracking_dashboard.py'
       - 'wikonomi/core/test_views.py'
