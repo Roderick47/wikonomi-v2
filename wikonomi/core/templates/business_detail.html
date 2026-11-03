@@ -59,47 +59,46 @@
             radial-gradient(circle at top left, rgba(102, 209, 126, 0.22), transparent 32rem),
             linear-gradient(135deg, rgba(75, 39, 152, 0.96), rgba(77, 184, 255, 0.82));
     }
-    .wk-business-hero-sticky {
-        transition: height 280ms cubic-bezier(0.4, 0, 0.2, 1), border-radius 220ms ease, box-shadow 220ms ease, margin-bottom 220ms ease;
-    }
-    .wk-business-hero-sticky .wk-business-hero-condensed {
-        position: absolute;
-        inset: 0;
-        display: flex;
+    /* The full business hero stays in document flow while this independent
+       navigation summary animates on the compositor only. */
+    .wk-business-hero-compact {
+        position: fixed;
+        inset-inline: 0;
+        top: var(--navbar-height, 4rem);
+        z-index: 40; /* Keep below the main site navigation (z-50). */
+        padding: 0.5rem 1rem 0;
         opacity: 0;
-        pointer-events: none;
-        transform: translateY(-0.5rem);
         visibility: hidden;
-        transition: opacity 180ms ease, transform 220ms ease, visibility 0s linear 220ms;
-    }
-    .wk-business-hero-sticky .wk-business-hero-expanded {
-        opacity: 1;
-        transform: translateY(0);
-        transition: opacity 180ms ease, transform 220ms ease, visibility 0s linear;
-    }
-    .wk-business-hero-sticky.is-stuck .wk-business-hero-expanded {
-        position: absolute;
-        inset: 0;
-        opacity: 0;
         pointer-events: none;
-        transform: translateY(0.5rem);
-        visibility: hidden;
-        transition-delay: 0s, 0s, 220ms;
+        transform: translate3d(0, -8px, 0);
+        transition: opacity 220ms cubic-bezier(0.2, 0.7, 0.2, 1),
+                    transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1),
+                    visibility 0s linear 220ms;
     }
-    .wk-business-hero-sticky.is-stuck { margin-bottom: 1rem; box-shadow: 0 10px 30px rgb(15 23 42 / 0.25); }
-    .wk-business-hero-sticky.is-stuck .wk-business-hero-condensed {
-        position: relative;
-        inset: auto;
+    .wk-business-hero-compact.is-visible {
         opacity: 1;
-        pointer-events: auto;
-        transform: translateY(0);
         visibility: visible;
-        transition-delay: 70ms, 70ms, 0s;
+        pointer-events: auto;
+        transform: translate3d(0, 0, 0);
+        transition-delay: 0s;
+    }
+    .wk-business-hero-compact-inner {
+        max-width: 80rem;
+        margin-inline: auto;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 8px 24px rgb(15 23 42 / 0.12);
+    }
+    #business-hero-expanded {
+        scroll-margin-top: calc(var(--navbar-height, 4rem) + 1rem);
+    }
+    @supports (backdrop-filter: blur(8px)) {
+        .wk-business-hero-compact-inner {
+            background: rgba(255, 255, 255, 0.91);
+            backdrop-filter: blur(10px);
+        }
     }
     @media (prefers-reduced-motion: reduce) {
-        .wk-business-hero-sticky,
-        .wk-business-hero-sticky .wk-business-hero-condensed,
-        .wk-business-hero-sticky .wk-business-hero-expanded { transition-duration: 0.01ms; }
+        .wk-business-hero-compact { transition: none; }
     }
     .stat-pill {
         backdrop-filter: blur(8px);
@@ -171,20 +170,33 @@
         </div>
     </div>
 
-    <!-- Business Header -->
-    <div id="business-hero-sticky-sentinel" class="h-px" aria-hidden="true"></div>
-    <section id="business-hero-sticky" class="business-hero wk-business-hero-sticky sticky top-[var(--navbar-height,4rem)] z-30 mb-8 overflow-hidden rounded-2xl text-white shadow-lg">
-        <div class="wk-business-hero-condensed min-w-0 items-center gap-3 px-4 py-2.5 sm:px-8" aria-label="Condensed business header">
-            <div class="min-w-0 flex-1 truncate text-sm font-bold text-white">
-                <span class="truncate">{{ business.name }}</span>
+    <!-- Keep the full business hero in normal document flow. The compact bar
+         is independent, so its appearance never alters surrounding content. -->
+    <div id="business-hero-compact" class="wk-business-hero-compact" role="region" aria-label="Compact business summary" aria-hidden="true" inert>
+        <div class="wk-business-hero-compact-inner flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 sm:gap-3">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-100 bg-slate-50">
+                {% if business.logo %}
+                <img src="{{ business.logo.url }}" alt="" class="h-full w-full object-contain p-1" loading="lazy">
+                {% elif business.image %}
+                <img src="{{ business.image.url }}" alt="" class="h-full w-full object-cover" loading="lazy">
+                {% else %}
+                <img src="{% static 'img/default-business.svg' %}" alt="" class="h-7 w-7 object-contain opacity-70" loading="lazy">
+                {% endif %}
             </div>
-            <span class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-semibold text-amber-200" data-rating-summary data-business-id="{{ business.id }}" aria-label="Average rating">
-                ★ <span data-rating-score>{{ average_rating|default:0|floatformat:1 }}</span>
-                <span class="text-white/70">(<span data-rating-count>{{ rating_count }}</span>)</span>
+            <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-semibold leading-tight text-gray-900">{{ business.name }}</p>
+                <p class="mt-0.5 truncate text-xs font-medium text-slate-500">Business profile</p>
+            </div>
+            <span class="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap text-xs font-semibold text-amber-600" data-rating-summary data-business-id="{{ business.id }}" aria-label="Average rating">
+                <span aria-hidden="true">★</span> <span data-rating-score>{{ average_rating|default:0|floatformat:1 }}</span>
+                <span class="hidden text-gray-400 sm:inline">(<span data-rating-count>{{ rating_count }}</span>)</span>
             </span>
-            <button type="button" class="hidden shrink-0 rounded-full border border-white/30 bg-white/10 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-white/20 sm:inline-flex" data-business-hero-back-top>Back to top</button>
+            <button type="button" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-gray-600 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue" data-business-hero-back-top aria-label="Back to business details" title="Back to business details">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19V5m-7 7 7-7 7 7"></path></svg>
+            </button>
         </div>
-        <div class="wk-business-hero-expanded">
+    </div>
+    <section id="business-hero-expanded" class="business-hero mb-8 overflow-hidden rounded-2xl text-white shadow-lg">
         <div class="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
                 <p class="text-sm font-semibold uppercase tracking-wide text-white/75">Business profile</p>
@@ -256,7 +268,6 @@
                 </div>
                 {% endif %}
             </div>
-        </div>
         </div>
     </section>
 
@@ -564,61 +575,51 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const stickyHero = document.getElementById('business-hero-sticky');
-        const stickySentinel = document.getElementById('business-hero-sticky-sentinel');
+        const expandedHero = document.getElementById('business-hero-expanded');
+        const compactHero = document.getElementById('business-hero-compact');
+        const navbar = document.getElementById('site-navbar');
         const backTopButton = document.querySelector('[data-business-hero-back-top]');
-        if (stickyHero && stickySentinel && 'IntersectionObserver' in window) {
-            // IntersectionObserver's rootMargin only accepts px/% values — calc()/var()
-            // are not valid there, so we resolve the navbar height to a plain pixel
-            // number ourselves rather than referencing the --navbar-height CSS variable.
-            const getNavbarHeightPx = () => {
-                const navbar = document.getElementById('site-navbar');
-                if (navbar) return navbar.offsetHeight;
-                const cssValue = getComputedStyle(document.documentElement).getPropertyValue('--navbar-height');
-                const parsed = parseFloat(cssValue);
-                return Number.isFinite(parsed) ? parsed : 64;
+
+        if (expandedHero && compactHero) {
+            let compactVisible = false;
+            let updateScheduled = false;
+            const updateCompactSummary = () => {
+                const navbarBottom = navbar ? navbar.getBoundingClientRect().bottom : 0;
+                const cardBottom = expandedHero.getBoundingClientRect().bottom;
+                // Small hysteresis prevents flickering when scroll reverses at the boundary.
+                const nextVisible = compactVisible
+                    ? cardBottom < navbarBottom + 18
+                    : cardBottom < navbarBottom - 12;
+                if (nextVisible === compactVisible) return;
+                compactVisible = nextVisible;
+                compactHero.classList.toggle('is-visible', nextVisible);
+                compactHero.inert = !nextVisible;
+                compactHero.setAttribute('aria-hidden', String(!nextVisible));
+            };
+            const scheduleCompactUpdate = () => {
+                if (updateScheduled) return;
+                updateScheduled = true;
+                requestAnimationFrame(() => {
+                    updateScheduled = false;
+                    updateCompactSummary();
+                });
             };
 
-            let stickyObserver = null;
-            const observeSticky = () => {
-                if (stickyObserver) stickyObserver.disconnect();
-                stickyObserver = new IntersectionObserver(entries => {
-                    const shouldStick = !entries[0].isIntersecting;
-                    if (stickyHero.classList.contains('is-stuck') === shouldStick) return;
-
-                    const startHeight = stickyHero.getBoundingClientRect().height;
-                    stickyHero.style.height = 'auto';
-                    stickyHero.classList.toggle('is-stuck', shouldStick);
-                    const endHeight = stickyHero.getBoundingClientRect().height;
-
-                    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                        stickyHero.style.height = '';
-                        return;
-                    }
-
-                    stickyHero.style.height = `${startHeight}px`;
-                    stickyHero.getBoundingClientRect();
-                    requestAnimationFrame(() => {
-                        stickyHero.style.height = `${endHeight}px`;
-                    });
-
-                    const clearAnimatedHeight = event => {
-                        if (event.target !== stickyHero || event.propertyName !== 'height') return;
-                        stickyHero.style.height = '';
-                        stickyHero.removeEventListener('transitionend', clearAnimatedHeight);
-                    };
-                    stickyHero.addEventListener('transitionend', clearAnimatedHeight);
-                }, { rootMargin: `-${getNavbarHeightPx()}px 0px 0px 0px` });
-                stickyObserver.observe(stickySentinel);
-            };
-
-            observeSticky();
-            // Re-create the observer if the navbar's height changes (e.g. orientation change).
-            window.addEventListener('resize', observeSticky);
+            window.addEventListener('scroll', scheduleCompactUpdate, { passive: true });
+            window.addEventListener('resize', scheduleCompactUpdate, { passive: true });
+            if ('ResizeObserver' in window) {
+                const observer = new ResizeObserver(scheduleCompactUpdate);
+                observer.observe(expandedHero);
+                if (navbar) observer.observe(navbar);
+            }
+            updateCompactSummary();
+            backTopButton?.addEventListener('click', () => {
+                const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                const navbarHeight = navbar ? navbar.offsetHeight : 0;
+                const targetY = expandedHero.getBoundingClientRect().top + window.scrollY - navbarHeight - 16;
+                window.scrollTo({ top: Math.max(0, targetY), behavior: reducedMotion ? 'auto' : 'smooth' });
+            });
         }
-        backTopButton?.addEventListener('click', () => {
-            stickySentinel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
     });
 </script>
 {% endblock %}
