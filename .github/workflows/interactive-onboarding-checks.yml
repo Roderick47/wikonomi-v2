@@ -23,7 +23,7 @@ jobs:
       SECRET_KEY: ci-interactive-onboarding-only
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Verify walkthrough JavaScript parses

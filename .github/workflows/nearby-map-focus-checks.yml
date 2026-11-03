@@ -22,7 +22,7 @@ jobs:
       SECRET_KEY: ci-nearby-map-only
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Check JavaScript syntax and map-centering behavior
