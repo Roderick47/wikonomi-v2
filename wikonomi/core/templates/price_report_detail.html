@@ -57,48 +57,45 @@
         height: 420px;
         z-index: 10;
     }
-    .wk-price-hero-sticky {
-        overflow: hidden;
-        transition: height 280ms cubic-bezier(0.4, 0, 0.2, 1), border-radius 220ms ease, box-shadow 220ms ease, margin-bottom 220ms ease;
-    }
-    .wk-price-hero-sticky .wk-price-hero-condensed {
-        position: absolute;
-        inset: 0;
-        display: flex;
+    /* The expanded card stays in the document flow; only this separate bar animates. */
+    .wk-price-hero-compact {
+        position: fixed;
+        inset-inline: 0;
+        top: var(--navbar-height, 4rem);
+        z-index: 40; /* Below the site navigation (z-50). */
+        padding: 0.5rem 1rem 0;
         opacity: 0;
-        pointer-events: none;
-        transform: translateY(-0.5rem);
         visibility: hidden;
-        transition: opacity 180ms ease, transform 220ms ease, visibility 0s linear 220ms;
-    }
-    .wk-price-hero-sticky .wk-price-hero-expanded {
-        opacity: 1;
-        transform: translateY(0);
-        transition: opacity 180ms ease, transform 220ms ease, visibility 0s linear;
-    }
-    .wk-price-hero-sticky.is-stuck .wk-price-hero-expanded {
-        position: absolute;
-        inset: 0;
-        opacity: 0;
         pointer-events: none;
-        transform: translateY(0.5rem);
-        visibility: hidden;
-        transition-delay: 0s, 0s, 220ms;
+        transform: translate3d(0, -8px, 0);
+        transition: opacity 220ms cubic-bezier(0.2, 0.7, 0.2, 1),
+                    transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1),
+                    visibility 0s linear 220ms;
     }
-    .wk-price-hero-sticky.is-stuck { margin-bottom: 1rem; border-radius: 0.75rem; box-shadow: 0 10px 30px rgb(15 23 42 / 0.10); }
-    .wk-price-hero-sticky.is-stuck .wk-price-hero-condensed {
-        position: relative;
-        inset: auto;
+    .wk-price-hero-compact.is-visible {
         opacity: 1;
-        pointer-events: auto;
-        transform: translateY(0);
         visibility: visible;
-        transition-delay: 70ms, 70ms, 0s;
+        pointer-events: auto;
+        transform: translate3d(0, 0, 0);
+        transition-delay: 0s;
+    }
+    .wk-price-hero-compact-inner {
+        max-width: 80rem;
+        margin-inline: auto;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 8px 24px rgb(15 23 42 / 0.12);
+    }
+    #price-hero-expanded {
+        scroll-margin-top: calc(var(--navbar-height, 4rem) + 1rem);
+    }
+    @supports (backdrop-filter: blur(8px)) {
+        .wk-price-hero-compact-inner {
+            background: rgba(255, 255, 255, 0.91);
+            backdrop-filter: blur(10px);
+        }
     }
     @media (prefers-reduced-motion: reduce) {
-        .wk-price-hero-sticky,
-        .wk-price-hero-sticky .wk-price-hero-condensed,
-        .wk-price-hero-sticky .wk-price-hero-expanded { transition-duration: 0.01ms; }
+        .wk-price-hero-compact { transition: none; }
     }
 </style>
 
@@ -122,22 +119,33 @@
         </a>
     </div>
 
-    <!-- Hero header -->
-    <div id="price-hero-sticky-sentinel" class="h-px" aria-hidden="true"></div>
-    <div id="price-hero-sticky" class="wk-price-hero-sticky sticky top-[var(--navbar-height,4rem)] z-30 mb-8 rounded-2xl bg-white/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/80">
-        <div class="wk-price-hero-condensed min-w-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-1.5" aria-label="Condensed price report header">
-            <div class="min-w-0 flex-1 truncate text-sm font-bold text-gray-900">
-                <span class="truncate">{{ report.product.name }}</span>
-                <span class="mx-1 text-gray-300" aria-hidden="true">—</span>
-                <span class="whitespace-nowrap font-extrabold text-brand-green">{{ report.currency }} {{ report.price|intcomma }}</span>
+    <!-- The main report card remains in normal flow. The compact summary never
+         replaces it or changes its height, so following sections cannot jump. -->
+    <div id="price-hero-compact" class="wk-price-hero-compact" role="region" aria-label="Compact price summary" aria-hidden="true" inert>
+        <div class="wk-price-hero-compact-inner flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 sm:gap-3">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-100 bg-slate-50">
+                {% if report.primary_photo %}
+                <img src="{{ report.primary_photo.image.url }}" alt="" class="h-full w-full object-contain" loading="lazy">
+                {% elif report.product.display_image %}
+                <img src="{{ report.product.display_image.url }}" alt="" class="h-full w-full object-contain" loading="lazy">
+                {% else %}
+                <svg class="h-6 w-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 012-2h-4a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                {% endif %}
             </div>
-            <span class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-semibold text-amber-600" data-rating-summary data-price-id="{{ report.id }}" aria-label="Average rating">
-                ★ <span data-rating-score>{{ average_rating|default:0|floatformat:1 }}</span>
-                <span class="text-gray-400">(<span data-rating-count>{{ rating_count|default:0 }}</span>)</span>
+            <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-semibold leading-tight text-gray-900" data-price-compact-name>{{ report.product.name }}</p>
+                <p class="mt-0.5 whitespace-nowrap text-base font-extrabold leading-tight text-brand-green">{{ report.currency }} <span data-price-compact-amount>{{ report.price|floatformat:2|intcomma }}</span></p>
+            </div>
+            <span class="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap text-xs font-semibold text-amber-600" data-rating-summary data-price-id="{{ report.id }}" aria-label="Average rating">
+                <span aria-hidden="true">★</span> <span data-rating-score>{{ average_rating|default:0|floatformat:1 }}</span>
+                <span class="hidden text-gray-400 sm:inline">(<span data-rating-count>{{ rating_count|default:0 }}</span>)</span>
             </span>
-            <button type="button" class="hidden shrink-0 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-semibold text-gray-600 transition hover:bg-slate-50 sm:inline-flex" data-price-hero-back-top>Back to top</button>
+            <button type="button" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-gray-600 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue" data-price-hero-back-top aria-label="Back to price details" title="Back to price details">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19V5m-7 7 7-7 7 7"></path></svg>
+            </button>
         </div>
-        <div class="wk-price-hero-expanded pb-2">
+    </div>
+    <div id="price-hero-expanded" class="mb-8">
         {% include "includes/_price_report_card.html" with report=report price_card_static=True price_card_editable=True price_card_show_detail_actions=True average_rating=average_rating rating_count=rating_count current_user_rating=current_user_rating price_card_current_user_rating=current_user_rating %}
 
         {% if report.duplicated_from %}
@@ -227,7 +235,6 @@
             </form>
         </div>
         {% endif %}
-        </div>
     </div>
 
     <!-- Rating widget -->
@@ -562,61 +569,49 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const stickyHero = document.getElementById('price-hero-sticky');
-        const stickySentinel = document.getElementById('price-hero-sticky-sentinel');
+        const expandedHero = document.getElementById('price-hero-expanded');
+        const compactHero = document.getElementById('price-hero-compact');
+        const navbar = document.getElementById('site-navbar');
         const backTopButton = document.querySelector('[data-price-hero-back-top]');
-        if (stickyHero && stickySentinel && 'IntersectionObserver' in window) {
-            // IntersectionObserver's rootMargin only accepts px/% values — calc()/var()
-            // are not valid here and cause the constructor to throw, so we resolve the
-            // navbar height to a plain pixel number ourselves.
-            const getNavbarHeightPx = () => {
-                const navbar = document.getElementById('site-navbar');
-                if (navbar) return navbar.offsetHeight;
-                const cssValue = getComputedStyle(document.documentElement).getPropertyValue('--navbar-height');
-                const parsed = parseFloat(cssValue);
-                return Number.isFinite(parsed) ? parsed : 64;
+        if (expandedHero && compactHero) {
+            let compactVisible = false;
+            let updateScheduled = false;
+            const updateCompactSummary = () => {
+                const navbarBottom = navbar ? navbar.getBoundingClientRect().bottom : 0;
+                const cardBottom = expandedHero.getBoundingClientRect().bottom;
+                // Hysteresis keeps the summary from flickering at the boundary.
+                const nextVisible = compactVisible
+                    ? cardBottom < navbarBottom + 18
+                    : cardBottom < navbarBottom - 12;
+                if (nextVisible === compactVisible) return;
+                compactVisible = nextVisible;
+                compactHero.classList.toggle('is-visible', nextVisible);
+                compactHero.inert = !nextVisible;
+                compactHero.setAttribute('aria-hidden', String(!nextVisible));
             };
-
-            let stickyObserver = null;
-            const observeSticky = () => {
-                if (stickyObserver) stickyObserver.disconnect();
-                stickyObserver = new IntersectionObserver(entries => {
-                    const shouldStick = !entries[0].isIntersecting;
-                    if (stickyHero.classList.contains('is-stuck') === shouldStick) return;
-
-                    const startHeight = stickyHero.getBoundingClientRect().height;
-                    stickyHero.style.height = 'auto';
-                    stickyHero.classList.toggle('is-stuck', shouldStick);
-                    const endHeight = stickyHero.getBoundingClientRect().height;
-
-                    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                        stickyHero.style.height = '';
-                        return;
-                    }
-
-                    stickyHero.style.height = `${startHeight}px`;
-                    stickyHero.getBoundingClientRect();
-                    requestAnimationFrame(() => {
-                        stickyHero.style.height = `${endHeight}px`;
-                    });
-
-                    const clearAnimatedHeight = event => {
-                        if (event.target !== stickyHero || event.propertyName !== 'height') return;
-                        stickyHero.style.height = '';
-                        stickyHero.removeEventListener('transitionend', clearAnimatedHeight);
-                    };
-                    stickyHero.addEventListener('transitionend', clearAnimatedHeight);
-                }, { rootMargin: `-${getNavbarHeightPx()}px 0px 0px 0px` });
-                stickyObserver.observe(stickySentinel);
+            const scheduleCompactUpdate = () => {
+                if (updateScheduled) return;
+                updateScheduled = true;
+                requestAnimationFrame(() => {
+                    updateScheduled = false;
+                    updateCompactSummary();
+                });
             };
-
-            observeSticky();
-            // Re-create the observer if the navbar's height changes (e.g. orientation change).
-            window.addEventListener('resize', observeSticky);
+            window.addEventListener('scroll', scheduleCompactUpdate, { passive: true });
+            window.addEventListener('resize', scheduleCompactUpdate, { passive: true });
+            if ('ResizeObserver' in window) {
+                const observer = new ResizeObserver(scheduleCompactUpdate);
+                observer.observe(expandedHero);
+                if (navbar) observer.observe(navbar);
+            }
+            updateCompactSummary();
+            backTopButton?.addEventListener('click', () => {
+                const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                const navbarHeight = navbar ? navbar.offsetHeight : 0;
+                const targetY = expandedHero.getBoundingClientRect().top + window.scrollY - navbarHeight - 16;
+                window.scrollTo({ top: Math.max(0, targetY), behavior: reducedMotion ? 'auto' : 'smooth' });
+            });
         }
-        backTopButton?.addEventListener('click', () => {
-            stickySentinel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
 
         const pageDeleteForm = document.querySelector('[data-page-delete-form]');
         if (pageDeleteForm) {
@@ -920,12 +915,22 @@
                         display.textContent = input.value;
                     }
                 });
+                // Keep the independent compact summary in sync after inline edits.
+                const compactName = document.querySelector('[data-price-compact-name]');
+                const nameInput = document.querySelector('.wk-edit-input[name="product_name"]');
+                if (compactName && nameInput) compactName.textContent = nameInput.value;
                 // Update price display separately so the PGK prefix stays intact.
                 const priceInput = document.querySelector('.wk-edit-input[name="price"]');
                 const priceDisplay = document.querySelector('.wk-editable[data-field="price"]');
                 if (priceInput && priceDisplay) {
                     const parsedPrice = parseFloat(priceInput.value);
                     priceDisplay.textContent = Number.isFinite(parsedPrice) ? parsedPrice.toFixed(2) : priceInput.value;
+                    const compactAmount = document.querySelector('[data-price-compact-amount]');
+                    if (compactAmount) {
+                        compactAmount.textContent = Number.isFinite(parsedPrice)
+                            ? parsedPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                            : priceInput.value;
+                    }
                 }
                 exitEditMode(false);
                 showToast('Changes saved successfully', 'success');
