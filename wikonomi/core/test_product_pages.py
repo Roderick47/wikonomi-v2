@@ -98,6 +98,21 @@ class ProductPageViewsTest(TestCase):
         self.assertEqual(response.context['currency_stats'][0]['report_count'], 3)
         self.assertEqual(response.context['comparison_savings_amount'], Decimal('5.00'))
 
+    def test_business_detail_uses_independent_compact_summary(self):
+        response = self.client.get(reverse('business_detail', args=[self.business.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="business-hero-expanded"')
+        self.assertContains(response, 'id="business-hero-compact"')
+        self.assertContains(response, 'Compact business summary')
+        self.assertContains(response, 'Back to business details')
+        self.assertContains(response, 'aria-hidden="true" inert')
+        self.assertContains(response, 'default-business.svg')
+        self.assertContains(response, 'data-business-id="%s"' % self.business.pk)
+        self.assertNotContains(response, 'wk-business-hero-sticky')
+        self.assertNotContains(response, 'business-hero-sticky-sentinel')
+        self.assertNotContains(response, 'stickyHero.style.height')
+
     def test_price_report_detail_uses_independent_compact_summary(self):
         response = self.client.get(reverse('price_detail', args=[self.cheapest_report.pk]))
 
@@ -110,6 +125,7 @@ class ProductPageViewsTest(TestCase):
         self.assertContains(response, 'aria-hidden="true" inert')
         self.assertNotContains(response, 'wk-price-hero-sticky')
         self.assertNotContains(response, 'price-hero-sticky-sentinel')
+        self.assertNotContains(response, 'stickyHero.style.height')
 
     def test_product_detail_offers_editable_share_message(self):
         response = self.client.get(reverse('product_detail', args=[self.product.pk]))
