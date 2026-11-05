@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" role="img" aria-labelledby="icon-title"><title id="icon-title">Practical guides</title><g fill="none" stroke="#075B85" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.4C9.6 4.7 6.55 4.35 3.2 5.4v13.4c3.35-1 6.4-.8 8.8.85 2.4-1.65 5.45-1.85 8.8-.85V5.4c-3.35-1.05-6.4-.7-8.8 1Z"/><path d="M12 6.4v13.25M5.8 9h3.4M5.8 12h3.4"/><path stroke="#4DB8FF" d="m14.7 12.15 1.45 1.45 2.35-2.8"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" role="img" aria-labelledby="wk-guides-t">
+<title id="wk-guides-t">Practical guides</title>
+<g fill="none" stroke="#075B85" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 6.3C9.7 4.6 6.6 4.2 3.5 5v13.8c3.1-.8 6.2-.4 8.5 1.2 2.3-1.6 5.4-2 8.5-1.2V5c-3.1-.8-6.2-.4-8.5 1.3ZM12 6.3V20"/>
+<path d="M6 9h3.2M6 12h3.2"/>
+<g fill="#1F8FDB" stroke="none"><circle cx="14.7" cy="9" r=".85"/><circle cx="14.7" cy="12" r=".85"/><circle cx="14.7" cy="15" r=".85"/></g>
+<path stroke="#1F8FDB" stroke-width="1.5" d="M16.7 9h1.6M16.7 12h1.6M16.7 15h1.6"/>
+</g>
+</svg>
