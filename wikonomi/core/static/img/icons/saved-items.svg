@@ -1,1 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" role="img" aria-labelledby="icon-title"><title id="icon-title">Saved items</title><g fill="none" stroke="#4B2798" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.3h12v17.4l-6-3.9-6 3.9V3.3Z"/><path d="m8.9 10.9 2.2 2.2 4.2-4.4"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" role="img" aria-labelledby="wk-saved-items-t">
+<title id="wk-saved-items-t">Saved items</title>
+<g fill="none" stroke="#4B2798" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M8.2 8.6C8.2 3.4 15.8 3.4 15.8 8.6"/>
+<path d="M4.6 9.2h14.8c0 6.4-2.2 11.2-7.4 11.2S4.6 15.6 4.6 9.2Z"/>
+<path stroke="#8B5CF6" stroke-width="1.6" d="M12 17.4c-2.4-1.5-3.4-2.7-3.4-4.1 0-1.9 2.5-2.4 3.4-.8.9-1.6 3.4-1.1 3.4.8 0 1.4-1 2.6-3.4 4.1Z"/>
+</g>
+</svg>

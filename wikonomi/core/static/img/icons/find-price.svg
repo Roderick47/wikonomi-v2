@@ -1,1 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" role="img" aria-labelledby="icon-title"><title id="icon-title">Find a price</title><g fill="none" stroke="#075B85" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.7" cy="9.7" r="6.45"/><path d="m14.5 14.5 6.1 6.1"/><path d="M7 7.8h3.8l1.6 1.6-3.3 3.3-2.6-2.6V8.3Z" stroke-width="1.6"/><circle cx="9" cy="9.5" r=".62" fill="#4DB8FF" stroke="none"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" role="img" aria-labelledby="wk-find-price-t">
+<title id="wk-find-price-t">Find a price</title>
+<g fill="none" stroke="#075B85" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="10.5" cy="10.5" r="7"/>
+<path d="m15.6 15.6 5 5"/>
+<path stroke="#1F8FDB" stroke-width="1.6" d="M8.9 7.7v5.6M12.6 7.7 8.9 10.7M10.6 9.4l2.2 3.9"/>
+</g>
+</svg>
