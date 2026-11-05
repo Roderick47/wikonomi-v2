@@ -87,6 +87,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <link rel="stylesheet" href="{% static 'css/brand.css' %}">
+    <link rel="stylesheet" href="{% static 'css/icons.css' %}">
     <link rel="stylesheet" href="{% static 'css/floating_actions.css' %}">
     <link rel="stylesheet" href="{% static 'css/onboarding.css' %}">
     {% block extra_head %}{% endblock %}
@@ -103,12 +104,12 @@
                         <a href="{% url 'home' %}" class="wk-wordmark wk-focus-ring text-2xl bg-clip-text text-transparent bg-gradient-to-r from-brand-green via-brand-blue to-brand-purple">wikonomi</a>
                     </div>
                     <div class="hidden md:flex items-center gap-1">
-                        <a href="{% url 'product_list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-blueDark hover:bg-brand-blue/10 transition-colors">Prices</a>
+                        <a href="{% url 'product_list' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-blueDark hover:bg-brand-blue/10 transition-colors">{% include "includes/wk_icon.html" with name="find-price" intent="blue" size="sm" %}Prices</a>
                         {% if promotions_enabled %}<a href="{% url 'promotions:list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-greenDark hover:bg-brand-green/10 transition-colors">Specials</a>{% endif %}
-                        <a href="{% url 'business_list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-blueDark hover:bg-brand-blue/10 transition-colors">Stores</a>
-                        <a href="{% url 'guides:list' %}" class="px-3 py-2 rounded-md text-sm font-semibold text-gray-600 hover:text-brand-greenDark hover:bg-brand-green/10 transition-colors">Guides</a>
+                        <a href="{% url 'business_list' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold text-gray-700 hover:text-brand-blueDark hover:bg-brand-blue/10 transition-colors">{% include "includes/wk_icon.html" with name="stores" intent="blue" size="sm" %}Stores</a>
+                        <a href="{% url 'guides:list' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold text-gray-600 hover:text-brand-greenDark hover:bg-brand-green/10 transition-colors">{% include "includes/wk_icon.html" with name="guides" intent="blue" size="sm" %}Guides</a>
                         {% if user.is_authenticated %}
-                        <a href="{% url 'my_prices' %}?view=tracked" class="px-3 py-2 rounded-md text-sm font-semibold text-brand-purple hover:bg-brand-purple/10 transition-colors">Tracked</a>
+                        <a href="{% url 'my_prices' %}?view=tracked" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold text-brand-purple hover:bg-brand-purple/10 transition-colors">{% include "includes/wk_icon.html" with name="saved-items" intent="purple" size="sm" %}Tracked</a>
                         {% endif %}
                     </div>
                 </div>
@@ -131,7 +132,7 @@
                         <a href="{% url 'signup' %}" class="hidden sm:inline text-gray-700 hover:text-brand-purple font-medium text-sm">Sign Up</a>
                         <a href="{% url 'login' %}" class="hidden sm:inline bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2 px-3 rounded-lg text-sm">Login</a>
                     {% endif %}
-                    <a href="{% url 'contribute' %}" class="wk-button wk-focus-ring bg-brand-greenDark hover:bg-brand-greenDark/90 text-white py-2 px-3 sm:px-4 rounded-lg text-sm whitespace-nowrap shadow-sm">+ Add</a>
+                    <a href="{% url 'contribute' %}" class="wk-button wk-focus-ring inline-flex items-center gap-1.5 bg-brand-greenDark hover:bg-brand-greenDark/90 text-white py-2 px-3 sm:px-4 rounded-lg text-sm whitespace-nowrap shadow-sm">{% include "includes/wk_icon.html" with name="record-price" intent="green" size="sm" %}Add</a>
                 </div>
             </div>
             <div class="flex md:hidden items-center gap-1 overflow-x-auto border-t border-gray-100 py-2 -mx-1 px-1 text-sm">

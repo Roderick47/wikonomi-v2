@@ -29,11 +29,11 @@
     <section class="rounded-3xl border border-brand-blue/20 bg-gradient-to-br from-brand-green/10 via-brand-blue/10 to-brand-purple/10 p-6 shadow-sm sm:p-10">
         <div class="max-w-3xl">
             <span class="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-blueDark ring-1 ring-brand-blue/20">Product directory</span>
-            <h1 class="wk-page-title mt-4 text-gray-900">All products on Wikonomi</h1>
+            <h1 class="wk-page-title mt-4 flex items-center gap-3 text-gray-900">{% include "includes/wk_icon.html" with name="compare-prices" intent="blue" size="lg" %}<span>All products on Wikonomi</span></h1>
             <p class="mt-4 text-lg text-gray-600">Browse every listed product, search by name or tag, and open a product page to compare each store's latest known price separately from price history.</p>
             <div class="mt-5 flex flex-wrap gap-2">
                 <a href="{% url 'business_list' %}" class="wk-focus-ring inline-flex rounded-full border border-brand-blue px-4 py-2 text-sm font-semibold text-brand-blueDark hover:bg-brand-blue/10">Browse Businesses</a>
-                <a href="{% url 'add_price' %}" class="inline-flex rounded-full bg-brand-greenDark px-4 py-2 text-sm font-semibold text-white hover:bg-brand-greenDark/90">Add a product price</a>
+                <a href="{% url 'add_price' %}" class="inline-flex items-center gap-1.5 rounded-full bg-brand-greenDark px-4 py-2 text-sm font-semibold text-white hover:bg-brand-greenDark/90">{% include "includes/wk_icon.html" with name="record-price" intent="green" size="sm" %}Add a product price</a>
             </div>
         </div>
     </section>
