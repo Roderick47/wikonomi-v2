@@ -1,0 +1,13 @@
+{% load static %}
+{# Decorative badge: pair with visible text or an accessible parent control label. #}
+<span class="wk-icon wk-icon--{{ intent|default:'blue' }} wk-icon--{{ size|default:'sm' }}" aria-hidden="true">
+    {% if name == 'find-price' %}<img src="{% static 'img/icons/find-price.svg' %}" width="24" height="24" alt="">
+    {% elif name == 'compare-prices' %}<img src="{% static 'img/icons/compare-prices.svg' %}" width="24" height="24" alt="">
+    {% elif name == 'nearby-prices' %}<img src="{% static 'img/icons/nearby-prices.svg' %}" width="24" height="24" alt="">
+    {% elif name == 'stores' %}<img src="{% static 'img/icons/stores.svg' %}" width="24" height="24" alt="">
+    {% elif name == 'record-price' %}<img src="{% static 'img/icons/record-price.svg' %}" width="24" height="24" alt="">
+    {% elif name == 'guides' %}<img src="{% static 'img/icons/guides.svg' %}" width="24" height="24" alt="">
+    {% elif name == 'price-history' %}<img src="{% static 'img/icons/price-history.svg' %}" width="24" height="24" alt="">
+    {% elif name == 'saved-items' %}<img src="{% static 'img/icons/saved-items.svg' %}" width="24" height="24" alt="">
+    {% endif %}
+</span>

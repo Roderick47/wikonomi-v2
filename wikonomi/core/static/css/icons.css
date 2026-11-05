@@ -1,0 +1,13 @@
+/* Wikonomi approved soft-duotone SVG icons. Geometry lives in the SVG files. */
+.wk-icon{--wk-icon-bg:var(--wk-blue-tint);--wk-icon-dot:var(--wk-blue);display:inline-flex;position:relative;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;flex:0 0 auto;border-radius:.85rem;background:var(--wk-icon-bg);vertical-align:middle;isolation:isolate}
+.wk-icon--blue{--wk-icon-bg:var(--wk-blue-tint);--wk-icon-dot:var(--wk-blue)}
+.wk-icon--green{--wk-icon-bg:var(--wk-green-tint);--wk-icon-dot:var(--wk-green)}
+.wk-icon--purple{--wk-icon-bg:var(--wk-purple-tint);--wk-icon-dot:var(--wk-purple)}
+.wk-icon::after{content:"";position:absolute;top:.15rem;right:.15rem;width:.42rem;height:.42rem;border-radius:50%;background:var(--wk-icon-dot);opacity:.28;pointer-events:none}
+.wk-icon img{display:block;width:60%;height:60%;object-fit:contain}
+.wk-icon--sm{width:1.65rem;height:1.65rem;border-radius:.52rem}
+.wk-icon--sm::after{width:.28rem;height:.28rem;top:.1rem;right:.1rem}
+.wk-icon--sm img{width:73%;height:73%}
+.wk-icon--lg{width:3rem;height:3rem;border-radius:1rem}
+.wk-icon--lg::after{width:.52rem;height:.52rem}
+.wk-icon--lg img{width:62%;height:62%}

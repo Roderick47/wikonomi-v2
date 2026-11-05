@@ -13,8 +13,8 @@
         <div class="px-4 py-5 sm:p-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">
-                        {{ form_title|default:"Record a Price" }}
+                    <h3 class="flex items-center gap-3 text-lg leading-6 font-medium text-gray-900">
+                        {% include "includes/wk_icon.html" with name="record-price" intent="green" size="lg" %}<span>{{ form_title|default:"Record a Price" }}</span>
                     </h3>
                     <div class="mt-2 text-sm text-gray-500">
                         <p>{{ form_intro|default:"Help the community by sharing the price you found." }}</p>

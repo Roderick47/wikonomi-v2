@@ -163,6 +163,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        gap: .45rem;
         min-height: 2.75rem;
         padding: .65rem .75rem;
         border: 1px solid #e2e8f0;
@@ -196,13 +197,13 @@
     }
     .wk-mobile-nav__link--primary {
         grid-column: 1 / -1;
-        border-color: #4B2798;
-        background: #4B2798;
+        border-color: var(--wk-green-dark);
+        background: var(--wk-green-dark);
         color: #fff;
     }
     .wk-mobile-nav__link--primary:hover,
     .wk-mobile-nav__link--primary:focus-visible {
-        background: #3d207d;
+        background: #115230;
         color: #fff;
     }
     .wk-mobile-nav__toggle {
@@ -243,9 +244,7 @@
 
         <form method="GET" action="{% url 'home' %}" id="search-form" class="mt-4 text-left">
             <div class="relative">
-                <svg class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">{% include "includes/wk_icon.html" with name="find-price" intent="blue" size="sm" %}</span>
                 <input type="text" name="q" value="{{ request.GET.q }}" aria-label="Search products and prices" placeholder="What are you shopping for?"
                     class="block w-full rounded-xl border border-slate-200 bg-white py-4 pl-12 pr-28 text-base sm:text-lg shadow-sm focus:ring-2 focus:ring-brand-blueDark/30 focus:border-brand-blueDark">
                 <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-blueDark hover:bg-brand-blueDark/90 transition-colors">
@@ -277,7 +276,7 @@
                 <input type="hidden" name="lat" id="user-lat" value="{{ request.GET.lat }}">
                 <input type="hidden" name="lng" id="user-lng" value="{{ request.GET.lng }}">
 
-                <a href="{% url 'add_price' %}" class="wk-home-shortcut wk-home-shortcut--primary">+ Record a price</a>
+                <a href="{% url 'add_price' %}" class="wk-home-shortcut wk-home-shortcut--primary gap-1.5">{% include "includes/wk_icon.html" with name="record-price" intent="green" size="sm" %}Record a price</a>
                 <button type="button" id="map-toggle-btn-desktop" onclick="toggleMapView()" aria-controls="map-panel" aria-expanded="true" class="wk-home-shortcut">List only</button>
                 <a href="#feed-column" class="wk-home-shortcut">Browse price reports ↓</a>
 
@@ -306,7 +305,7 @@
             <button type="submit" class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-blueDark hover:bg-brand-blueDark/90 transition-colors">Search</button>
             <a href="{% url 'product_list' %}" class="hidden sm:inline-flex shrink-0 items-center px-3 py-2 text-sm font-semibold text-brand-blueDark hover:text-brand-blueDark/80">Products</a>
             <a href="{% url 'business_list' %}" class="hidden sm:inline-flex shrink-0 items-center px-3 py-2 text-sm font-semibold text-brand-blueDark hover:text-brand-blueDark/80">Businesses</a>
-            <a href="{% url 'add_price' %}" class="shrink-0 inline-flex items-center px-3 py-2 text-sm font-semibold text-brand-greenDark hover:text-brand-greenDark/80">+ Add</a>
+            <a href="{% url 'add_price' %}" class="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-brand-greenDark hover:text-brand-greenDark/80">{% include "includes/wk_icon.html" with name="record-price" intent="green" size="sm" %}Add</a>
         </form>
     </div>
 </div>
@@ -465,15 +464,15 @@
     <div id="wk-mobile-nav-panel" class="wk-mobile-nav__panel" hidden>
         <p class="wk-mobile-nav__title">Explore Wikonomi</p>
         <div class="wk-mobile-nav__grid">
-            <a href="{% url 'product_list' %}" class="wk-mobile-nav__link">Prices</a>
-            <a href="{% url 'business_list' %}" class="wk-mobile-nav__link">Businesses</a>
-            <a href="{% url 'guides:list' %}" class="wk-mobile-nav__link">Guides</a>
+            <a href="{% url 'product_list' %}" class="wk-mobile-nav__link">{% include "includes/wk_icon.html" with name="find-price" intent="blue" size="sm" %}Prices</a>
+            <a href="{% url 'business_list' %}" class="wk-mobile-nav__link">{% include "includes/wk_icon.html" with name="stores" intent="blue" size="sm" %}Businesses</a>
+            <a href="{% url 'guides:list' %}" class="wk-mobile-nav__link">{% include "includes/wk_icon.html" with name="guides" intent="blue" size="sm" %}Guides</a>
             <a href="{% url 'transport_index:cab_list' %}" class="wk-mobile-nav__link">Transport</a>
             <button type="button" id="wk-mobile-map-action" class="wk-mobile-nav__link wk-mobile-nav__link--map">
-                <svg aria-hidden="true" style="width:1rem;height:1rem;margin-right:.4rem" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                {% include "includes/wk_icon.html" with name="nearby-prices" intent="blue" size="sm" %}
                 View map
             </button>
-            <a href="{% url 'add_price' %}" class="wk-mobile-nav__link wk-mobile-nav__link--primary">+ Add price</a>
+            <a href="{% url 'add_price' %}" class="wk-mobile-nav__link wk-mobile-nav__link--primary">{% include "includes/wk_icon.html" with name="record-price" intent="green" size="sm" %}Add price</a>
         </div>
     </div>
     <button type="button" id="wk-mobile-nav-toggle" class="wk-mobile-nav__toggle" aria-controls="wk-mobile-nav-panel" aria-expanded="false">
