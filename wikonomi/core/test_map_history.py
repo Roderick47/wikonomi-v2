@@ -46,7 +46,7 @@ class MapHistoryTests(TestCase):
         self.assertNotContains(response, 'Outdated · Check current price')
         self.assertNotContains(response, 'price-card--stale')
         self.assertNotContains(response, 'wk-map-cluster--stale')
-        self.assertContains(response, 'Find, compare and record prices across PNG.')
+        self.assertContains(response, 'Find, compare and record prices in Papua New Guinea.')
         PriceReport.objects.filter(pk=self.old.pk).update(updated_at=timezone.now())
         self.old.refresh_from_db()
         self.assertFalse(self.old.is_stale)
