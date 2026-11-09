@@ -48,7 +48,7 @@ class CountrySiteCopyTests(TestCase):
         user.profile.preferred_country_code = "FJ"
         user.profile.save(update_fields=["preferred_country_code"])
         response = self.client.get(reverse("guides:create"))
-        self.assertContains(response, "get something done in Fiji")
+        self.assertContains(response, "people can use in Fiji or elsewhere")
         self.assertContains(response, "How to register a business in Fiji")
 
     def test_welcome_and_sharing_message_respect_saved_choice(self):
