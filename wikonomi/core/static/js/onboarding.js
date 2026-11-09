@@ -19,6 +19,11 @@
         const legacySeenKey = 'wikonomi_onboarding_seen_v1';
         const progressKey = 'wikonomi_interactive_tour_v1';
         const isAuthenticated = root.dataset.authenticated === 'true';
+        const marketName = root.dataset.marketName || 'your country';
+        const marketCurrency = root.dataset.marketCurrency || '';
+        const currencyGuidance = marketCurrency
+            ? 'The currency normally defaults to ' + marketCurrency + ' in ' + marketName + '.'
+            : 'Use the currency shown at the shop.';
         const page = document.querySelector('#search-form') ? 'search'
             : document.querySelector('form[data-form-kind="price"]') ? 'record' : 'other';
         root.classList.toggle('wk-tour-home', page === 'search');
@@ -65,7 +70,7 @@
                 {
                     target: '#id_price',
                     title: 'Enter the price',
-                    body: 'Enter the amount you actually saw. Check the currency, which normally defaults to PNG kina (PGK).',
+                    body: 'Enter the amount you actually saw. Check the currency. ' + currencyGuidance,
                     hint: 'Enter the price, then continue.'
                 },
                 {
