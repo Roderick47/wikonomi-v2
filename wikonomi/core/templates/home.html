@@ -415,7 +415,7 @@
                 <div class="mb-4 flex items-center justify-between">
                     <div>
                         <h2 class="text-xl font-bold text-slate-900">{% if request.GET.q %}Guides{% else %}New guides{% endif %}</h2>
-                        <p class="mt-1 text-sm text-slate-500">Practical, community-written instructions</p>
+                        <p class="mt-1 text-sm text-slate-500">Community guides from different places — check which country each guide applies to.</p>
                     </div>
                     <a href="{% url 'guides:list' %}{% if request.GET.q %}?q={{ request.GET.q|urlencode }}{% endif %}" class="text-sm font-bold text-brand-blueDark hover:underline">View all →</a>
                 </div>
