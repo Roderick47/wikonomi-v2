@@ -6,12 +6,12 @@
 {% block og_tags %}
 {% with base_url="https://www.wikonomi.com" default_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
 <link rel="canonical" href="{{ base_url }}{% url 'product_detail' product.pk %}">
-<meta name="description" content="Compare current {{ product.name }} prices across stores in Papua New Guinea. See recent reports, price freshness, and price history on Wikonomi.">
+<meta name="description" content="Compare community-reported {{ product.name }} prices in {{ market.name }}. Check report dates, stores and price history on Wikonomi.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Wikonomi">
 <meta property="og:url" content="{{ base_url }}{% url 'product_detail' product.pk %}">
-<meta property="og:title" content="Compare {{ product.name }} prices in PNG | Wikonomi">
-<meta property="og:description" content="Compare the latest known store prices for {{ product.name }} across local stores in PNG, with freshness and price history clearly separated.">
+<meta property="og:title" content="Compare {{ product.name }} prices in {{ market.name }} | Wikonomi">
+<meta property="og:description" content="Compare the latest known store prices for {{ product.name }} in {{ market.name }}, with price history and report dates clearly separated.">
 {% if product.display_image %}
 <meta property="og:image" content="{{ product.display_image.url|absolute_url:base_url }}">
 <meta property="og:image:secure_url" content="{{ product.display_image.url|absolute_url:base_url }}">
@@ -23,9 +23,9 @@
 {% endif %}
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:locale" content="en_PG">
+<meta property="og:locale" content="en_{{ market.code }}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Compare {{ product.name }} prices in PNG | Wikonomi">
+<meta name="twitter:title" content="Compare {{ product.name }} prices in {{ market.name }} | Wikonomi">
 <meta name="twitter:description" content="See the latest known store prices for {{ product.name }}, freshness, and price history.">
 {% if product.display_image %}<meta name="twitter:image" content="{{ product.display_image.url|absolute_url:base_url }}">{% else %}<meta name="twitter:image" content="{{ default_image }}">{% endif %}
 {% endwith %}
