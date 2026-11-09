@@ -418,12 +418,33 @@ def product_list(request):
         price_reports__country_code=code,
         price_reports__marked_for_deletion=False,
     ).distinct().prefetch_related('tags', 'catalog_images').annotate(
-        report_count=Count('price_reports', distinct=True),
-        business_count=Count('price_reports__business', distinct=True),
-        min_price=Min('price_reports__price'),
-        max_price=Max('price_reports__price'),
-        avg_price=Avg('price_reports__price'),
-        latest_observed=Max('price_reports__observed_at'),
+        report_count=Count('price_reports', filter=Q(
+            price_reports__country_code=code,
+            price_reports__marked_for_deletion=False,
+        ), distinct=True),
+        business_count=Count('price_reports__business', filter=Q(
+            price_reports__country_code=code,
+            price_reports__marked_for_deletion=False,
+        ), distinct=True),
+        min_price=Min('price_reports__price', filter=Q(
+            price_reports__country_code=code,
+            price_reports__currency=request.market_currency,
+            price_reports__marked_for_deletion=False,
+        )),
+        max_price=Max('price_reports__price', filter=Q(
+            price_reports__country_code=code,
+            price_reports__currency=request.market_currency,
+            price_reports__marked_for_deletion=False,
+        )),
+        avg_price=Avg('price_reports__price', filter=Q(
+            price_reports__country_code=code,
+            price_reports__currency=request.market_currency,
+            price_reports__marked_for_deletion=False,
+        )),
+        latest_observed=Max('price_reports__observed_at', filter=Q(
+            price_reports__country_code=code,
+            price_reports__marked_for_deletion=False,
+        )),
     )
 
     if query:
