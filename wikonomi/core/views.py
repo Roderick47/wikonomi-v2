@@ -189,10 +189,19 @@ class PriceReportCreateView(CreateView):
     template_name = 'price_report_form.html'
     success_url = reverse_lazy('home')
 
+    def get_initial(self):
+        initial = super().get_initial()
+        initial.setdefault('currency', self.request.market_currency or 'PGK')
+        return initial
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from .models import Product, Business
-        businesses = Business.objects.all().order_by('name')
+        code = self.request.market_country_code
+        businesses = Business.objects.filter(
+            Q(country_code=code) | Q(branches__country_code=code)
+            | Q(price_reports__country_code=code)
+        ).distinct().order_by('name')
         context['products'] = Product.objects.all().order_by('name')
         context['businesses'] = businesses
         context['business_default_locations_json'] = json.dumps(
@@ -252,20 +261,34 @@ class PriceReportCreateView(CreateView):
     def _get_business_default_locations(self, businesses):
         locations = {}
         for business in businesses:
-            default_location = business.get_default_location()
-            if default_location:
-                lat, lng = default_location
+            location = self._country_business_location(business)
+            if location:
+                lat, lng, source = location
                 locations[business.name] = {
-                    'latitude': lat,
-                    'longitude': lng,
-                    'source': business.get_default_location_source() or 'business default location',
+                    'latitude': lat, 'longitude': lng, 'source': source,
                 }
         return locations
 
+    def _country_business_location(self, business):
+        """Never reuse a shop pin from a different country."""
+        code = self.request.market_country_code
+        branch = business.branches.filter(
+            country_code=code, is_active=True,
+            latitude__isnull=False, longitude__isnull=False,
+        ).order_by('-is_main_branch', 'created_at', 'id').first()
+        if branch:
+            return branch.latitude, branch.longitude, branch.get_full_name()
+        report = business.price_reports.filter(
+            country_code=code, latitude__isnull=False, longitude__isnull=False,
+        ).order_by('observed_at', 'id').first()
+        if report:
+            return report.latitude, report.longitude, 'existing local price report'
+        return None
+
     def _apply_business_default_location(self, form, business):
-        default_location = business.get_default_location()
+        default_location = self._country_business_location(business)
         if default_location:
-            form.instance.latitude, form.instance.longitude = default_location
+            form.instance.latitude, form.instance.longitude = default_location[:2]
             return True
 
         if form.instance.latitude is None or form.instance.longitude is None:
@@ -281,6 +304,8 @@ class PriceReportCreateView(CreateView):
             return self.form_invalid(form)
 
         try:
+            form.instance.country_code = self.request.market_country_code
+
             # 1. Handle user
             if not self.request.user.is_authenticated:
                 # MVP: get or create an anonymous user
@@ -316,7 +341,8 @@ class PriceReportCreateView(CreateView):
                 # Use normalization service to find or create business with branch
                 business, branch, was_created = BusinessNormalizationService.normalize_price_report_data(
                     business_name=business_name,
-                    location=business_location
+                    location=business_location,
+                    country_code=self.request.market_country_code,
                 )
                 
                 # Set the branch on price report if we have one
@@ -473,6 +499,9 @@ def _get_prices_queryset(request, for_map=False):
             average_rating=Avg('ratings__rating'), rating_count=Count('ratings'),
         )
 
+    # Share the same national scope between the feed, API map and pagination.
+    qs = qs.filter(country_code=request.market_country_code)
+
     if query:
         # Enhanced search using product normalization
         matched_product_ids = _get_matched_product_ids(query)
@@ -548,7 +577,12 @@ def _get_business_queryset(request):
     
     if query:
         # Enhanced business search
-        businesses = set(Business.objects.filter(name__icontains=query))
+        code = request.market_country_code
+        businesses = set(Business.objects.filter(
+            Q(country_code=code) | Q(branches__country_code=code)
+            | Q(price_reports__country_code=code),
+            name__icontains=query,
+        ).distinct())
         
         # Also return businesses that have products matching the search
         if query:
@@ -558,6 +592,7 @@ def _get_business_queryset(request):
             # Get businesses that have price reports for these products
             if matched_product_ids:
                 businesses_with_matched_products = set(Business.objects.filter(
+                    price_reports__country_code=request.market_country_code,
                     price_reports__product_id__in=matched_product_ids
                 ).distinct())
                 
@@ -624,6 +659,8 @@ def home(request):
     for keyword in fuel_keywords:
         cheapest_report = PriceReport.objects.filter(
             product__name__icontains=keyword,
+            country_code=request.market_country_code,
+            currency=request.market_currency,
             observed_at__gte=thirty_days_ago
         ).select_related('product', 'business', 'business_branch').order_by('price', '-observed_at').first()
         
@@ -948,7 +985,7 @@ class BusinessDetailView(DetailView):
         
         # Get all price reports for this business with location data
         price_reports = PriceReport.objects.filter(
-            business=business
+            business=business, country_code=self.request.market_country_code,
         ).select_related('product', 'user').prefetch_related('product__tags').annotate(
             average_rating=Avg('ratings__rating'),
             rating_count=Count('ratings'),
@@ -963,9 +1000,12 @@ class BusinessDetailView(DetailView):
         # Get unique products for this business with their latest prices
         products_data = []
         for product in Product.objects.filter(
-            price_reports__business=business
+            price_reports__business=business,
+            price_reports__country_code=self.request.market_country_code,
         ).distinct().order_by('name'):
-            latest_price = product.price_reports.filter(business=business).select_related(
+            latest_price = product.price_reports.filter(
+                business=business, country_code=self.request.market_country_code,
+            ).select_related(
                 'product', 'business', 'user'
             ).prefetch_related('user__profile', 'product__tags').annotate(
                 average_rating=Avg('ratings__rating'),
@@ -1982,6 +2022,7 @@ def _legacy_bulk_upload(request):
             request.session['bulk_upload_data'] = session_rows
             request.session['bulk_upload_errors'] = errors
             request.session['bulk_upload_business'] = request.POST.get('business_name', '').strip()
+            request.session['bulk_upload_country'] = request.market_country_code
             request.session['bulk_upload_latitude'] = request.POST.get('latitude', '')
             request.session['bulk_upload_longitude'] = request.POST.get('longitude', '')
             
@@ -2017,6 +2058,7 @@ def _legacy_bulk_upload(request):
                     pass
             
             business_name = request.session.get('bulk_upload_business', '')
+            upload_country = request.session.get('bulk_upload_country', request.market_country_code)
             lat_str = request.session.get('bulk_upload_latitude', '')
             lng_str = request.session.get('bulk_upload_longitude', '')
             
@@ -2043,6 +2085,7 @@ def _legacy_bulk_upload(request):
                         counter += 1
                     business = Business.objects.create(
                         name=business_name,
+                        country_code=upload_country,
                         slug=business_slug
                     )
             
@@ -2141,6 +2184,7 @@ def _legacy_bulk_upload(request):
                                 business=business,
                                 user=request.user,
                                 price=v['price'],
+                                country_code=upload_country,
                                 currency=v['currency'],
                                 latitude=latitude,
                                 longitude=longitude,
@@ -2267,6 +2311,7 @@ class BusinessCreateView(CreateView):
             slug = f"{original_slug}-{counter}"
             counter += 1
         form.instance.slug = slug
+        form.instance.country_code = self.request.market_country_code
         
         # Save the business
         response = super().form_valid(form)
@@ -2284,8 +2329,9 @@ def download_csv_template(request):
     
     writer = csv.writer(response)
     writer.writerow(['product_name', 'price', 'currency', 'notes', 'tags'])
-    writer.writerow(['Rice 10kg', '45.00', 'PGK', 'White rice bag', 'staple,grain'])
-    writer.writerow(['Cooking Oil 1L', '18.50', 'PGK', '', 'cooking'])
-    writer.writerow(['Sugar 1kg', '8.00', 'PGK', 'Brown sugar', 'staple'])
+    currency = request.market_currency or 'PGK'
+    writer.writerow(['Rice 10kg', '45.00', currency, 'White rice bag', 'staple,grain'])
+    writer.writerow(['Cooking Oil 1L', '18.50', currency, '', 'cooking'])
+    writer.writerow(['Sugar 1kg', '8.00', currency, 'Brown sugar', 'staple'])
     
     return response
