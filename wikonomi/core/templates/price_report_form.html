@@ -118,6 +118,7 @@
                         <div class="mt-1">
                             {{ form.currency }}
                         </div>
+                        <p class="mt-1 text-xs text-gray-500">Your selected country is {{ market.name }}. Use the currency actually shown at the shop (usually {{ market.currency|default:'the local currency' }}).</p>
                     </div>
                     <div class="sm:col-span-6">
                         <label for="business_search" class="block text-sm font-medium text-gray-700">4. Where did you see it? (optional)</label>
