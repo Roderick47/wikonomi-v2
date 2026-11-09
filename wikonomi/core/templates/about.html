@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block page_title %}About Wikonomi — PNG's Price Tracking Platform{% endblock %}
+{% block page_title %}About Wikonomi — Local prices in {{ market.name }}{% endblock %}
 
 {% block content %}
 <div class="max-w-6xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
@@ -11,7 +11,7 @@
             What is <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-green via-brand-blue to-brand-purple">Wikonomi?</span>
         </h1>
         <p class="mt-6 text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Papua New Guinea's first community-driven price tracking platform. We empower everyday consumers by making the cost of living transparent, accessible, and easily comparable across businesses and locations.
+            Wikonomi began in Papua New Guinea and is growing into a community-driven platform for local prices, businesses and practical knowledge. Explore what shoppers have reported in {{ market.name }} and help make prices easier to compare.
         </p>
         <!-- Sub-page nav pills -->
         <div class="mt-8 flex flex-wrap justify-center gap-3">
@@ -59,7 +59,7 @@
                     </div>
                     <h3 class="ml-3 text-base font-semibold text-gray-900">Price Comparison</h3>
                 </div>
-                <p class="text-sm text-gray-600 mb-3">See min, max, and average prices for any product across all stores. Compare trends week-over-week.</p>
+                <p class="text-sm text-gray-600 mb-3">Compare reported prices for the same product across participating stores in {{ market.name }}, where enough reports are available.</p>
                 <a href="{% url 'how_to_use' %}#price-analysis" class="text-xs text-brand-blue font-semibold hover:underline">Learn how →</a>
             </div>
 
@@ -193,12 +193,12 @@
             <div class="text-center bg-white p-6 rounded-xl shadow-sm border border-brand-purple/10">
                 <div class="text-4xl font-bold text-brand-purple mb-2">100%</div>
                 <p class="text-gray-700 font-bold">Community Driven</p>
-                <p class="text-sm text-gray-500 mt-1">Real prices from real shoppers</p>
+                <p class="text-sm text-gray-500 mt-1">Reports shared by shoppers</p>
             </div>
             <div class="text-center bg-white p-6 rounded-xl shadow-sm border border-brand-green/20">
                 <div class="text-4xl font-bold text-brand-green mb-2">24/7</div>
-                <p class="text-gray-700 font-bold">Always Updated</p>
-                <p class="text-sm text-gray-500 mt-1">Fresh prices added daily</p>
+                <p class="text-gray-700 font-bold">Community Updated</p>
+                <p class="text-sm text-gray-500 mt-1">New reports appear when people contribute</p>
             </div>
             <div class="text-center bg-white p-6 rounded-xl shadow-sm border border-brand-blue/20">
                 <div class="text-4xl font-bold text-brand-blue mb-2">Free</div>
@@ -211,7 +211,7 @@
     <!-- CTA -->
     <div class="text-center pb-12">
         <h2 class="text-2xl font-bold text-gray-900 mb-4">Ready to start saving?</h2>
-        <p class="text-gray-600 mb-8 max-w-xl mx-auto">Join Papua New Guineans using Wikonomi to make smarter shopping decisions every day.</p>
+        <p class="text-gray-600 mb-8 max-w-xl mx-auto">Explore reported prices in {{ market.name }}. If your area has few reports, you can help get it started by adding a price or business.</p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
             <a href="{% url 'how_to_use' %}" class="inline-flex items-center justify-center px-8 py-4 border border-transparent text-base font-bold rounded-lg text-white bg-brand-purple hover:bg-brand-purple/90 shadow-lg hover:shadow-xl transition-all">
                 🚀 Read the Guide
