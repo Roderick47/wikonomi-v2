@@ -1,0 +1,45 @@
+name: Country markets checks
+
+on:
+  pull_request:
+    paths:
+      - 'requirements.txt'
+      - 'wikonomi/core/markets.py'
+      - 'wikonomi/core/models.py'
+      - 'wikonomi/core/views.py'
+      - 'wikonomi/core/product_views.py'
+      - 'wikonomi/core/test_markets.py'
+      - 'wikonomi/core/migrations/**'
+      - 'wikonomi/users/models.py'
+      - 'wikonomi/users/migrations/**'
+      - '.github/workflows/country-markets-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  django-markets:
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: wikonomi.test_settings
+      DEBUG: 'True'
+      SECRET_KEY: ci-country-markets-only
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Check models and migrations
+        working-directory: wikonomi
+        run: |
+          python manage.py check
+          python manage.py makemigrations --check --dry-run
+      - name: Country, discovery and product tests
+        working-directory: wikonomi
+        run: |
+          python manage.py test core.test_markets core.test_discovery_feed core.test_map_history --verbosity 2
