@@ -688,6 +688,16 @@ def about_view(request):
 def how_to_use_view(request):
     return render(request, 'how_to_use.html')
 
+def _market_price(report):
+    """Use the observation currency and the English conventions of its country."""
+    from babel.numbers import format_currency
+    from babel.core import UnknownLocaleError
+    try:
+        return format_currency(report.price, report.currency, locale='en_' + report.country_code)
+    except (UnknownLocaleError, TypeError, ValueError):
+        return f"{report.currency} {report.price:,.2f}"
+
+
 # Country-sensitive API responses must not share a URL-only cache key.
 def api_map_prices(request):
     """Stateless JSON endpoint specifically for the map frontend."""
@@ -717,7 +727,7 @@ def api_map_prices(request):
             'lat': float(p.latitude),
             'lng': float(p.longitude),
             'product': p.product.name,
-            'price': f"{p.currency} {p.price:,.2f}",
+            'price': _market_price(p),
             'rawPrice': float(p.price),
             'id': p.pk,
             'is_stale': p.is_stale,
