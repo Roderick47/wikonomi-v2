@@ -452,7 +452,7 @@ class ProductNormalizationService:
 
 class Business(models.Model):
     country_code = models.CharField(max_length=2, default="PG", db_index=True)
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True)
     details = models.TextField(blank=True, null=True, help_text="Additional information about the business")
     image = ResizedImageField(upload_to='business_images/', null=True, blank=True, size=[1000, 1000], quality=75, force_format='JPEG')
@@ -465,6 +465,12 @@ class Business(models.Model):
         blank=True,
         related_name='businesses',
     )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['country_code', 'name'],
+                                    name='uniq_business_name_country'),
+        ]
 
     def __str__(self):
         return self.name
@@ -647,7 +653,8 @@ class BusinessMatcher:
         # Try business alias matches
         alias_match = BusinessAlias.objects.filter(
             normalized_name=normalized_input,
-            is_active=True
+            is_active=True,
+            canonical_business__country_code=country_code,
         ).first()
         
         if alias_match:
@@ -663,7 +670,7 @@ class BusinessMatcher:
         best_branch = None
         best_score = 0
         
-        for alias in BusinessAlias.objects.filter(is_active=True):
+        for alias in BusinessAlias.objects.filter(is_active=True, canonical_business__country_code=country_code):
             similarity = SequenceMatcher(
                 None, 
                 normalized_input, 
@@ -682,7 +689,7 @@ class BusinessMatcher:
         
         # If no alias match, try direct business matching
         if not best_match:
-            for business in Business.objects.all():
+            for business in Business.objects.filter(country_code=country_code):
                 business_normalized = BusinessAlias.normalize_text(business.name)
                 similarity = SequenceMatcher(
                     None, 

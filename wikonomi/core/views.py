@@ -1186,7 +1186,9 @@ def edit_price_report(request, pk):
             business_name = request.POST.get('business_name', '').strip()
             if business_name:
                 if not updated_report.business or business_name.lower() != updated_report.business.name.lower():
-                    business = Business.objects.filter(name__iexact=business_name).first()
+                    business = Business.objects.filter(
+                        name__iexact=business_name, country_code=updated_report.country_code,
+                    ).first()
                     if not business:
                         from django.utils.text import slugify
                         business_slug = slugify(business_name)
@@ -1197,6 +1199,7 @@ def edit_price_report(request, pk):
                             counter += 1
                         business = Business.objects.create(
                             name=business_name,
+                            country_code=updated_report.country_code,
                             slug=business_slug
                         )
                     updated_report.business = business
@@ -2075,7 +2078,9 @@ def _legacy_bulk_upload(request):
             # Get or create business
             business = None
             if business_name:
-                business = Business.objects.filter(name__iexact=business_name).first()
+                business = Business.objects.filter(
+                    name__iexact=business_name, country_code=upload_country,
+                ).first()
                 if not business:
                     business_slug = slugify(business_name)
                     original_slug = business_slug
@@ -2297,7 +2302,9 @@ class BusinessCreateView(CreateView):
     def form_valid(self, form):
         # Use business normalization service to avoid duplicates
         business_name = form.cleaned_data['name']
-        existing_business, _, similarity = BusinessMatcher.find_best_match(business_name)
+        existing_business, _, similarity = BusinessMatcher.find_best_match(
+            business_name, country_code=self.request.market_country_code,
+        )
         
         if existing_business and similarity >= 0.8:
             form.add_error('name', f'A business with a similar name already exists: "{existing_business.name}". Please use a different name or edit the existing business.')

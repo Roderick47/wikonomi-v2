@@ -491,6 +491,7 @@ def submit_price(*, actor, data, ai=None):
             user=actor.user,
             price=price,
             currency=currency,
+            country_code=branch.country_code if branch else business.country_code,
             latitude=float(latitude) if latitude is not None else None,
             longitude=float(longitude) if longitude is not None else None,
             notes=(data.get('notes') or '')[:10000],
