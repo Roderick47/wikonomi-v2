@@ -105,7 +105,7 @@
         {% else %}
         <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center">
             <h2 class="text-xl font-bold text-gray-900">No businesses found{% if search_query %} for “{{ search_query }}”{% endif %}</h2>
-            <p class="mt-2 text-gray-600">If this store should be on Wikonomi, add it so the community can start reporting prices there.</p>
+            <p class="mt-2 text-gray-600">If this store should be on Wikonomi in {{ market.name }}, add it so the community can start reporting prices there.</p>
             <a href="{% url 'add_business' %}{% if search_query %}?name={{ search_query|urlencode }}{% endif %}" class="mt-5 inline-flex rounded-full bg-brand-greenDark px-5 py-2 text-sm font-semibold text-white hover:bg-brand-greenDark/90">Add this business</a>
         </div>
         {% endif %}

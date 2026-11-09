@@ -109,7 +109,8 @@ def _resolve_business(request):
     business = Business.objects.filter(name__iexact=name).first()
     if business:
         return business
-    return Business.objects.create(name=name[:255], slug=_unique_business_slug(name))
+    return Business.objects.create(name=name[:255], slug=_unique_business_slug(name),
+                                   country_code=request.market_country_code)
 
 
 def _inventory_file_error(uploaded):

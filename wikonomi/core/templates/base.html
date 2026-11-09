@@ -114,17 +114,27 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-2 sm:space-x-4">
-                    <form method="post" action="{% url 'choose_market' %}" class="shrink-0" aria-label="Select shopping country">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                        <label for="wk-country-select" class="sr-only">Shopping country</label>
-                        <select id="wk-country-select" name="country" onchange="this.form.requestSubmit()" title="Browse prices by country"
-                                class="max-w-28 sm:max-w-44 truncate border border-slate-200 bg-white text-slate-700 text-xs sm:text-sm rounded-lg px-2 py-2">
-                            {% for option in market_countries %}
-                            <option value="{{ option.code }}"{% if option.code == market.code %} selected{% endif %}>{{ option.name }} · {{ option.currency|default:"—" }}</option>
-                            {% endfor %}
-                        </select>
-                    </form>
+                    <details class="relative shrink-0">
+                        <summary class="cursor-pointer list-none rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-bold text-brand-blueDark" aria-label="Shopping country, {{ market.name }}">
+                            🌐 {{ market.code }} <span aria-hidden="true">▾</span>
+                        </summary>
+                        <div class="absolute right-0 z-[70] mt-2 w-64 max-w-[85vw] rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
+                            <form method="post" action="{% url 'choose_market' %}" aria-label="Change shopping country" class="space-y-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <label for="wk-country-select" class="block text-xs font-bold text-slate-700">Shopping country</label>
+                                <select id="wk-country-select" name="country"
+                                        class="w-full truncate border border-slate-200 bg-white text-slate-700 text-sm rounded-lg px-2 py-2">
+                                    <option value="AUTO">Detect automatically</option>
+                                    {% for option in market_countries %}
+                                    <option value="{{ option.code }}"{% if option.code == market.code %} selected{% endif %}>{{ option.name }} · {{ option.currency|default:"—" }}</option>
+                                    {% endfor %}
+                                </select>
+                                <p class="text-xs text-slate-500">Prices are compared within the selected country. Changing countries does not convert prices.</p>
+                                <button type="submit" class="w-full rounded-lg bg-brand-blueDark px-3 py-2 text-sm font-semibold text-white">Apply location</button>
+                            </form>
+                        </div>
+                    </details>
                     {% if user.is_authenticated %}
                         <div class="hidden sm:flex items-center space-x-3">
                             <a href="{% url 'my_prices' %}" class="text-gray-700 hover:text-brand-purple flex items-center relative" title="My Prices">

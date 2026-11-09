@@ -688,7 +688,7 @@ def about_view(request):
 def how_to_use_view(request):
     return render(request, 'how_to_use.html')
 
-@cache_page(60 * 5)
+# Country-sensitive API responses must not share a URL-only cache key.
 def api_map_prices(request):
     """Stateless JSON endpoint specifically for the map frontend."""
     latest_prices, sort, user_lat, user_lng = _get_prices_queryset(request, for_map=True)
