@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block page_title %}Wikonomi — PNG Price Comparison{% endblock %}</title>
+    <title>{% block page_title %}Wikonomi — Find local prices{% endblock %}</title>
     {% block og_tags %}
-    {% with base_url="https://www.wikonomi.com" default_title="Wikonomi — Your Local Guide to PNG" default_description="Discover products, businesses, local prices, and practical guides for getting things done across Papua New Guinea." default_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
+    {% with base_url="https://www.wikonomi.com" default_title="Wikonomi — Find local prices" default_description="Discover businesses, compare local prices and share shopping knowledge wherever you live." default_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
     <link rel="canonical" href="{{ base_url }}{{ request.path }}">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Wikonomi">
@@ -114,6 +114,17 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-2 sm:space-x-4">
+                    <form method="post" action="{% url 'choose_market' %}" class="shrink-0" aria-label="Select shopping country">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <label for="wk-country-select" class="sr-only">Shopping country</label>
+                        <select id="wk-country-select" name="country" onchange="this.form.requestSubmit()" title="Browse prices by country"
+                                class="max-w-28 sm:max-w-44 truncate border border-slate-200 bg-white text-slate-700 text-xs sm:text-sm rounded-lg px-2 py-2">
+                            {% for option in market_countries %}
+                            <option value="{{ option.code }}"{% if option.code == market.code %} selected{% endif %}>{{ option.name }} · {{ option.currency|default:"—" }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
                     {% if user.is_authenticated %}
                         <div class="hidden sm:flex items-center space-x-3">
                             <a href="{% url 'my_prices' %}" class="text-gray-700 hover:text-brand-purple flex items-center relative" title="My Prices">

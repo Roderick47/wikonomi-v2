@@ -21,3 +21,5 @@ requests==2.34.2
 mcp==2.3.0
 cryptography==50.0.0
 uvicorn==0.54.0
+Babel==2.18.0
+pycountry==24.6.1

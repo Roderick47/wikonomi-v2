@@ -451,6 +451,7 @@ class ProductNormalizationService:
         source_product.delete()
 
 class Business(models.Model):
+    country_code = models.CharField(max_length=2, default="PG", db_index=True)
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(unique=True)
     details = models.TextField(blank=True, null=True, help_text="Additional information about the business")
@@ -544,6 +545,7 @@ class BusinessBranch(models.Model):
     address = models.TextField(blank=True, null=True, help_text="Full address of this branch")
     latitude = models.FloatField(null=True, blank=True, help_text="Branch latitude for mapping")
     longitude = models.FloatField(null=True, blank=True, help_text="Branch longitude for mapping")
+    country_code = models.CharField(max_length=2, default="PG", db_index=True)
     phone = models.CharField(max_length=50, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     is_main_branch = models.BooleanField(default=False, help_text="Mark as the main/head office branch")
@@ -875,6 +877,7 @@ class PriceReport(models.Model):
     
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
+    country_code = models.CharField(max_length=2, default="PG", db_index=True)
     
     observed_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True, db_index=True)

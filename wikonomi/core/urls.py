@@ -1,8 +1,10 @@
 from django.urls import path
 from . import bulk_views, share_views, views, product_views, value_views
+from .markets import choose_market
 
 urlpatterns = [
     path('', views.home, name='home'),
+    path('country/select/', choose_market, name='choose_market'),
     path('products/', product_views.product_list, name='product_list'),
     path('businesses/', product_views.business_list, name='business_list'),
     path('product/<int:pk>/', product_views.product_detail, name='product_detail'),
