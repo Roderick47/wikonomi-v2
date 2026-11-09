@@ -628,7 +628,7 @@ class BusinessMatcher:
     """
     
     @staticmethod
-    def find_best_match(business_name, min_similarity=0.7):
+    def find_best_match(business_name, min_similarity=0.7, country_code='PG'):
         """
         Find the best matching business for a given name.
         Returns tuple (business, branch, similarity_score) or (None, None, 0)
@@ -637,7 +637,8 @@ class BusinessMatcher:
         
         # First try exact branch match
         branch_match = BusinessBranch.objects.filter(
-            name__icontains=business_name
+            name__icontains=business_name,
+            country_code=country_code,
         ).select_related('canonical_business').first()
         
         if branch_match:
@@ -653,7 +654,7 @@ class BusinessMatcher:
             # Find the main branch for this business
             main_branch = BusinessBranch.objects.filter(
                 canonical_business=alias_match.canonical_business,
-                is_main_branch=True
+                is_main_branch=True, country_code=country_code
             ).first()
             return alias_match.canonical_business, main_branch, 1.0
         
@@ -675,7 +676,7 @@ class BusinessMatcher:
                 # Find main branch for this business
                 main_branch = BusinessBranch.objects.filter(
                     canonical_business=alias.canonical_business,
-                    is_main_branch=True
+                    is_main_branch=True, country_code=country_code
                 ).first()
                 best_branch = main_branch
         
@@ -695,25 +696,26 @@ class BusinessMatcher:
                     # Find main branch for this business
                     main_branch = BusinessBranch.objects.filter(
                         canonical_business=business,
-                        is_main_branch=True
+                        is_main_branch=True, country_code=country_code
                     ).first()
                     best_branch = main_branch
         
         return best_match, best_branch, best_score
     
     @staticmethod
-    def create_or_match_business_with_location(business_name, location=None, created_by=None):
+    def create_or_match_business_with_location(business_name, location=None, created_by=None, country_code='PG'):
         """
         Create a new business or find existing match, optionally creating a branch.
         Returns the (business, branch, was_created) tuple.
         """
-        business, branch, similarity = BusinessMatcher.find_best_match(business_name)
+        business, branch, similarity = BusinessMatcher.find_best_match(business_name, country_code=country_code)
         
         if business and similarity >= 0.8:
             # If we have location info and it's different from main branch, create new branch
             if location and location.strip():
                 existing_branch = BusinessBranch.objects.filter(
                     canonical_business=business,
+                    country_code=country_code,
                     name__icontains=location
                 ).first()
                 
@@ -722,7 +724,8 @@ class BusinessMatcher:
                     branch = BusinessBranch.objects.create(
                         canonical_business=business,
                         name=location,
-                        slug=f"{business.slug}-{slugify(location)}",
+                        slug=f"{business.slug}-{slugify(location)}-{country_code.lower()}",
+                        country_code=country_code,
                         created_by=created_by
                     )
                     return business, branch, True
@@ -743,6 +746,7 @@ class BusinessMatcher:
         
         business = Business.objects.create(
             name=business_name,
+            country_code=country_code,
             slug=slug
         )
         
@@ -752,7 +756,8 @@ class BusinessMatcher:
             branch = BusinessBranch.objects.create(
                 canonical_business=business,
                 name=location if location.strip() else "Main Branch",
-                slug=f"{business.slug}-main",
+                slug=f"{business.slug}-{country_code.lower()}-main",
+                country_code=country_code,
                 is_main_branch=True,
                 created_by=created_by
             )
@@ -778,13 +783,13 @@ class BusinessNormalizationService:
     """
     
     @staticmethod
-    def normalize_price_report_data(business_name, location=None):
+    def normalize_price_report_data(business_name, location=None, country_code='PG'):
         """
         Normalize business data for price reports with location support.
         Returns (business, branch, was_created) tuple.
         """
         return BusinessMatcher.create_or_match_business_with_location(
-            business_name, location=location
+            business_name, location=location, country_code=country_code
         )
     
     @staticmethod
