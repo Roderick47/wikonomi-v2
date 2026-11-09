@@ -188,3 +188,10 @@ def local_price(report):
             return format_currency(amount, currency, locale="en")
         except (ValueError, TypeError):
             return f"{currency} {amount}"
+
+@register.filter
+def market_country_name(code):
+    """Name of the country recorded on a price report or business."""
+    from core.markets import country_lookup
+    match = country_lookup().get(str(code or "").upper())
+    return match["name"] if match else "Unknown country"

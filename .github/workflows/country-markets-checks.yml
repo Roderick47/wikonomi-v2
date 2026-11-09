@@ -9,6 +9,12 @@ on:
       - 'wikonomi/core/views.py'
       - 'wikonomi/core/product_views.py'
       - 'wikonomi/core/test_markets.py'
+      - 'wikonomi/core/test_market_copy.py'
+      - 'wikonomi/core/templates/**'
+      - 'wikonomi/guides/templates/**'
+      - 'wikonomi/users/templates/**'
+      - 'wikonomi/core/static/js/onboarding.js'
+      - 'wikonomi/core/templatetags/custom_filters.py'
       - 'wikonomi/core/migrations/**'
       - 'wikonomi/users/models.py'
       - 'wikonomi/users/migrations/**'
@@ -42,4 +48,4 @@ jobs:
       - name: Country, discovery and product tests
         working-directory: wikonomi
         run: |
-          python manage.py test core.test_markets core.test_discovery_feed core.test_map_history --verbosity 2
+          python manage.py test core.test_markets core.test_market_copy core.test_discovery_feed core.test_map_history --verbosity 2

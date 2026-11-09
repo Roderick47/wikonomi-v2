@@ -13,7 +13,7 @@
 <meta property="og:site_name" content="Wikonomi">
 <meta property="og:url" content="{{ base_url }}/price/{{ report.id }}/">
 <meta property="og:title" content="{{ report.product|get_attr:"name"|default:"Unknown Product" }} — {{ report.currency }} {{ report.price }} at {{ report.business|get_attr:"name"|default:"Unknown Business" }}">
-<meta property="og:description" content="Reported at {{ report.business|get_attr:"name"|default:"Unknown Business" }} on {{ reported_date|date:'N j, Y' }}. {{ report.notes|default:'Compare prices across PNG on Wikonomi.'|striptags|truncatechars:140 }}">
+<meta property="og:description" content="Reported at {{ report.business|get_attr:"name"|default:"Unknown Business" }} on {{ reported_date|date:'N j, Y' }}. {{ report.notes|default:'See the original report and compare prices on Wikonomi.'|striptags|truncatechars:140 }}">
 {% if photos %}
 <meta property="og:image" content="{{ photos.0.image.url|absolute_url:base_url }}">
 <meta property="og:image:url" content="{{ photos.0.image.url|absolute_url:base_url }}">
@@ -32,11 +32,11 @@
 <meta property="og:image:alt" content="{{ report.product|get_attr:"name"|default:"Unknown Product" }} at {{ report.business|get_attr:"name"|default:"Unknown Business" }}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:locale" content="en_PG">
+<meta property="og:locale" content="en_{{ report.country_code }}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@wikonomi">
 <meta name="twitter:title" content="{{ report.product|get_attr:"name"|default:"Unknown Product" }} — {{ report.currency }} {{ report.price }} at {{ report.business|get_attr:"name"|default:"Unknown Business" }}">
-<meta name="twitter:description" content="Reported at {{ report.business|get_attr:"name"|default:"Unknown Business" }} on {{ reported_date|date:'N j, Y' }}. {{ report.notes|default:'Compare prices across PNG on Wikonomi.'|striptags|truncatechars:140 }}">
+<meta name="twitter:description" content="Reported at {{ report.business|get_attr:"name"|default:"Unknown Business" }} on {{ reported_date|date:'N j, Y' }}. {{ report.notes|default:'See the original report and compare prices on Wikonomi.'|striptags|truncatechars:140 }}">
 {% if photos %}
 <meta name="twitter:image" content="{{ photos.0.image.url|absolute_url:base_url }}">
 {% elif report.image %}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static guide_markup socialaccount %}
+{% load static guide_markup socialaccount custom_filters %}
 
 {% block page_title %}{{ guide.title }} — Wikonomi Guides{% endblock %}
 
@@ -16,8 +16,8 @@
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="{% if guide.photo %}Cover image for {{ guide.title }}{% else %}Wikonomi — Your local guide to PNG{% endif %}">
-<meta property="og:locale" content="en_PG">
+<meta property="og:image:alt" content="{% if guide.photo %}Cover image for {{ guide.title }}{% else %}Wikonomi — Community guides{% endif %}">
+<meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ guide.title }} — Wikonomi Guides">
 <meta name="twitter:description" content="{% if guide.marked_for_deletion %}This guide has been flagged for review. Check the details before relying on it.{% elif guide.summary %}{{ guide.summary|striptags|truncatechars:180 }}{% else %}Explore practical steps and local tips for {{ guide.title }} on Wikonomi.{% endif %}">
@@ -41,6 +41,7 @@
             </p>
         </div>
     </div>
+    <p class="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="note">You are browsing Wikonomi for {{ market.name }}. This guide has not been verified for your country. Check its location, dates and official requirements before acting on country-specific instructions.{% if guide.organization %} The linked organization is listed in {{ guide.organization.country_code|market_country_name }}.{% endif %}</p>
     {% if guide.summary %}<div class="prose prose-sm max-w-none text-gray-700 mb-4">{{ guide.summary|guide_markdown }}</div>{% endif %}
     {% if guide.photo %}<img src="{{ guide.photo.url }}" alt="{{ guide.title }}" class="mb-6 aspect-[16/8] w-full rounded-2xl border border-slate-200 object-cover">{% endif %}
     {% if guide.forked_from %}<p class="text-xs text-gray-400 mb-4">Forked from <a href="{% url 'guides:detail' guide.forked_from.slug %}" class="text-brand-blueDark hover:underline">{{ guide.forked_from.title }}</a></p>{% endif %}
