@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load custom_filters cache static %}
 
-{% block page_title %}Wikonomi — PNG Price Comparison{% endblock %}
+{% block page_title %}Wikonomi — Compare local prices in {{ market.name }}{% endblock %}
 
 {% block og_tags %}
 {% with base_url="https://www.wikonomi.com" og_title="Wikonomi — Compare Prices Across PNG" og_description="Explore reported prices across PNG, record what you find in shops, and track how prices change over time." og_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
@@ -329,7 +329,7 @@
                     {% for fuel in fuel_summary %}
                     <a href="{% url 'price_detail' fuel.report.pk %}" class="block bg-white rounded-xl border border-red-100 shadow-sm hover:shadow-md transition-shadow p-4">
                         <div class="text-xs font-semibold text-red-600 uppercase tracking-wide mb-1">{{ fuel.type }}</div>
-                        <div class="wk-price-lg text-brand-greenDark">{{ fuel.report.currency }} {{ fuel.report.price|intcomma }}</div>
+                        <div class="wk-price-lg text-brand-greenDark">{{ fuel.report|local_price }}</div>
                         <p class="mt-2 text-sm text-gray-600 truncate">
                             {% if fuel.report.business %}{{ fuel.report.business.name }}{% else %}Unknown location{% endif %}
                         </p>
