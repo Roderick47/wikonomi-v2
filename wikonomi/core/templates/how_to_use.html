@@ -3,7 +3,7 @@
 {% block page_title %}How to Use Wikonomi — Complete Guide{% endblock %}
 
 {% block og_tags %}
-{% with base_url="https://www.wikonomi.com" og_title="How to Use Wikonomi" og_description="Learn how to search and share prices, businesses, practical guides, and local transport information across Papua New Guinea." og_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
+{% with base_url="https://www.wikonomi.com" og_title="How to Use Wikonomi" og_description="Learn how to search and report prices, explore businesses, and share practical guides in {{ market.name }}." og_image="https://www.wikonomi.com/static/img/wikonomi-og-default.jpg" %}
 <link rel="canonical" href="{{ base_url }}{% url 'how_to_use' %}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Wikonomi">
@@ -15,7 +15,7 @@
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:locale" content="en_PG">
+<meta property="og:locale" content="en_{{ market.code }}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@wikonomi">
 <meta name="twitter:title" content="{{ og_title }}">
@@ -46,7 +46,7 @@
                 How to use <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-green via-brand-blue to-brand-purple">Wikonomi</span>
             </h1>
             <p class="mt-6 max-w-3xl mx-auto text-lg sm:text-xl text-gray-600 leading-relaxed">
-                Wikonomi is a community-built database for useful local information in Papua New Guinea. This guide covers searching and sharing prices, businesses, practical how-to guides, and transport options.
+                Wikonomi helps people explore community-reported prices and businesses in {{ market.name }}. Learn how to choose a country, search, contribute prices and use community guides. Availability depends on what local users have shared.
             </p>
             <div class="mt-8 flex flex-wrap justify-center gap-3">
                 <a href="{% url 'home' %}" class="inline-flex items-center px-5 py-2.5 rounded-full bg-brand-blueDark text-white text-sm font-semibold shadow hover:bg-brand-blueDark/90 transition-all">
@@ -66,6 +66,12 @@
                 </a>
             </div>
         </div>
+    </section>
+
+    <section class="mb-10 rounded-2xl border border-brand-blue/20 bg-brand-blue/5 px-5 py-5 sm:px-7" aria-labelledby="country-guide-title">
+        <h2 id="country-guide-title" class="text-lg font-bold text-gray-900">Browsing in {{ market.name }}</h2>
+        <p class="mt-2 text-sm leading-6 text-gray-700">Wikonomi estimates your country from your network when you first visit. Use the globe in the navigation to choose a different country at any time. Reported prices and store comparisons are scoped to your selected country; the default currency here is <strong>{{ market.currency|default:'the local currency' }}</strong>. Changing country does not convert an existing price.</p>
+        <p class="mt-2 text-sm leading-6 text-gray-600">Not seeing prices nearby? The community may not have reported them yet. Add a real shop price to help others.</p>
     </section>
 
     <!-- Quick value cards -->
@@ -326,7 +332,7 @@
                     <div class="rounded-xl border border-gray-200 p-5">
                         <h3 class="font-bold text-gray-900">How to add one price</h3>
                         <ol class="mt-3 space-y-2 text-sm text-gray-600 list-decimal pl-5">
-                            <li>Click <span class="font-semibold text-gray-900">Post</span> in the top navigation.</li>
+                            <li>Choose <span class="font-semibold text-gray-900">Add</span> in the navigation.</li>
                             <li>Select <span class="font-semibold text-gray-900">Post Prices</span>.</li>
                             <li>Upload up to five photos if you have them.</li>
                             <li>Enter the product name. Choose an existing product if it appears, or type a new one.</li>
@@ -378,7 +384,7 @@
                         <div class="rounded-xl border border-gray-200 p-5">
                             <h3 class="font-bold text-gray-900">How to add a business</h3>
                             <ol class="mt-3 space-y-2 text-sm text-gray-600 list-decimal pl-5">
-                                <li>Click <span class="font-semibold text-gray-900">Post</span> in the top navigation.</li>
+                                <li>Choose <span class="font-semibold text-gray-900">Add</span> in the navigation.</li>
                                 <li>Select <span class="font-semibold text-gray-900">Post Business</span>.</li>
                                 <li>Enter the business name.</li>
                                 <li>Choose the industry or business type.</li>
@@ -412,15 +418,15 @@
             <section id="guides" class="guide-section wk-accent-contribute bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                 <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
                     <h2 class="text-2xl font-bold text-gray-900">Create and use practical guides</h2>
-                    <p class="mt-1 text-gray-600">Guides document how things actually get done in Papua New Guinea.</p>
+                    <p class="mt-1 text-gray-600">Guides share practical knowledge from the community. When a process depends on local rules, confirm that it applies in {{ market.name }}.</p>
                 </div>
                 <div class="p-6 space-y-6">
                     <div class="grid gap-4 md:grid-cols-2">
                         <div class="rounded-xl border border-gray-200 p-5">
                             <h3 class="font-bold text-gray-900">How to create a guide</h3>
                             <ol class="mt-3 space-y-2 text-sm text-gray-600 list-decimal pl-5">
-                                <li>Click <span class="font-semibold text-gray-900">Post</span> in the top navigation.</li>
-                                <li>Select <span class="font-semibold text-gray-900">Add Guide</span>.</li>
+                                <li>Choose <span class="font-semibold text-gray-900">Add</span> in the navigation.</li>
+                                <li>Select <span class="font-semibold text-gray-900">Create a guide</span>.</li>
                                 <li>Use a clear title that describes the outcome.</li>
                                 <li>Add a short summary and the relevant business or organisation, if there is one.</li>
                                 <li>Break the process into ordered, practical steps.</li>
@@ -434,7 +440,7 @@
                         <div class="rounded-xl border border-gray-200 p-5">
                             <h3 class="font-bold text-gray-900">What makes a guide useful</h3>
                             <ul class="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-5">
-                                <li>It reflects the current PNG process, not an overseas version.</li>
+                                <li>It clearly states the country or location it applies to, with current steps and requirements.</li>
                                 <li>Each step tells the reader what to do next.</li>
                                 <li>Important costs, documents, offices, contacts, and waiting times are included.</li>
                                 <li>Basic Markdown can be used for headings, bold text, lists, and links.</li>
@@ -521,7 +527,7 @@
                                 <tr>
                                     <td class="px-4 py-3 font-mono text-xs text-gray-900">currency</td>
                                     <td class="px-4 py-3">No</td>
-                                    <td class="px-4 py-3">Currency code. If empty, the platform can default to PGK.</td>
+                                    <td class="px-4 py-3">Three-letter currency code (for example {{ market.currency|default:'the shop currency' }}). Always verify the currency used for uploaded prices.</td>
                                 </tr>
                                 <tr>
                                     <td class="px-4 py-3 font-mono text-xs text-gray-900">notes</td>
@@ -778,9 +784,9 @@
                     <div class="rounded-xl border border-gray-200 bg-gray-50 p-5">
                         <h3 class="font-bold text-gray-900">Example of a good report</h3>
                         <div class="mt-3 grid gap-3 sm:grid-cols-2 text-sm text-gray-600">
-                            <p><span class="font-semibold text-gray-900">Product:</span> Trukai Rice 10kg</p>
-                            <p><span class="font-semibold text-gray-900">Price:</span> PGK 65.00</p>
-                            <p><span class="font-semibold text-gray-900">Business:</span> Stop &amp; Shop Boroko</p>
+                            <p><span class="font-semibold text-gray-900">Product:</span> Rice 10kg</p>
+                            <p><span class="font-semibold text-gray-900">Price:</span> {{ market.currency|default:'Local currency' }} 65</p>
+                            <p><span class="font-semibold text-gray-900">Business:</span> Example shop in {{ market.name }}</p>
                             <p><span class="font-semibold text-gray-900">Notes:</span> Shelf price, taken today, normal white rice bag.</p>
                             <p><span class="font-semibold text-gray-900">Photo:</span> Clear photo of shelf tag and product.</p>
                             <p><span class="font-semibold text-gray-900">Location:</span> Store location pinned correctly on the map.</p>
@@ -844,7 +850,7 @@
             <!-- Final CTA -->
             <section class="rounded-3xl bg-gradient-to-r from-brand-purple via-brand-blue to-brand-green p-1 shadow-lg">
                 <div class="rounded-[1.35rem] bg-white px-6 py-8 text-center">
-                    <h2 class="text-2xl font-extrabold text-gray-900">Ready to help build PNG's local information database?</h2>
+                    <h2 class="text-2xl font-extrabold text-gray-900">Ready to make local shopping information better in {{ market.name }}?</h2>
                     <p class="mt-3 max-w-2xl mx-auto text-gray-600">Search before you spend. Share what you see and know. Correct what is wrong. The more people contribute, the more useful Wikonomi becomes for everyone.</p>
                     <div class="mt-6 flex flex-wrap justify-center gap-3">
                         <a href="{% url 'home' %}" class="inline-flex items-center px-5 py-2.5 rounded-full bg-brand-blueDark text-white text-sm font-semibold shadow hover:bg-brand-blueDark/90 transition-all">Start Searching</a>
