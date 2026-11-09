@@ -131,3 +131,8 @@ def choose_market(request):
         return response
 
     return apply(request)
+
+def request_country_code(request):
+    """Default a bare/mock request to PNG when middleware did not run."""
+    code = getattr(request, "market_country_code", None)
+    return code.upper() if isinstance(code, str) and valid_country(code) else DEFAULT_COUNTRY

@@ -345,7 +345,7 @@
                 </h2>
                 <p class="mt-1 text-sm text-gray-500">{% if not request.GET.q and current_sort == 'discover' %}Different shops and products in {{ market.name }} · Newest reports from each shop first{% else %}Community-reported prices · Check the report date before shopping{% endif %}</p>
                 {% if location_fallback %}
-                <p class="mt-3 rounded-xl border border-brand-blue/30 bg-brand-blue/10 px-4 py-3 text-sm text-gray-700" role="status">No matching price reports within {{ nearby_radius_km }} km of this location yet, so we're showing available reports in {{ market.name }}. <a href="{% url 'add_price' %}" class="font-semibold text-brand-blueDark underline">Record a local price</a>.</p>
+                <p class="mt-3 rounded-xl border border-brand-blue/30 bg-brand-blue/10 px-4 py-3 text-sm text-gray-700" role="status">No matching price reports within {{ nearby_radius_km }} km of this location yet, so we're {% if market.code == 'PG' %}showing available reports from across PNG{% else %}showing available reports in {{ market.name }}{% endif %}. <a href="{% url 'add_price' %}" class="font-semibold text-brand-blueDark underline">Record a local price</a>.</p>
                 {% endif %}
 
                 {% if request.GET.q %}
@@ -701,12 +701,12 @@ function initPriceMap() {
                     const markers = [];
                     data.items.forEach(price => {
                         const marker = L.marker([price.lat, price.lng], {
-                            icon: createPriceMarkerIcon(shortPriceLabel(price.price), 'other', price.product),
+                            icon: createPriceMarkerIcon(shortPriceLabel(price.formatted_price || price.price), 'other', price.product),
                         });
                         const popup = document.createElement('div');
                         for (const [value, className] of [
                             [price.product, 'font-semibold text-sm text-gray-900'],
-                            [price.price, 'text-brand-purple font-bold'],
+                            [price.formatted_price || price.price, 'text-brand-purple font-bold'],
                             [`Reported ${price.date}`, 'text-xs text-gray-500'],
                             [`Last updated ${price.updated_date || price.date}`, 'text-xs text-gray-500'],
                             [price.business, 'text-xs text-gray-600 mt-1'],

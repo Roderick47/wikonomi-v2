@@ -189,7 +189,8 @@ class PriceReportCreateViewTest(TestCase):
         self.client.post(self.url, data)
         mock_normalize.assert_called_once_with(
             business_name='New Business',
-            location='Port Moresby'
+            location='Port Moresby',
+            country_code='PG',
         )
 
     def test_tags_processing(self):

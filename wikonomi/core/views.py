@@ -29,6 +29,7 @@ from django.templatetags.static import static
 from .models import STALE_PRICE_DAYS, PriceReport, PriceHistory, Product, Business, ProductWatchlist, Notification, ShoppingList, ShoppingListItem, ProductNormalizationService, ProductAlias, BusinessNormalizationService, BusinessMatcher, PriceLike, PriceReportRating, BusinessRating, create_like_threshold_notification, PriceReportPhoto
 from comments.models import Comment
 from .utils import annotate_with_distance
+from .markets import request_country_code
 from categories.models import Category as PriceCategory, Subcategory, BusinessCategory, BusinessSubcategory
 
 
@@ -500,7 +501,7 @@ def _get_prices_queryset(request, for_map=False):
         )
 
     # Share the same national scope between the feed, API map and pagination.
-    qs = qs.filter(country_code=request.market_country_code)
+    qs = qs.filter(country_code=request_country_code(request))
 
     if query:
         # Enhanced search using product normalization
@@ -577,7 +578,7 @@ def _get_business_queryset(request):
     
     if query:
         # Enhanced business search
-        code = request.market_country_code
+        code = request_country_code(request)
         businesses = set(Business.objects.filter(
             Q(country_code=code) | Q(branches__country_code=code)
             | Q(price_reports__country_code=code),
@@ -592,7 +593,7 @@ def _get_business_queryset(request):
             # Get businesses that have price reports for these products
             if matched_product_ids:
                 businesses_with_matched_products = set(Business.objects.filter(
-                    price_reports__country_code=request.market_country_code,
+                    price_reports__country_code=code,
                     price_reports__product_id__in=matched_product_ids
                 ).distinct())
                 
@@ -727,7 +728,8 @@ def api_map_prices(request):
             'lat': float(p.latitude),
             'lng': float(p.longitude),
             'product': p.product.name,
-            'price': _market_price(p),
+            'price': f"{p.currency} {p.price:,.2f}",
+            'formatted_price': _market_price(p),
             'rawPrice': float(p.price),
             'id': p.pk,
             'is_stale': p.is_stale,
