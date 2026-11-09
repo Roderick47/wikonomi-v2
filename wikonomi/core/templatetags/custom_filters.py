@@ -168,3 +168,23 @@ def nearby_other_product_reports(report, limit=5):
     ).order_by('-observed_at')
 
     return qs[:limit]
+
+@register.filter
+def local_price(report):
+    """Format an observation in its own currency (never currency conversion)."""
+    if report is None:
+        return ""
+    from babel.numbers import format_currency
+    from babel.core import UnknownLocaleError
+    currency = (getattr(report, "currency", "") or "PGK").upper()
+    country = (getattr(report, "country_code", "") or "PG").upper()
+    amount = getattr(report, "price", None)
+    if amount is None:
+        return ""
+    try:
+        return format_currency(amount, currency, locale="en_" + country)
+    except (UnknownLocaleError, ValueError, TypeError):
+        try:
+            return format_currency(amount, currency, locale="en")
+        except (ValueError, TypeError):
+            return f"{currency} {amount}"

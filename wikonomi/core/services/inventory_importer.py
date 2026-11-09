@@ -90,6 +90,7 @@ def _import_row(row, session):
             user=session.user,
             price=row.price,
             currency=row.currency,
+            country_code=session.business.country_code,
             latitude=latitude,
             longitude=longitude,
             notes=row.notes,

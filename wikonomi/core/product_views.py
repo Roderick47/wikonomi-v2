@@ -139,12 +139,16 @@ def business_list(request):
     query = request.GET.get('q', '').strip()
     sort = request.GET.get('sort', 'popular')
 
-    businesses = Business.objects.annotate(
-        report_count=Count('price_reports', distinct=True),
-        product_count=Count('price_reports__product', distinct=True),
+    code = request.market_country_code
+    businesses = Business.objects.filter(
+        Q(country_code=code) | Q(branches__country_code=code)
+        | Q(price_reports__country_code=code)
+    ).distinct().annotate(
+        report_count=Count('price_reports', filter=Q(price_reports__country_code=code), distinct=True),
+        product_count=Count('price_reports__product', filter=Q(price_reports__country_code=code), distinct=True),
         avg_rating=Avg('ratings__rating'),
         rating_count=Count('ratings', distinct=True),
-        latest_observed=Max('price_reports__observed_at'),
+        latest_observed=Max('price_reports__observed_at', filter=Q(price_reports__country_code=code)),
     )
 
     if query:
@@ -175,6 +179,7 @@ def business_list(request):
         businesses_page = paginator.page(paginator.num_pages or 1)
 
     latest_reports = PriceReport.objects.filter(
+        country_code=code,
         business_id__in=[business.id for business in businesses_page.object_list]
     ).select_related('product', 'business_branch').order_by('business_id', '-observed_at')
     latest_by_business = {}
@@ -197,6 +202,7 @@ def product_detail(request, pk):
 
     analysis_reports = PriceReport.objects.filter(
         product_id__in=product_ids,
+        country_code=request.market_country_code,
         marked_for_deletion=False,
     )
     base_reports = analysis_reports.select_related(
@@ -218,12 +224,12 @@ def product_detail(request, pk):
     currency_counts = {}
     for report in current_reports_list:
         currency_counts[report.currency] = currency_counts.get(report.currency, 0) + 1
-    if 'PGK' in currency_counts:
-        comparison_currency = 'PGK'
+    if request.market_currency in currency_counts:
+        comparison_currency = request.market_currency
     elif currency_counts:
         comparison_currency = max(currency_counts, key=currency_counts.get)
     else:
-        comparison_currency = 'PGK'
+        comparison_currency = request.market_currency or 'PGK'
 
     comparison_cutoff = timezone.now() - timedelta(days=COMPARISON_STALE_AFTER_DAYS)
     comparable_reports_plain = current_reports_plain.filter(
@@ -358,6 +364,7 @@ def product_detail(request, pk):
     product_photos = PriceReportPhoto.objects.filter(
         price_report__product_id__in=product_ids,
         price_report__marked_for_deletion=False,
+        price_report__country_code=request.market_country_code,
     ).select_related('price_report', 'price_report__business').order_by('-price_report__observed_at')[:12]
     if not product_photos and product.image:
         product_photos = []
@@ -406,13 +413,38 @@ def product_list(request):
     query = request.GET.get('q', '').strip()
     sort = request.GET.get('sort', 'popular')
 
-    products = Product.objects.prefetch_related('tags', 'catalog_images').annotate(
-        report_count=Count('price_reports', distinct=True),
-        business_count=Count('price_reports__business', distinct=True),
-        min_price=Min('price_reports__price'),
-        max_price=Max('price_reports__price'),
-        avg_price=Avg('price_reports__price'),
-        latest_observed=Max('price_reports__observed_at'),
+    code = request.market_country_code
+    products = Product.objects.filter(
+        price_reports__country_code=code,
+        price_reports__marked_for_deletion=False,
+    ).distinct().prefetch_related('tags', 'catalog_images').annotate(
+        report_count=Count('price_reports', filter=Q(
+            price_reports__country_code=code,
+            price_reports__marked_for_deletion=False,
+        ), distinct=True),
+        business_count=Count('price_reports__business', filter=Q(
+            price_reports__country_code=code,
+            price_reports__marked_for_deletion=False,
+        ), distinct=True),
+        min_price=Min('price_reports__price', filter=Q(
+            price_reports__country_code=code,
+            price_reports__currency=request.market_currency,
+            price_reports__marked_for_deletion=False,
+        )),
+        max_price=Max('price_reports__price', filter=Q(
+            price_reports__country_code=code,
+            price_reports__currency=request.market_currency,
+            price_reports__marked_for_deletion=False,
+        )),
+        avg_price=Avg('price_reports__price', filter=Q(
+            price_reports__country_code=code,
+            price_reports__currency=request.market_currency,
+            price_reports__marked_for_deletion=False,
+        )),
+        latest_observed=Max('price_reports__observed_at', filter=Q(
+            price_reports__country_code=code,
+            price_reports__marked_for_deletion=False,
+        )),
     )
 
     if query:
@@ -443,6 +475,7 @@ def product_list(request):
         products_page = paginator.page(paginator.num_pages)
 
     latest_reports = PriceReport.objects.filter(
+        country_code=code,
         product_id__in=[product.id for product in products_page.object_list],
         marked_for_deletion=False,
     ).select_related('business', 'business_branch').order_by('product_id', '-observed_at')
@@ -465,6 +498,7 @@ def product_price_analysis(request, pk):
     product_ids = _product_family_ids(product)
     reports = PriceReport.objects.filter(
         product_id__in=product_ids,
+        country_code=request.market_country_code,
         marked_for_deletion=False,
     ).select_related('business', 'business_branch').order_by('observed_at')
 

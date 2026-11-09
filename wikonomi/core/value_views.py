@@ -11,7 +11,7 @@ from .models import Product, ShoppingList
 
 
 def _currency_from_request(request):
-    value = (request.GET.get('currency') or 'PGK').strip().upper()
+    value = (request.GET.get('currency') or request.market_currency or 'PGK').strip().upper()
     return value[:3] if len(value) >= 3 else 'PGK'
 
 
@@ -24,6 +24,7 @@ def product_value_analysis(request, pk):
     comparison = build_product_value_comparison(
         product,
         currency=currency,
+        country_code=request.market_country_code,
         stale_after_days=VALUE_STALE_AFTER_DAYS,
     )
     return render(request, 'product_value_analysis.html', {
@@ -53,6 +54,7 @@ def shopping_list_compare(request):
     comparison = build_basket_comparison(
         items,
         currency=currency,
+        country_code=request.market_country_code,
         stale_after_days=VALUE_STALE_AFTER_DAYS,
     )
     return render(request, 'shopping_list_compare.html', {

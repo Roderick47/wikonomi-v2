@@ -102,14 +102,17 @@ def _unique_business_slug(name):
 def _resolve_business(request):
     business_id = request.POST.get('business', '').strip()
     if business_id.isdigit():
-        return Business.objects.filter(pk=business_id).first()
+        return Business.objects.filter(pk=business_id, country_code=request.market_country_code).first()
     name = request.POST.get('business_name', '').strip()
     if not name:
         return None
-    business = Business.objects.filter(name__iexact=name).first()
+    business = Business.objects.filter(
+        name__iexact=name, country_code=request.market_country_code,
+    ).first()
     if business:
         return business
-    return Business.objects.create(name=name[:255], slug=_unique_business_slug(name))
+    return Business.objects.create(name=name[:255], slug=_unique_business_slug(name),
+                                   country_code=request.market_country_code)
 
 
 def _inventory_file_error(uploaded):
@@ -129,11 +132,13 @@ def _inventory_file_error(uploaded):
 
 @login_required
 def inventory_upload(request):
-    businesses = Business.objects.order_by('name')
+    businesses = Business.objects.filter(country_code=request.market_country_code).order_by('name')
     selected_business = None
     selected_id = request.GET.get('business', '')
     if selected_id.isdigit():
-        selected_business = Business.objects.filter(pk=selected_id).first()
+        selected_business = Business.objects.filter(
+            pk=selected_id, country_code=request.market_country_code,
+        ).first()
 
     active_session = (
         BulkImportSession.objects.filter(

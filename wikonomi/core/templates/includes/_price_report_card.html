@@ -62,12 +62,12 @@
                         </p>
                         {% else %}
                         <p class="mt-1 text-2xl font-extrabold text-brand-green leading-none"{% if price_card_editable %} id="wk-price-badge"{% endif %}>
-                            <span{% if price_card_editable %} class="wk-price-prefix"{% endif %}>{{ report.currency }}</span>
                             {% if price_card_editable %}
+                            <span class="wk-price-prefix">{{ report.currency }}</span>
                             <span class="wk-editable cursor-pointer" data-field="price">{{ report.price|floatformat:2 }}</span>
                             <input type="number" step="0.01" name="price" class="wk-edit-input hidden w-28 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xl font-extrabold text-gray-900 focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20">
                             {% else %}
-                            {{ report.price|intcomma }}
+                            {{ report|local_price }}
                             {% endif %}
                         </p>
                         {% if promo_price and price_card_editable %}

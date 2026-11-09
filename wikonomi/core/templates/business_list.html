@@ -87,7 +87,7 @@
                     {% if business.latest_report %}
                     <div class="mt-2 flex min-w-0 items-center justify-between gap-3 border-t border-gray-200 pt-2 text-xs">
                         <span class="shrink-0 text-gray-500">Latest</span>
-                        <span class="min-w-0 flex-1 truncate text-right font-medium text-gray-700">{{ business.latest_report.product.name }} · {{ business.latest_report.currency }} {{ business.latest_report.price|intcomma }}</span>
+                        <span class="min-w-0 flex-1 truncate text-right font-medium text-gray-700">{{ business.latest_report.product.name }} · {{ business.latest_report|local_price }}</span>
                     </div>
                     {% endif %}
                 </div>
@@ -105,7 +105,7 @@
         {% else %}
         <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center">
             <h2 class="text-xl font-bold text-gray-900">No businesses found{% if search_query %} for “{{ search_query }}”{% endif %}</h2>
-            <p class="mt-2 text-gray-600">If this store should be on Wikonomi, add it so the community can start reporting prices there.</p>
+            <p class="mt-2 text-gray-600">If this store should be on Wikonomi in {{ market.name }}, add it so the community can start reporting prices there.</p>
             <a href="{% url 'add_business' %}{% if search_query %}?name={{ search_query|urlencode }}{% endif %}" class="mt-5 inline-flex rounded-full bg-brand-greenDark px-5 py-2 text-sm font-semibold text-white hover:bg-brand-greenDark/90">Add this business</a>
         </div>
         {% endif %}

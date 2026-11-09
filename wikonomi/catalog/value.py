@@ -136,7 +136,7 @@ def package_label(measure):
     return single
 
 
-def _latest_current_reports(product_ids, *, currency='PGK', stale_after_days=VALUE_STALE_AFTER_DAYS):
+def _latest_current_reports(product_ids, *, currency='PGK', country_code='PG', stale_after_days=VALUE_STALE_AFTER_DAYS):
     """Return one fresh latest observation per product and store/branch."""
     from core.models import PriceReport
 
@@ -144,6 +144,7 @@ def _latest_current_reports(product_ids, *, currency='PGK', stale_after_days=VAL
     candidates = PriceReport.objects.filter(
         product_id__in=product_ids,
         currency=currency,
+        country_code=country_code,
         marked_for_deletion=False,
         price__gt=0,
         observed_at__gte=cutoff,
@@ -210,7 +211,7 @@ def _candidate_products_for_value(product, measure):
     return candidates
 
 
-def build_product_value_comparison(product, *, currency='PGK', stale_after_days=VALUE_STALE_AFTER_DAYS, limit=30):
+def build_product_value_comparison(product, *, currency='PGK', country_code='PG', stale_after_days=VALUE_STALE_AFTER_DAYS, limit=30):
     """Build unit-price rankings without altering exact-product price semantics."""
     currency = (currency or 'PGK').upper()[:3]
     product_measure = resolve_product_measure(product)
@@ -233,6 +234,7 @@ def build_product_value_comparison(product, *, currency='PGK', stale_after_days=
     reports = _latest_current_reports(
         [candidate.pk for candidate in candidates],
         currency=currency,
+        country_code=country_code,
         stale_after_days=stale_after_days,
     )
 
@@ -301,7 +303,7 @@ def build_product_value_comparison(product, *, currency='PGK', stale_after_days=
     }
 
 
-def build_basket_comparison(items, *, currency='PGK', stale_after_days=VALUE_STALE_AFTER_DAYS):
+def build_basket_comparison(items, *, currency='PGK', country_code='PG', stale_after_days=VALUE_STALE_AFTER_DAYS):
     """
     Compare an exact shopping basket across stores using fresh latest prices.
 
@@ -323,6 +325,7 @@ def build_basket_comparison(items, *, currency='PGK', stale_after_days=VALUE_STA
     reports = _latest_current_reports(
         product_ids,
         currency=currency,
+        country_code=country_code,
         stale_after_days=stale_after_days,
     ) if product_ids else []
 

@@ -61,6 +61,7 @@ def build_price_share_context(report, *, base_url=''):
 
     analysis_reports = PriceReport.objects.filter(
         product_id__in=product_ids,
+        country_code=report.country_code,
         marked_for_deletion=False,
         price__gt=0,
     ).exclude(currency='')

@@ -10,7 +10,7 @@
 <meta property="og:site_name" content="Wikonomi">
 <meta property="og:url" content="{{ base_url }}{% url 'product_list' %}">
 <meta property="og:title" content="Products on Wikonomi">
-<meta property="og:description" content="Browse products listed on Wikonomi and compare the latest known prices from PNG stores.">
+<meta property="og:description" content="Browse products listed on Wikonomi and compare the latest known prices from local stores.">
 <meta property="og:image" content="{{ og_image }}">
 <meta property="og:image:secure_url" content="{{ og_image }}">
 <meta property="og:image:type" content="image/jpeg">
@@ -19,7 +19,7 @@
 <meta property="og:locale" content="en_PG">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Products on Wikonomi">
-<meta name="twitter:description" content="Browse products listed on Wikonomi and compare the latest known prices from PNG stores.">
+<meta name="twitter:description" content="Browse products listed on Wikonomi and compare the latest known prices from local stores.">
 <meta name="twitter:image" content="{{ og_image }}">
 {% endwith %}
 {% endblock %}
@@ -94,7 +94,7 @@
                     <div class="flex items-start justify-between gap-3">
                         <div>
                             <span class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Latest observation</span>
-                            <span class="wk-price mt-1 block text-gray-900">{{ product.latest_report.currency }} {{ product.latest_report.price|floatformat:2|intcomma }}</span>
+                            <span class="wk-price mt-1 block text-gray-900">{{ product.latest_report|local_price }}</span>
                         </div>
                         <span class="text-right text-xs text-gray-500">{{ product.latest_report.observed_at|rounded_timesince }}</span>
                     </div>
@@ -103,7 +103,7 @@
                         <span class="font-bold text-brand-purple">Compare stores →</span>
                     </div>
                     {% else %}
-                    <p class="text-gray-500">No valid price reports yet.</p>
+                    <p class="text-gray-500">No valid price reports in {{ market.name }} yet.</p>
                     {% endif %}
                 </div>
             </a>
