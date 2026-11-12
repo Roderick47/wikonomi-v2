@@ -1,0 +1,63 @@
+{% extends "mobile/base.html" %}
+{% block title %}Snap a price · Wikonomi{% endblock %}
+{% block content %}
+<section class="welcome compact">
+  <p class="eyebrow">NEW CONTRIBUTION</p>
+  <h1>Snap a price</h1>
+  <p>Choose the product and shop, then confirm what you saw. Submissions are reviewed before publication.</p>
+</section>
+<form action="{% url 'mobile:submit' %}" method="post" enctype="multipart/form-data" id="price-form" class="form-card">
+  {% csrf_token %}
+  {{ form.client_submission_id }}
+  {{ form.observed_at }}
+  {{ form.product }}
+  {{ form.business_branch }}
+  {% if form.non_field_errors %}<div class="notice error">{{ form.non_field_errors }}</div>{% endif %}
+
+  <div class="form-section">
+    <label for="id_photo" class="field-title"><span class="step">1</span> Photograph the price tag</label>
+    <label class="photo-drop" for="id_photo">
+      <span class="photo-icon">▣</span>
+      <strong>Tap to open camera</strong>
+      <small>or choose a photo · JPEG, PNG or WebP · 8 MB maximum</small>
+      <img id="photo-preview" alt="Selected price tag preview" hidden>
+    </label>
+    {{ form.photo }}
+    {{ form.photo.errors }}
+  </div>
+
+  <div class="form-section">
+    <label class="field-title" for="product-search"><span class="step">2</span> What product is this?</label>
+    <div class="autocomplete" data-search-kind="products" data-search-url="{% url 'mobile:search_products' %}" data-hidden-id="id_product">
+      <input id="product-search" type="search" placeholder="Search product e.g. Trukai rice" autocomplete="off" value="{{ product_label }}" required>
+      <div class="suggestions" role="listbox" hidden></div>
+    </div>
+    {{ form.product.errors }}
+    <p class="hint">Choose a product from the results. New products can be added on the <a href="{% url 'add_price' %}" target="_blank" rel="noopener">full website</a>.</p>
+  </div>
+
+  <div class="form-section">
+    <label class="field-title" for="branch-search"><span class="step">3</span> Which shop or branch?</label>
+    <div class="autocomplete" data-search-kind="branches" data-search-url="{% url 'mobile:search_branches' %}" data-hidden-id="id_business_branch">
+      <input id="branch-search" type="search" placeholder="Search shop or branch" autocomplete="off" value="{{ branch_label }}" required>
+      <div class="suggestions" role="listbox" hidden></div>
+    </div>
+    {{ form.business_branch.errors }}
+    <p class="hint">For accurate comparisons, select the actual branch where the price was seen.</p>
+  </div>
+
+  <div class="form-section">
+    <label class="field-title" for="id_price"><span class="step">4</span> Price (PGK)</label>
+    <div class="price-field"><span>K</span>{{ form.price }}</div>
+    {{ form.price.errors }}
+  </div>
+
+  <div class="notice quiet">Your photo is retained as price evidence. A reviewer will check the submission before it is published.</div>
+  <p id="draft-status" class="hint" role="status" aria-live="polite"></p>
+  <div class="form-actions">
+    <button class="btn-secondary" type="button" id="save-draft">Save draft</button>
+    <button class="btn-primary" type="submit" id="submit-price">Submit price →</button>
+  </div>
+</form>
+<noscript><p class="notice error">JavaScript is required to search products and branches in the mobile app. Please use the full Wikonomi website if it is unavailable.</p></noscript>
+{% endblock %}
